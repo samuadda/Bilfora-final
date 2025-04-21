@@ -35,16 +35,16 @@ export default function Home() {
                                             d="M25.1667 14.187H20.3333C17.6637 14.187 15.5 16.3507 15.5 19.0203V19.8258C15.5 19.8258 18.0174 20.6314 22.75 20.6314C27.4826 20.6314 30 19.8258 30 19.8258V19.0203C30 16.3507 27.8363 14.187 25.1667 14.187Z"
                                             stroke="#28CC9D"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                         <path
                                             d="M18.7227 6.9369C18.7227 4.71276 20.5263 2.90912 22.7504 2.90912C24.9746 2.90912 26.7782 4.71276 26.7782 6.9369C26.7782 9.16104 24.9746 11.7702 22.7504 11.7702C20.5263 11.7702 18.7227 9.16104 18.7227 6.9369Z"
                                             stroke="#28CC9D"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                         <path
@@ -52,8 +52,8 @@ export default function Home() {
                                             fill="#0B1715"
                                             stroke="white"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                         <path
@@ -61,8 +61,8 @@ export default function Home() {
                                             fill="#0B1715"
                                             stroke="white"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                     </svg>
@@ -75,11 +75,11 @@ export default function Home() {
                                             d="M19.8335 21.9166H3.16683C2.6143 21.9166 2.08439 21.6972 1.69369 21.3065C1.30299 20.9158 1.0835 20.3858 1.0835 19.8333V3.16665C1.0835 2.61411 1.30299 2.08421 1.69369 1.69351C2.08439 1.30281 2.6143 1.08331 3.16683 1.08331H19.8335C20.386 1.08331 20.9159 1.30281 21.3066 1.69351C21.6973 2.08421 21.9168 2.61411 21.9168 3.16665V19.8333C21.9168 20.3858 21.6973 20.9158 21.3066 21.3065C20.9159 21.6972 20.386 21.9166 19.8335 21.9166Z"
                                             stroke="white"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
-                                        <path d="M7 12.6667L9.25 15L16 8" stroke="#28CC9D" strokeWidth="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="M7 12.6667L9.25 15L16 8" stroke="#28CC9D" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" stroke-linejoin="round" />
                                     </svg>
                                     <p className="ml-3 text-sm text-white">No yearly charges, maximum limits</p>
                                 </div>
@@ -90,24 +90,24 @@ export default function Home() {
                                             d="M17 11H3C1.89543 11 1 11.8954 1 13V21C1 22.1046 1.89543 23 3 23H17C18.1046 23 19 22.1046 19 21V13C19 11.8954 18.1046 11 17 11Z"
                                             stroke="white"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                         <path
                                             d="M10 19C11.1046 19 12 18.1046 12 17C12 15.8954 11.1046 15 10 15C8.89543 15 8 15.8954 8 17C8 18.1046 8.89543 19 10 19Z"
                                             stroke="#28CC9D"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                         <path
                                             d="M15 7V6C15.0131 4.68724 14.5042 3.42303 13.5853 2.48539C12.6664 1.54776 11.4128 1.01346 10.1 1H10C8.68724 0.986939 7.42303 1.4958 6.48539 2.41469C5.54776 3.33357 5.01346 4.58724 5 5.9V7"
                                             stroke="#28CC9D"
                                             strokeWidth="1.5"
-                                            stroke-miterlimit="10"
-                                            stroke-linecap="round"
+                                            strokeMiterlimit="10"
+                                            strokeLinecap="round"
                                             stroke-linejoin="round"
                                         />
                                     </svg>
