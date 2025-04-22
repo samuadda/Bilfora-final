@@ -1,11 +1,12 @@
 import React from "react";
-import { cn } from "@/lib/utils"; // Or use clsx if you prefer
+import { cn } from "@/lib/utils";
 
 interface MainButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     text: string;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
     bgColor?: string;
+    hoverBgColor?: string;
     textColor?: string;
     shadowColor?: string;
     className?: string;
@@ -14,24 +15,31 @@ interface MainButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 const MainButton: React.FC<MainButtonProps> = ({
     text = "هات العلم",
     rightIcon = (
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 transition-all duration-300 group-hover:-translate-x-1 rotate-180">
-            <path d="M12 4L10.6 5.4L16.2 11H4V13H16.2L10.6 18.6L12 20L20 12L12 4Z" />
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="lucide lucide-chevron-left-icon lucide-chevron-left transition-all duration-200 group-hover:-translate-x-1"
+        >
+            <path d="m15 18-6-6 6-6" />
         </svg>
     ),
     bgColor = "bg-zinc-900",
+    hoverBgColor = "hover:bg-[#012d46]", // <-- Default hover color
     textColor = "text-amber-300",
-    shadowColor = "rgba(251,191,36", // Tailwind amber-400 base
+    shadowColor = "rgba(251,191,36",
     className,
     ...props
 }) => {
     return (
         <button
-            className={cn(
-                "group relative px-6 py-2 rounded-4xl font-bold border-b-4 transition-all duration-300 ease-in-out shadow-[0_10px_20px_var(--shadow)] hover:shadow-[0_15px_30px_var(--shadow-deep)] active:translate-y-1",
-                bgColor,
-                textColor,
-                className
-            )}
+            className={cn("group relative px-5 py-1.5 rounded-4xl font-bold transition-all duration-100 ease-in-out active:translate-y-1", bgColor, hoverBgColor, textColor, className)}
             style={
                 {
                     "--shadow": `${shadowColor},0.15)`,
@@ -40,7 +48,7 @@ const MainButton: React.FC<MainButtonProps> = ({
             }
             {...props}
         >
-            <span className="flex items-center gap-3 relative z-10">
+            <span className="flex items-center gap-2 relative z-10">
                 {text}
                 {rightIcon}
             </span>

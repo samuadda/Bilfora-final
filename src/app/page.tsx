@@ -37,7 +37,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                         <path
                                             d="M18.7227 6.9369C18.7227 4.71276 20.5263 2.90912 22.7504 2.90912C24.9746 2.90912 26.7782 4.71276 26.7782 6.9369C26.7782 9.16104 24.9746 11.7702 22.7504 11.7702C20.5263 11.7702 18.7227 9.16104 18.7227 6.9369Z"
@@ -45,7 +45,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                         <path
                                             d="M13.2231 15.8512H7.11157C3.73595 15.8512 1 18.5871 1 21.9628V22.9814C1 22.9814 4.18311 24 10.1674 24C16.1516 24 19.3347 22.9814 19.3347 22.9814V21.9628C19.3347 18.5871 16.5988 15.8512 13.2231 15.8512Z"
@@ -54,7 +54,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                         <path
                                             d="M5.07422 6.68386C5.07422 3.87152 7.35485 1.59088 10.1672 1.59088C12.9795 1.59088 15.2602 3.87152 15.2602 6.68386C15.2602 9.4962 12.9795 12.7954 10.1672 12.7954C7.35485 12.7954 5.07422 9.4962 5.07422 6.68386Z"
@@ -63,7 +63,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                     </svg>
                                     <p className="ml-3 text-sm text-white">Over 12,000 students joined</p>
@@ -77,9 +77,9 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
-                                        <path d="M7 12.6667L9.25 15L16 8" stroke="#28CC9D" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" stroke-linejoin="round" />
+                                        <path d="M7 12.6667L9.25 15L16 8" stroke="#28CC9D" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                     <p className="ml-3 text-sm text-white">No yearly charges, maximum limits</p>
                                 </div>
@@ -92,7 +92,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                         <path
                                             d="M10 19C11.1046 19 12 18.1046 12 17C12 15.8954 11.1046 15 10 15C8.89543 15 8 15.8954 8 17C8 18.1046 8.89543 19 10 19Z"
@@ -100,7 +100,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                         <path
                                             d="M15 7V6C15.0131 4.68724 14.5042 3.42303 13.5853 2.48539C12.6664 1.54776 11.4128 1.01346 10.1 1H10C8.68724 0.986939 7.42303 1.4958 6.48539 2.41469C5.54776 3.33357 5.01346 4.58724 5 5.9V7"
@@ -108,7 +108,7 @@ export default function Home() {
                                             strokeWidth="1.5"
                                             strokeMiterlimit="10"
                                             strokeLinecap="round"
-                                            stroke-linejoin="round"
+                                            strokeLinejoin="round"
                                         />
                                     </svg>
                                     <p className="ml-3 text-sm text-white">Secured & safe online payment</p>
