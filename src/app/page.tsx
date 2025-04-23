@@ -1,11 +1,11 @@
-'use client'
+"use client";
 import Navbar from "@/components/landing-page/Navbar";
 
 export default function Home() {
     return (
-      <>
-        <div className="bg-gradient-to-b from-[#fff] relative to-[#fff]">
-          <Navbar />
+        <>
+            <div className="bg-gradient-to-b from-[#ffffff] relative to-[#ffffff]">
+                <Navbar />
                 <section className="relative lg:min-h-[1000px] pt-24 pb-10 sm:pt-32 sm:pb-16 lg:pb-24">
                     <div className="absolute inset-x-0 bottom-0 z-10 hidden lg:flex">
                         <img className="hidden w-full lg:block" src="https://cdn.rareblocks.xyz/collection/celebration/images/hero/5/credit-cards.png" alt="" />
