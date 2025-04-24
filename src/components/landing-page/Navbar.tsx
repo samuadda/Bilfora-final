@@ -20,7 +20,7 @@ const Navbar = () => {
 
     return (
         <>
-            <motion.nav initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} className="fixed top-0 navbar bg-white/10 backdrop-blur-md  border-b border-white/20 px-7 z-50">
+            <motion.nav initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} className="fixed top-0 navbar bg-white/10 backdrop-blur-md  border-b border-white/20 px-7 z-50 rounded-">
                 <div className="navbar-start">
                     {/* logo */}
                     <Link href="/">
