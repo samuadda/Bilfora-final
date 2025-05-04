@@ -3,10 +3,10 @@ import Navbar from "@/components/landing-page/Navbar";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import MainButton from "@/components/MainButton";
-import { MacbookScroll } from "@/components/landing-page/macbook-scroll";
 import { TypewriterEffect } from "@/components/landing-page/typewriter-effect";
 import {TextAnimate} from "@/components/landing-page/text-animate";
 import { motion } from "framer-motion";
+import Iphone15Pro from "@/components/landing-page/iphone-15-pro";
 
 export default function Home() {
         const heroWords = [
@@ -32,11 +32,7 @@ export default function Home() {
                                 بيلفورا هي منصتك الذكية لإصدار الفواتير الإلكترونية للمستقلين وأصحاب الأعمال
                             </TextAnimate>
                             {/* CTA Buttons  */}
-                            <motion.div
-                                initial={{ opacity: 0}}
-                                animate={{ opacity: 1}}
-                                transition={{ duration: 0.5, delay: 1.5 }}
-                                className="flex items-center justify-center gap-10 mt-8">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 1.5 }} className="flex items-center justify-center gap-10 mt-8">
                                 <Link href="/" className="items-center gap-0.5 group lg:flex">
                                     <button className="text-[#7f2dfb] font-bold cursor-pointer group-hover:text-[#012d46] transition-all duration-100">الدخول</button>
                                     <ChevronLeft size={20} strokeWidth={1.75} className="text-[#7f2dfb] transition-all duration-200 group-hover:-translate-x-1 group-hover:text-[#012d46]" />
@@ -49,11 +45,14 @@ export default function Home() {
                     </div>
                 </section>
                 {/* secttion two */}
-                <MacbookScroll
-                    src="https://img.freepik.com/free-vector/business-dashboard-user-panel_52683-26695.jpg?t=st=1745520726~exp=1745524326~hmac=87d616cd0a7d1e0c964a5ce26ce6c98790d80147b27997f5dc1732e56258e51a&w=1380"
-                    showGradient={true}
-                    title="لوحة تحكم بسيطة وممكنة"
-                />
+                <div className="flex flex-col md:flex-row items-center justify-center gap-10 mt-8 mb-8">
+                    <h1 className="text-5xl font-bold text-center text-[#012d46]">بلفرها من جوالك في ثوانٍ</h1>
+                    <Iphone15Pro className="size-1/6" src="./https://cdn.dribbble.com/userupload/7000945/file/original-ccd0c017c2509c2fcf1630469c86b7bd.png?resize=752x&vertical=center" />
+                </div>
+                {/* features */}
+                <div>
+
+                </div>
             </div>
         </>
     );
