@@ -6,7 +6,8 @@ import MainButton from "@/components/MainButton";
 import { TypewriterEffect } from "@/components/landing-page/typewriter-effect";
 import {TextAnimate} from "@/components/landing-page/text-animate";
 import { motion } from "framer-motion";
-import Iphone15Pro from "@/components/landing-page/iphone-15-pro";
+import { Safari } from "@/components/landing-page/safari";
+import {Features} from "@/components/landing-page/features";
 
 export default function Home() {
         const heroWords = [
@@ -17,6 +18,7 @@ export default function Home() {
             { text: "بسهولة", className: "text-[#012d46]" },
             { text: "واحترافية", className: "text-[#012d46]" },
         ];
+
     return (
         <>
             <div className="bg-gradient-to-b from-[#ffffff] relative to-[#7f2dfb]">
@@ -45,13 +47,13 @@ export default function Home() {
                     </div>
                 </section>
                 {/* secttion two */}
-                <div className="flex flex-col md:flex-row items-center justify-center gap-10 mt-8 mb-8">
-                    <h1 className="text-5xl font-bold text-center text-[#012d46]">بلفرها من جوالك في ثوانٍ</h1>
-                    <Iphone15Pro className="size-1/6" src="./https://cdn.dribbble.com/userupload/7000945/file/original-ccd0c017c2509c2fcf1630469c86b7bd.png?resize=752x&vertical=center" />
+                <div className="flex flex-col items-center justify-center gap-10 mt-8 mb-8">
+                    <h1 className="text-3xl md:text-4xl font-bold text-center text-[#012d46]">بلفرها من جوالك في ثوانٍ</h1>
+                    <Safari className="size-1/2" url=" Bilfora.com " imageSrc="https://via.placeholder.com/1200x750" />
                 </div>
                 {/* features */}
                 <div>
-
+                    <Features/>
                 </div>
             </div>
         </>
