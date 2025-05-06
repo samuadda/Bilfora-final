@@ -4,22 +4,43 @@ import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import MainButton from "@/components/MainButton";
 import { TypewriterEffect } from "@/components/landing-page/typewriter-effect";
-import {TextAnimate} from "@/components/landing-page/text-animate";
+import { TextAnimate } from "@/components/landing-page/text-animate";
 import { motion } from "framer-motion";
 import { Safari } from "@/components/landing-page/safari";
-import {Features} from "@/components/landing-page/features";
+import { Features } from "@/components/landing-page/features";
 import Iphone15Pro from "@/components/landing-page/iphone-15-pro";
-
+import {StickyScroll} from "@/components/landing-page/sticky-scroll-reveal";
 
 export default function Home() {
-        const heroWords = [
-            { text: "أنشئ", className: "text-[#012d46]" },
-            { text: " فواتيرك", className: "text-[#012d46]" },
-            { text: "في", className: "text-[#012d46]" },
-            { text: "ثوانٍ", className: "text-[#012d46]" },
-            { text: "بسهولة", className: "text-[#012d46]" },
-            { text: "واحترافية", className: "text-[#012d46]" },
-        ];
+    const heroWords = [
+        { text: "أنشئ", className: "text-[#012d46]" },
+        { text: " فواتيرك", className: "text-[#012d46]" },
+        { text: "في", className: "text-[#012d46]" },
+        { text: "ثوانٍ", className: "text-[#012d46]" },
+        { text: "بسهولة", className: "text-[#012d46]" },
+        { text: "واحترافية", className: "text-[#012d46]" },
+    ];
+
+    const content = [
+        {
+            title: "1 - سجل حسابك ",
+            description:
+                "سجل بجوالك أو الايميل أو حتى بجوجل",
+            content: <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--cyan-500),var(--emerald-500))] text-white">Collaborative Editing</div>,
+        },
+        {
+            title: "2 - عبّي بيانات العميل والخدمة",
+            description:
+                "بيانات عملائك وخدماتك سجلها مرة تلاقيها كل مرة",
+            content: <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--orange-500),var(--yellow-500))] text-white">Version control</div>,
+        },
+        {
+            title: "3 - أرسلها برابط أو PDF خلال ثواني",
+            description:
+                "رابط وملف صورة أو حى مطبوعة العميل ماله عذر",
+            content: <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--cyan-500),var(--emerald-500))] text-white">Running out of content</div>,
+        },
+    ];
 
     return (
         <>
@@ -28,11 +49,15 @@ export default function Home() {
                 {/* hero section */}
                 <section className="relative flex justify-center items-center h-[90vh] pt-24 pb-10 sm:pt-32 sm:pb-16 lg:pb-24">
                     <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative z-20">
-                        <div className="max-w-xl mx-auto text-center">
+                        <div className="max-w-3xl mx-auto text-center">
                             <h1>
-                                <TypewriterEffect words={heroWords} className="mt-5 text-4xl font-bold sm:text-6xl md:leading-20" cursorClassName="bg-[#ff5291]" />
+                                <TypewriterEffect
+                                    words={heroWords}
+                                    className="mt-5 text-4xl leading-14 font-bold sm:text-5xl sm:leading-18 md:text-7xl md:leading-24 lg:text-7xl lg:leading-24"
+                                    cursorClassName="bg-[#ff5291]"
+                                />
                             </h1>
-                            <TextAnimate className="mt-8 text-base text-gray-700 sm:text-xl" animation="blurIn" delay={1}>
+                            <TextAnimate className="mt-8 text-base text-gray-700 sm:text-2xl" animation="blurIn" delay={1}>
                                 بيلفورا هي منصتك الذكية لإصدار الفواتير الإلكترونية للمستقلين وأصحاب الأعمال
                             </TextAnimate>
                             {/* CTA Buttons  */}
@@ -49,14 +74,21 @@ export default function Home() {
                     </div>
                 </section>
                 {/* features */}
-                <div className="h-screen">
+                <div className="mb-60">
                     <Features />
                 </div>
-                {/* secttion two */}
-                <div className="flex flex-col items-center justify-center gap-10 mt-8 mb-10">
-                    {/* <h1 className="text-3xl md:text-4xl font-bold text-center text-[#012d46]">بلفرها من جوالك في ثوانٍ</h1> */}
-                    <Iphone15Pro />
-                    <Safari className="size-1/2" url=" Bilfora.com " imageSrc="https://via.placeholder.com/1200x750" />
+                {/* mock up */}
+                <div className="flex flex-col items-center justify-center gap-10 mb-60">
+                    <h1 className="text-3xl md:text-4xl font-bold text-center text-[#012d46]">بلفرها من جوالك أو لابتوبك في ثوانٍ</h1>
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-10">
+                        <Iphone15Pro className="size-1/6" src="https://via.placeholder.com/1200x750" />
+                        <Safari className="size-1/2" url=" Bilfora.com " imageSrc="https://via.placeholder.com/1200x750" />
+                    </div>
+                </div>
+                {/* how does it work ? */}
+                <div className="mb-60">
+                    <h1 className="text-3xl md:text-4xl font-bold text-center text-[#012d46]">كيف تبلفرها ؟</h1>
+                    <StickyScroll content={content} contentClassName="w-1/3" />
                 </div>
             </div>
         </>
