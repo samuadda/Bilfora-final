@@ -9,7 +9,11 @@ import { motion } from "framer-motion";
 import { Safari } from "@/components/landing-page/safari";
 import { Features } from "@/components/landing-page/features";
 import Iphone15Pro from "@/components/landing-page/iphone-15-pro";
-import {StickyScroll} from "@/components/landing-page/sticky-scroll-reveal";
+import { StickyScroll } from "@/components/landing-page/sticky-scroll-reveal";
+import {Marquee}    from "@/components/landing-page/marquee";
+import { cn } from "@/lib/utils";
+import { Ripple } from "@/components/landing-page/ripple";
+
 
 export default function Home() {
     const heroWords = [
@@ -23,28 +27,103 @@ export default function Home() {
 
     const content = [
         {
-            title: "1 - سجل حسابك ",
+            title: "Collaborative Editing",
             description:
-                "سجل بجوالك أو الايميل أو حتى بجوجل",
+                "Work together in real time with your team, clients, and stakeholders. Collaborate on documents, share ideas, and make decisions quickly. With our platform, you can streamline your workflow and increase productivity.",
             content: <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--cyan-500),var(--emerald-500))] text-white">Collaborative Editing</div>,
         },
         {
-            title: "2 - عبّي بيانات العميل والخدمة",
+            title: "Real time changes",
             description:
-                "بيانات عملائك وخدماتك سجلها مرة تلاقيها كل مرة",
+                "See changes as they happen. With our platform, you can track every modification in real time. No more confusion about the latest version of your project. Say goodbye to the chaos of version control and embrace the simplicity of real-time updates.",
+            content: (
+                <div className="flex h-full w-full items-center justify-center text-white">
+                    <img src="/linear.webp" width={300} height={300} className="h-full w-full object-cover" alt="linear board demo" />
+                </div>
+            ),
+        },
+        {
+            title: "Version control",
+            description:
+                "Experience real-time updates and never stress about version control again. Our platform ensures that you're always working on the most recent version of your project, eliminating the need for constant manual updates. Stay in the loop, keep your team aligned, and maintain the flow of your work without any interruptions.",
             content: <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--orange-500),var(--yellow-500))] text-white">Version control</div>,
         },
         {
-            title: "3 - أرسلها برابط أو PDF خلال ثواني",
+            title: "Running out of content",
             description:
-                "رابط وملف صورة أو حى مطبوعة العميل ماله عذر",
+                "Experience real-time updates and never stress about version control again. Our platform ensures that you're always working on the most recent version of your project, eliminating the need for constant manual updates. Stay in the loop, keep your team aligned, and maintain the flow of your work without any interruptions.",
             content: <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--cyan-500),var(--emerald-500))] text-white">Running out of content</div>,
         },
     ];
 
+    const reviews = [
+        {
+            name: "رؤى",
+            username: "@ٌruwwa",
+            body: "تصاميمهم حلوة واحترافية، وسهلة الاستخدام. أنصحكم تجربونها.",
+            img: "https://avatar.vercel.sh/jack",
+        },
+        {
+            name: "عبدالعزيز الصلي",
+            username: "@azzozSelli",
+            body: "سهولة وسرعة مسجل الخدمات بأسعارها اختار وامشي",
+            img: "https://avatar.vercel.sh/jill",
+        },
+        {
+            name: "الإبداع البصري",
+            username: "@visualcreate",
+            body: "ابدااااع وتراني صعبة الإرضاء (;",
+            img: "https://avatar.vercel.sh/john",
+        },
+        {
+            name: "عمران",
+            username: "@umran",
+            body: "كل ذا ومجاني والله مب مصدق",
+            img: "https://avatar.vercel.sh/jane",
+        },
+        {
+            name: "العليمي",
+            username: "@ulaimi",
+            body: "بسيط وسريع ومن الجوال",
+            img: "https://avatar.vercel.sh/jenny",
+        },
+        {
+            name: "ذرب",
+            username: "@tharb",
+            body: "والله انه فزعة توهت وفي ثواني ضبطني",
+            img: "https://avatar.vercel.sh/james",
+        },
+    ];
+
+    const firstRow = reviews.slice(0, reviews.length / 2);
+    const secondRow = reviews.slice(reviews.length / 2);
+
+    const ReviewCard = ({ img, name, username, body }: { img: string; name: string; username: string; body: string }) => {
+        return (
+            <figure
+                className={cn(
+                    "relative h-full w-64 cursor-pointer overflow-hidden rounded-xl border p-4",
+                    // light styles
+                    "border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05]",
+                    // dark styles
+                    "dark:border-gray-50/[.1] dark:bg-gray-50/[.10] dark:hover:bg-gray-50/[.15]"
+                )}
+            >
+                <div className="flex flex-row items-center gap-2">
+                    <img className="rounded-full" width="32" height="32" alt="" src={img} />
+                    <div className="flex flex-col">
+                        <figcaption className="text-sm font-medium dark:text-white">{name}</figcaption>
+                        <p className="text-xs font-medium dark:text-white/40">{username}</p>
+                    </div>
+                </div>
+                <blockquote className="mt-2 text-sm">{body}</blockquote>
+            </figure>
+        );
+    };
+
     return (
         <>
-            <div className="bg-gradient-to-b from-[#ffffff] relative to-[#7f2dfb]">
+            <div className="bg-gradient-to-b from-[#ffffff] relative ">
                 <Navbar />
                 {/* hero section */}
                 <section className="relative flex justify-center items-center h-[90vh] pt-24 pb-10 sm:pt-32 sm:pb-16 lg:pb-24">
@@ -86,10 +165,50 @@ export default function Home() {
                     </div>
                 </div>
                 {/* how does it work ? */}
-                <div className="mb-60">
+                <div className="mb-30">
                     <h1 className="text-3xl md:text-4xl font-bold text-center text-[#012d46]">كيف تبلفرها ؟</h1>
                     <StickyScroll content={content} contentClassName="w-1/3" />
                 </div>
+                {/* Reviews */}
+                <div className="relative flex w-full flex-col items-center justify-center mb-30 overflow-hidden">
+                    <h1 className="text-3xl md:text-4xl font-bold text-center mb-16 text-[#012d46]">اسمع المجربين :)</h1>
+
+                    <Marquee pauseOnHover className="[--duration:20s]">
+                        {firstRow.map(review => (
+                            <ReviewCard key={review.username} {...review} />
+                        ))}
+                    </Marquee>
+                    <Marquee reverse pauseOnHover className="[--duration:20s]">
+                        {secondRow.map(review => (
+                            <ReviewCard key={review.username} {...review} />
+                        ))}
+                    </Marquee>
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background"></div>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background"></div>
+                </div>
+                <footer className="h-screen max-w-screen mx-auto relative overflow-hidden">
+                    <div className="relative flex flex-col justify-center items-center gap-10 min-w-2/3 text-sm mx-5 py-6 md:py-10 md:px-5 lg:py-20 lg:px-10 rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-400 overflow-hidden">
+                        <Ripple mainCircleSize={450} mainCircleOpacity={0.4} numCircles={10} className="absolute inset-0 z-0" />
+                        <h1 className="relative z-10 text-2xl md:text-3xl text-white text-center font-bold max-w-2/3">لا تضيع وقتك مع إكسل أو غيره جرب بِلفورة مجانًا وسوِّ فاتورتك الآن</h1>
+                        <button className="relative z-10 px-10 py-1.5 rounded-4xl text-[#012d46] font-semibold bg-white cursor-pointer active:translate-y-1 shadow-neutral-500">ابدأ الحين</button>
+                    </div>
+                    <div>
+                        <ul className="flex mt-10 border-t w-3/4 mx-auto">
+                            <li>
+                                <Link href="">الخصوصية </Link>
+                            </li>
+                            <li>
+                                <Link href="">الدعم</Link>
+                            </li>
+                            <li>
+                                <Link href="">الشروط</Link>
+                            </li>
+                            <li>
+                                <Link href="">البريد</Link>
+                            </li>
+                        </ul>
+                    </div>
+                </footer>
             </div>
         </>
     );
