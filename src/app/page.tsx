@@ -126,7 +126,7 @@ export default function Home() {
 
     return (
         <>
-            <div className="bg-gradient-to-b from-[#ffffff] relative ">
+            <div className="bg-gradient-to-b from-[#ffffff]  relative ">
                 <Navbar />
                 {/* hero section */}
                 <section className="relative flex justify-center items-center h-[90vh] pt-24 pb-10 sm:pt-32 sm:pb-16 lg:pb-24">
@@ -173,14 +173,14 @@ export default function Home() {
                     </div>
                 </div>
                 {/* how does it work ? */}
-                <div className="mb-30 ">
+                <div className="mb-60 ">
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl text-center mx-auto">
                         كيف تبلفرها ؟
                     </TextAnimate>
                     <StickyScroll content={content} contentClassName="w-1/3" />
                 </div>
                 {/* Reviews */}
-                <div className="relative flex w-full flex-col items-center justify-center mb-30 overflow-hidden">
+                <div className="relative flex w-full flex-col items-center justify-center mb-50 overflow-hidden">
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl text-center font-bold md:text-4xl py-5">
                         تجارب أصدقائنا
                     </TextAnimate>
