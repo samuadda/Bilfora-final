@@ -13,6 +13,7 @@ import { StickyScroll } from "@/components/landing-page/sticky-scroll-reveal";
 import {Marquee}    from "@/components/landing-page/marquee";
 import { cn } from "@/lib/utils";
 import { Ripple } from "@/components/landing-page/ripple";
+import Image from 'next/image';
 
 
 export default function Home() {
@@ -186,14 +187,14 @@ export default function Home() {
                     <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-background"></div>
                     <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background"></div>
                 </div>
-                <footer className="h-screen max-w-screen mx-auto relative overflow-hidden">
-                    <div className="relative flex flex-col justify-center items-center gap-10 min-w-2/3 text-sm mx-5 py-6 md:py-10 md:px-5 lg:py-20 lg:px-10 rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-400 overflow-hidden">
+                <footer className=" max-w-screen mx-auto relative overflow-hidden pt-20">
+                    <div className="max-w-[80%] mx-auto relative flex flex-col justify-center items-center gap-10 min-w-2/3 text-sm mx-5 py-6 md:py-10 md:px-5 lg:py-20 lg:px-10 rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-400 overflow-hidden">
                         <Ripple mainCircleSize={450} mainCircleOpacity={0.4} numCircles={10} className="absolute inset-0 z-0" />
                         <h1 className="relative z-10 text-2xl md:text-3xl text-white text-center font-bold max-w-2/3">لا تضيع وقتك مع إكسل أو غيره جرب بِلفورة مجانًا وسوِّ فاتورتك الآن</h1>
                         <button className="relative z-10 px-10 py-1.5 rounded-4xl text-[#012d46] font-semibold bg-white cursor-pointer active:translate-y-1 shadow-neutral-500">ابدأ الحين</button>
                     </div>
-                    <div>
-                        <ul className="flex mt-10 border-t w-3/4 mx-auto">
+                    <div className="flex border-t mt-20 py-10 px-10 items-center justify-between max-w-[90%] mx-auto">
+                        <ul className="flex flex-col md:flex-row gap-7">
                             <li>
                                 <Link href="">الخصوصية </Link>
                             </li>
@@ -205,6 +206,23 @@ export default function Home() {
                             </li>
                             <li>
                                 <Link href="">البريد</Link>
+                            </li>
+                        </ul>
+                        <Link href="/" className="hidden sm:inline-block shrink-1 mx-5">
+                            <Image src="/logo-ar-purple.svg" alt="logo" width={120} height={120}></Image>
+                        </Link>
+                        <ul className="flex flex-col md:flex-row gap-7">
+                            <li>
+                                <Link href="">اليوتيوب</Link>
+                            </li>
+                            <li>
+                                <Link href="">اكــس</Link>
+                            </li>
+                            <li>
+                                <Link href="">انستقرام</Link>
+                            </li>
+                            <li>
+                                <Link href="">لينكد إن</Link>
                             </li>
                         </ul>
                     </div>
