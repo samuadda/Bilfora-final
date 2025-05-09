@@ -1,12 +1,17 @@
 import { motion } from "framer-motion";
 import MainButton from "@/components/MainButton";
+import { TextAnimate } from "@/components/landing-page/text-animate";
 
 export const Features = () => {
     return (
         <section className="mx-auto mt-20 max-w-6xl px-4 py-12 text-slate-800">
             <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:px-8">
-                <h2 className="max-w-lg text-4xl font-bold md:text-4xl">نمو أسـرع وأسـهـل مـع حـلـولـنـا</h2>
-                <MainButton text="جرب مجاناً" bgColor="bg-[#012d46]" textColor="text-white" className=" md:flex" />
+                <TextAnimate as="h2" animation="blurIn" once={true} className="max-w-lg text-4xl font-bold md:text-4xl">
+                    نمو أسـرع وأسـهـل مـع حـلـولـنـا
+                </TextAnimate>
+                <motion.div initial={{ scale: 0 }} whileInView={{ scale: [0, 1.2, 1] }} transition={{ duration: 0.5, }}>
+                    <MainButton text="جرب مجاناً" bgColor="bg-[#012d46]" textColor="text-white" className=" md:flex" />
+                </motion.div>
             </div>
             <div className="mb-4 grid grid-cols-12 gap-4">
                 <BounceCard className="col-span-12 md:col-span-4">
