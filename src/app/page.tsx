@@ -165,26 +165,25 @@ export default function Home() {
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl">
                         بلفرها من جوالك أو لابتوبك في ثوانٍ
                     </TextAnimate>
-                    <motion.div
-                        initial={{ y: 500 }}
-                        animate={{ y: 0 }}
-                        transition={{ duration: 3 }}
-                        viewport={{ amount: 0.5, once: true }}
+                    <div
                         className="flex flex-col md:flex-row items-center justify-center gap-10"
                     >
-                        <Iphone15Pro className="size-1/6" src="https://via.placeholder.com/1200x750" />
+                        <Iphone15Pro className="size-1/6 " src="https://via.placeholder.com/1200x750" />
                         <Safari className="size-1/2" url=" Bilfora.com " imageSrc="https://via.placeholder.com/1200x750" />
-                    </motion.div>
+                    </div>
                 </div>
                 {/* how does it work ? */}
-                <div className="mb-30">
-                    <h1 className="text-3xl md:text-4xl font-bold text-center text-[#012d46]">كيف تبلفرها ؟</h1>
+                <div className="mb-30 ">
+                    <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl text-center mx-auto">
+                        كيف تبلفرها ؟
+                    </TextAnimate>
                     <StickyScroll content={content} contentClassName="w-1/3" />
                 </div>
                 {/* Reviews */}
                 <div className="relative flex w-full flex-col items-center justify-center mb-30 overflow-hidden">
-                    <h1 className="text-3xl md:text-4xl font-bold text-center mb-16 text-[#012d46]">اسمع المجربين :)</h1>
-
+                    <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl text-center font-bold md:text-4xl py-5">
+                        تجارب أصدقائنا
+                    </TextAnimate>
                     <Marquee pauseOnHover className="[--duration:20s]">
                         {firstRow.map(review => (
                             <ReviewCard key={review.username} {...review} />
