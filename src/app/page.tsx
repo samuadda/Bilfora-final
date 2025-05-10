@@ -126,7 +126,7 @@ export default function Home() {
 
     return (
         <>
-            <div className="bg-gradient-to-b from-[#ffffff]  relative ">
+            <div className="  relative ">
                 <Navbar />
                 {/* hero section */}
                 <section className="relative flex justify-center items-center h-[90vh] pt-24 pb-10 sm:pt-32 sm:pb-16 lg:pb-24">
@@ -145,7 +145,7 @@ export default function Home() {
                             </TextAnimate>
                             {/* CTA Buttons  */}
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 1.5 }} className="flex items-center justify-center gap-10 mt-8">
-                                <Link href="/" className="items-center gap-0.5 group lg:flex hidden md:inline-block">
+                                <Link href="/login" className="items-center gap-0.5 group lg:flex hidden md:inline-block">
                                     <button className=" text-[#7f2dfb] font-bold cursor-pointer group-hover:text-[#012d46] transition-all duration-100">الدخول</button>
                                     <ChevronLeft size={20} strokeWidth={1.75} className="text-[#7f2dfb] transition-all duration-200 group-hover:-translate-x-1 group-hover:text-[#012d46]" />
                                 </Link>
@@ -165,9 +165,7 @@ export default function Home() {
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl">
                         بلفرها من جوالك أو لابتوبك في ثوانٍ
                     </TextAnimate>
-                    <div
-                        className="flex flex-col md:flex-row items-center justify-center gap-10"
-                    >
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-10">
                         <Iphone15Pro className="size-1/6 " src="https://via.placeholder.com/1200x750" />
                         <Safari className="size-1/2" url=" Bilfora.com " imageSrc="https://via.placeholder.com/1200x750" />
                     </div>

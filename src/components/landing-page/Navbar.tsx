@@ -20,7 +20,7 @@ const Navbar = () => {
 
     return (
         <>
-            <motion.nav initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} className="fixed top-0 navbar bg-white/10 backdrop-blur-md  border-b border-white/20 px-7 z-50 rounded-">
+            <motion.nav initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} className="fixed top-0 navbar bg-white/10 backdrop-blur-md  border-b border-white/20 px-7 z-50">
                 <div className="navbar-start">
                     {/* logo */}
                     <Link href="/">
@@ -41,7 +41,7 @@ const Navbar = () => {
                     </ul>
                 </div>
                 <div className="navbar-end flex items-center gap-2">
-                    <Link href="/" className="hidden items-center gap-0.5 group lg:flex">
+                    <Link href="/login" className="hidden items-center gap-0.5 group lg:flex">
                         <button className="text-[#7f2dfb] font-bold cursor-pointer group-hover:text-[#012d46] transition-all duration-100">الدخول</button>
                         <ChevronLeft size={20} strokeWidth={1.75} className="text-[#7f2dfb] transition-all duration-200 group-hover:-translate-x-1 group-hover:text-[#012d46]" />
                     </Link>
