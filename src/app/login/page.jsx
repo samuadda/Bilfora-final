@@ -1,30 +1,50 @@
+"use client";
+
 import Link from "next/link";
 import { DotPattern } from "@/components/landing-page/dot-pattern";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-
+import { useState } from "react";
 
 export default function LoginForm() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff]">
             <DotPattern width={16} height={16} glow={true} className={cn("[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]")} />
             <div className="flex items-center justify-center py-12 px-10 rounded-3xl bg-white z-10">
                 <div className="mx-auto grid w-[350px] gap-6">
                     <div className="grid gap-2 text-center">
-                        <h1 className="text-xl font-bold">هلا بك مرة ثانية في <Image src="/logo-ar-navy.svg" alt="logo" className="inline" width={60} height={60}></Image></h1>
+                        <h1 className="text-xl font-bold flex items-center justify-center gap-2">
+                            هلا بك مرة ثانية في
+                            <Image src="/logo-ar-navy.svg" alt="logo" width={60} height={60} priority />
+                        </h1>
                     </div>
                     <div className="grid gap-4">
                         <div className="grid gap-2">
                             <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="email">
                                 البريد الإلكتروني
                             </label>
-                            <input className="border rounded-lg px-3 py-2 mt-1 mb-3 text-sm w-full" type="email" id="email" />
+                            <input
+                                className="border rounded-lg px-3 py-2 mt-1 mb-3 text-sm w-full focus-visible:outline-2"
+                                type="email"
+                                id="email"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
                         </div>
                         <div className="grid gap-2">
                             <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="password">
                                 كلمة المرور
                             </label>
-                            <input className="border rounded-lg px-3 py-2 mt-1 mb-3 text-sm w-full" type="password" id="password" />
+                            <input
+                                className="border rounded-lg px-3 py-2 mt-1 mb-3 text-sm w-full focus-visible:outline-2"
+                                type="password"
+                                id="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                            />
                         </div>
 
                         {/* تذكرني ونسيت كلمة المرور */}
