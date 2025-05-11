@@ -45,7 +45,7 @@ const Navbar = () => {
                         <button className="text-[#7f2dfb] font-bold cursor-pointer group-hover:text-[#012d46] transition-all duration-100">الدخول</button>
                         <ChevronLeft size={20} strokeWidth={1.75} className="text-[#7f2dfb] transition-all duration-200 group-hover:-translate-x-1 group-hover:text-[#012d46]" />
                     </Link>
-                    <Link href="/">
+                    <Link href="/register">
                         <MainButton text="جرب مجاناً" bgColor="bg-[#7f2dfb]" textColor="text-white" className="hidden md:flex" />
                     </Link>
                 </div>
