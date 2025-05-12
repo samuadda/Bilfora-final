@@ -7,10 +7,33 @@ import Image from "next/image";
 import { useState } from "react";
 
 const Form = () => {
+    const [formData, setFormData] = useState({
+        fullname: "",
+        email: "",
+        username: "",
+        password: "",
+        dob: "",
+        gender: "male",
+    });
+
+    const handleChange = e => {
+        const { name, value } = e.target;
+        setFormData(prevData => ({
+            ...prevData,
+            [id]: value,
+        }));
+    };
+
+    const handleSubmit = e => {
+        e.preventDefault();
+        const { fullname, email, username, password } = formData;
+        let isValid = true;
+    }
+
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff]">
             <DotPattern width={16} height={16} glow={true} className={cn("[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]")} />
-            <div className="relative px-4 py-10 mx-8 md:mx-0 shadow rounded-3xl sm:p-10 bg-white">
+            <form onSubmit={handleSubmit} className="relative px-4 py-10 mx-8 md:mx-0 shadow rounded-3xl sm:p-10 bg-white">
                 <div className="max-w-md mx-auto">
                     <h1 className="text-xl font-bold flex items-center justify-center gap-2">
                         <Image src="/logo-ar-navy.svg" alt="logo" width={80} height={80} priority />
@@ -21,9 +44,11 @@ const Form = () => {
                                 الاسم الكامل
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full bg-gray-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 type="text"
                                 id="fullname"
+                                value={formData.fullname}
+                                onChange={handleChange}
                             />
                         </div>
                         <div>
@@ -31,19 +56,23 @@ const Form = () => {
                                 البريد الإلكتروني
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full bg-gray-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 type="email"
                                 id="email"
+                                value={formData.email}
+                                onChange={handleChange}
                             />
                         </div>
                         <div>
-                            <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="username">
+                            <label className="font-semibold text-sm pb-1 block text-gray-600 " htmlFor="username">
                                 اسم المستخدم
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full bg-gray-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 type="text"
                                 id="username"
+                                value={formData.username}
+                                onChange={handleChange}
                             />
                         </div>
                         <div>
@@ -51,35 +80,52 @@ const Form = () => {
                                 كلمة المرور
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full bg-gray-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 type="password"
                                 id="password"
+                                value={formData.password}
+                                onChange={handleChange}
                             />
                         </div>
                     </div>
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                            <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="dob">
+                            <label className="font-semibold text-sm pb-1 text-gray-600 block" htmlFor="dob">
                                 تاريخ الميلاد
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full bg-gray-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-ful focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 type="date"
                                 id="dob"
+                                value={formData.dob}
+                                onChange={handleChange}
                             />
                         </div>
                         <div>
                             <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="gender">
                                 الجنس
                             </label>
-                            <select className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full bg-gray-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500" id="gender">
+                            <select
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                id="gender"
+                                value={formData.gender}
+                                onChange={handleChange}
+                            >
                                 <option value="male">ذكَر</option>
                                 <option value="female">أنثى</option>
                             </select>
                         </div>
                     </div>
                     <div className="flex justify-center items-center">
-                        <div>
+                        <div className="flex flex-col gap-4 w-full">
+                            <button type="submit" className="w-full bg-[#7f2dfb] text-white rounded-lg px-3 py-2 text-sm font-semibold hover:bg-violet-400 transition duration-100 cursor-pointer">
+                                سجل حسابك
+                            </button>
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                                <div className="h-px flex-1 bg-gray-300" />
+                                <p className="text-sm text-gray-500">أو تابع باستخدام</p>
+                                <div className="h-px flex-1 bg-gray-300" />
+                            </div>
                             <button className="flex items-center justify-center gap-2 w-full border rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition duration-300" type="button">
                                 الدخول عبر آبل
                                 <svg viewBox="0 0 30 30" height={20} width={20} y="0px" x="0px" xmlns="http://www.w3.org/2000/svg">
@@ -97,21 +143,14 @@ const Form = () => {
                             </button>
                         </div>
                     </div>
-                    <div className="mt-5">
-                        <button type="submit" className="w-full bg-[#7f2dfb] text-white rounded-lg px-3 py-2 text-sm font-semibold hover:bg-violet-400 transition duration-100 cursor-pointer">
-                            سجل حسابك
-                        </button>
-                    </div>
-                    <div className="flex items-center justify-between mt-4 text-center text-sm text-muted-foreground">
-                        <span className="w-1/5 border-b dark:border-gray-600 md:w-1/4" />
-                        عندك حساب؟
-                        <Link href="/register" className="underline font-semibold text-black">
+                    <div className="text-center text-sm text-muted-foreground mt-4">
+                        عندك حساب؟{" "}
+                        <Link href="/login" className="underline font-semibold text-black">
                             سجل دخول
                         </Link>
-                        <span className="w-1/5 border-b dark:border-gray-600 md:w-1/4" />
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
     );
 };
