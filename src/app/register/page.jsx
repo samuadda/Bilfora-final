@@ -44,7 +44,7 @@ const Form = () => {
                                 الاسم الكامل
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="text"
                                 id="fullname"
                                 value={formData.fullname}
@@ -56,7 +56,7 @@ const Form = () => {
                                 البريد الإلكتروني
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="email"
                                 id="email"
                                 value={formData.email}
@@ -68,7 +68,7 @@ const Form = () => {
                                 اسم المستخدم
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="text"
                                 id="username"
                                 value={formData.username}
@@ -80,7 +80,7 @@ const Form = () => {
                                 كلمة المرور
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="password"
                                 id="password"
                                 value={formData.password}
@@ -94,7 +94,7 @@ const Form = () => {
                                 تاريخ الميلاد
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-ful focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-ful focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="date"
                                 id="dob"
                                 value={formData.dob}
@@ -106,7 +106,7 @@ const Form = () => {
                                 الجنس
                             </label>
                             <select
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 id="gender"
                                 value={formData.gender}
                                 onChange={handleChange}
