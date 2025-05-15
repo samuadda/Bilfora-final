@@ -15,20 +15,29 @@ const Form = () => {
         dob: "",
         gender: "male",
     });
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = e => {
         const { name, value } = e.target;
         setFormData(prevData => ({
             ...prevData,
-            [id]: value,
+            [name]: value,
         }));
     };
 
     const handleSubmit = e => {
         e.preventDefault();
-        const { fullname, email, username, password } = formData;
-        let isValid = true;
-    }
+        const { fullname, email, username, password, dob } = formData;
+
+        if (!fullname || !email || !username || !password || !dob) {
+            alert("يرجى ملء جميع الحقول المطلوبة.");
+            return;
+        }
+
+        console.log("Form Submitted:", formData);
+    };
 
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff]">
@@ -44,9 +53,10 @@ const Form = () => {
                                 الاسم الكامل
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="text"
                                 id="fullname"
+                                name="fullname"
                                 value={formData.fullname}
                                 onChange={handleChange}
                             />
@@ -56,8 +66,9 @@ const Form = () => {
                                 البريد الإلكتروني
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="email"
+                                name="email"
                                 id="email"
                                 value={formData.email}
                                 onChange={handleChange}
@@ -68,8 +79,9 @@ const Form = () => {
                                 اسم المستخدم
                             </label>
                             <input
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="text"
+                                name="username"
                                 id="username"
                                 value={formData.username}
                                 onChange={handleChange}
@@ -82,6 +94,7 @@ const Form = () => {
                             <input
                                 className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="password"
+                                name="password"
                                 id="password"
                                 value={formData.password}
                                 onChange={handleChange}
@@ -96,6 +109,7 @@ const Form = () => {
                             <input
                                 className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-ful focus:outline-none focus:ring-2 focus:ring-violet-300"
                                 type="date"
+                                name="dob"
                                 id="dob"
                                 value={formData.dob}
                                 onChange={handleChange}
@@ -107,6 +121,7 @@ const Form = () => {
                             </label>
                             <select
                                 className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                name="gender"
                                 id="gender"
                                 value={formData.gender}
                                 onChange={handleChange}
