@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Ripple } from "@/components/landing-page/ripple";
 import Image from 'next/image';
 import { DotPattern } from "@/components/landing-page/dot-pattern";
+import { scale } from "motion";
 
 
 
@@ -165,10 +166,16 @@ export default function Home() {
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl">
                         بلفرها من جوالك أو لابتوبك في ثوانٍ
                     </TextAnimate>
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-10">
-                        <Iphone15Pro className="size-1/6 " src="https://via.placeholder.com/1200x750" />
-                        <Safari className="size-1/2" url=" Bilfora.com " imageSrc="https://via.placeholder.com/1200x750" />
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        viewport={{ once: true, amount: 0.3 }}
+                        className="flex flex-col md:flex-row items-center justify-center gap-10"
+                    >
+                        <Iphone15Pro className="size-1/6" src="https://via.placeholder.com/1200x750" />
+                        <Safari className="size-1/2" url="Bilfora.com" imageSrc="https://via.placeholder.com/1200x750" />
+                    </motion.div>
                 </div>
                 {/* how does it work ? */}
                 <div className="mb-60 ">
