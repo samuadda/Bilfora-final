@@ -13,21 +13,20 @@ export default function LoginForm() {
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [generalError, setGeneralError] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = e => {
         e.preventDefault();
         let isValid = true;
 
-        // إعادة تعيين الأخطاء
+        setGeneralError("");
         setEmailError("");
         setPasswordError("");
 
-        // تحقق من الحقول الفارغة
         if (!email) {
             setEmailError("البريد الإلكتروني مطلوب");
             isValid = false;
         } else {
-            // تحقق من صيغة الإيميل
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 setEmailError("صيغة البريد الإلكتروني غير صحيحة");
@@ -38,25 +37,17 @@ export default function LoginForm() {
         if (!password) {
             setPasswordError("كلمة المرور مطلوبة");
             isValid = false;
-        } else {
-            // تحقق من شروط كلمة المرور
-            if (password.length < 8) {
-                setPasswordError("كلمة المرور يجب أن تكون 8 أحرف على الأقل");
-                isValid = false;
-            } else if (!/[a-zA-Z]/.test(password)) {
-                setPasswordError("كلمة المرور يجب أن تحتوي على حرف واحد على الأقل");
-                isValid = false;
-            } else if (!/[0-9]/.test(password)) {
-                setPasswordError("كلمة المرور يجب أن تحتوي على رقم واحد على الأقل");
-                isValid = false;
-            }
         }
 
         if (!isValid) return;
 
-        console.log("Email", email);
-        console.log("Password", password);
-    }
+        if (email !== "test@example.com" || password !== "12345678") {
+            setGeneralError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+            return;
+        }
+
+        console.log("نجح تسجيل الدخول");
+    };
 
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff]">
@@ -82,7 +73,6 @@ export default function LoginForm() {
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
                                 />
-                                <p className="text-red-500 min-h-[15px] text-sm">{emailError}</p>
                             </div>
                             <div className="relative">
                                 <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="password">
@@ -101,9 +91,8 @@ export default function LoginForm() {
                                     className="absolute top-[40px] right-[90%] text-gray-500 hover:text-gray-700 cursor-pointer"
                                     tabIndex={-1}
                                 >
-                                    {showPassword ? <EyeClosed size={16} color="#707070" strokeWidth={1.75} /> : <Eye size={16} color="#707070" strokeWidth={1.75} />}
+                                    {showPassword ? <Eye size={16} color="#707070" strokeWidth={1.75} /> : <EyeClosed size={16} color="#707070" strokeWidth={1.75} />}
                                 </button>
-                                <p className="text-red-500 min-h-[15px] text-sm">{passwordError}</p>
                             </div>
 
                             {/* تذكرني ونسيت كلمة المرور */}
@@ -120,6 +109,7 @@ export default function LoginForm() {
                             <button type="submit" className="w-full bg-[#7f2dfb] text-white rounded-lg px-3 py-2 text-sm font-semibold hover:bg-violet-400 transition duration-100 cursor-pointer">
                                 دخول
                             </button>
+                            <p className="text-red-500 text-sm text-center min-h-5">{generalError}</p>
                             <div className="flex items-center space-x-2 rtl:space-x-reverse">
                                 <div className="h-px flex-1 bg-gray-300" />
                                 <p className="text-sm text-gray-500">أو تابع باستخدام</p>
