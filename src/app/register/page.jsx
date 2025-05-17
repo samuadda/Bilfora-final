@@ -16,40 +16,78 @@ const Form = () => {
         gender: "male",
     });
 
-    const [emailError, setEmailError] = useState("");
-    const [passwordError, setPasswordError] = useState("");
+    const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
+
+    const calculateAge = dob => {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const validate = () => {
+        const newErrors = {};
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
+        if (!formData.fullname.trim()) {
+            newErrors.fullname = "الاسم الكامل مطلوب";
+        }
+
+        if (!formData.email.trim()) {
+            newErrors.email = "البريد الإلكتروني مطلوب";
+        } else if (!emailRegex.test(formData.email)) {
+            newErrors.email = "البريد الإلكتروني غير صالح";
+        }
+
+        if (!formData.username.trim()) {
+            newErrors.username = "اسم المستخدم مطلوب";
+        } else if (formData.username.length < 3) {
+            newErrors.username = "اسم المستخدم يجب أن يكون 3 أحرف أو أكثر";
+        } else if (!usernameRegex.test(formData.username)) {
+            newErrors.username = "اسم المستخدم يجب أن يكون بالإنجليزية وبدون مسافات";
+        }
+
+        if (!formData.password) {
+            newErrors.password = "كلمة المرور مطلوبة";
+        } else if (!passwordRegex.test(formData.password)) {
+            newErrors.password = "كلمة المرور يجب أن تكون 8 خانات على الأقل، وتحتوي على حرف واحد ورقم واحد على الأقل";
+        }
+
+        if (!formData.dob) {
+            newErrors.dob = "تاريخ الميلاد مطلوب";
+        } else {
+            const age = calculateAge(formData.dob);
+            if (age < 13) {
+                newErrors.dob = "يجب أن يكون عمرك 13 سنة أو أكثر";
+            }
+        }
+
+        return newErrors;
+    };
 
     const handleChange = e => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-
-        if (name === "email") {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            setEmailError(emailRegex.test(value) ? "" : "البريد الإلكتروني غير صالح");
-        }
-
-        if (name === "password") {
-            setPasswordError(value.length >= 8 ? "" : "كلمة المرور يجب أن تكون 8 أحرف أو أكثر");
-        }
+        setErrors(prev => ({ ...prev, [name]: "" }));
     };
 
     const handleSubmit = e => {
         e.preventDefault();
-        const { fullname, email, username, password, dob } = formData;
-
-        if (!fullname || !email || !username || !password || !dob) {
-            alert("يرجى ملء جميع الحقول المطلوبة.");
-            return;
-        }
-
-        if (emailError || passwordError) {
-            alert("يرجى تصحيح الأخطاء في النموذج قبل الإرسال.");
+        const validationErrors = validate();
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
             return;
         }
 
         console.log("Form Submitted:", formData);
-        // TODO: إرسال البيانات إلى الخادم
+        // TODO: Send data to backend
     };
 
     return (
@@ -72,8 +110,9 @@ const Form = () => {
                                 name="fullname"
                                 value={formData.fullname}
                                 onChange={handleChange}
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                             />
+                            <p className="text-red-500 text-xs mt-1 h-4">{errors.fullname || "\u00A0"}</p>
                         </div>
                         <div>
                             <label htmlFor="email" className="font-semibold text-sm text-gray-600 pb-1 block">
@@ -85,9 +124,9 @@ const Form = () => {
                                 id="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="border rounded-lg px-3 py-2 mt-1 mb-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                             />
-                            {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
+                            <p className="text-red-500 text-xs mt-1 h-4">{errors.email || "\u00A0"}</p>
                         </div>
                         <div>
                             <label htmlFor="username" className="font-semibold text-sm pb-1 block text-gray-600">
@@ -99,8 +138,9 @@ const Form = () => {
                                 id="username"
                                 value={formData.username}
                                 onChange={handleChange}
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                             />
+                            <p className="text-red-500 text-xs mt-1 h-4">{errors.username || "\u00A0"}</p>
                         </div>
                         <div>
                             <label htmlFor="password" className="font-semibold text-sm text-gray-600 pb-1 block">
@@ -113,13 +153,13 @@ const Form = () => {
                                     id="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    className="border rounded-lg px-3 py-2 mt-1 mb-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300 pr-10"
+                                    className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300 pr-10"
                                 />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-2 flex items-center text-sm text-gray-500">
                                     {showPassword ? "إخفاء" : "إظهار"}
                                 </button>
                             </div>
-                            {passwordError && <p className="text-red-500 text-xs">{passwordError}</p>}
+                            <p className="text-red-500 text-xs mt-1 h-4">{errors.password || "\u00A0"}</p>
                         </div>
                     </div>
 
@@ -134,8 +174,9 @@ const Form = () => {
                                 id="dob"
                                 value={formData.dob}
                                 onChange={handleChange}
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                             />
+                            <p className="text-red-500 text-xs mt-1 h-4">{errors.dob || "\u00A0"}</p>
                         </div>
                         <div>
                             <label htmlFor="gender" className="font-semibold text-sm text-gray-600 pb-1 block">
@@ -146,7 +187,7 @@ const Form = () => {
                                 id="gender"
                                 value={formData.gender}
                                 onChange={handleChange}
-                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                             >
                                 <option value="male">ذكَر</option>
                                 <option value="female">أنثى</option>
