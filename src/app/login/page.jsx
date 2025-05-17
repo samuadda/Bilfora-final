@@ -111,11 +111,11 @@ export default function LoginForm() {
                                     نسيت كلمة المرور ؟
                                 </a>
                             </div>
+                            <p className="text-red-500 text-sm text-center min-h-5">{generalError}</p>
                             {/* زر الدخول */}
                             <button type="submit" className="w-full bg-[#7f2dfb] text-white rounded-lg px-3 py-2 text-sm font-semibold hover:bg-violet-400 transition duration-100 cursor-pointer">
                                 دخول
                             </button>
-                            <p className="text-red-500 text-sm text-center min-h-5">{generalError}</p>
                             <div className="flex items-center space-x-2 rtl:space-x-reverse">
                                 <div className="h-px flex-1 bg-gray-300" />
                                 <p className="text-sm text-gray-500">أو تابع باستخدام</p>
