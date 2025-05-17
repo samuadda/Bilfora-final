@@ -63,9 +63,12 @@ export default function LoginForm() {
                     <form onSubmit={handleSubmit}>
                         <div className="grid gap-4">
                             <div className="grid gap-2">
-                                <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="email">
-                                    البريد الإلكتروني
-                                </label>
+                                <div className="flex items-center gap-2">
+                                    <label className="inline-block font-semibold text-sm text-gray-600 pb-1" htmlFor="email">
+                                        البريد الإلكتروني
+                                    </label>{" "}
+                                    <p className="inline-block text-red-500 text-sm text-center min-h-2">{emailError}</p>
+                                </div>
                                 <input
                                     className="border rounded-lg px-3 py-2 mt-1 mb-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                     type="email"
@@ -75,9 +78,12 @@ export default function LoginForm() {
                                 />
                             </div>
                             <div className="relative">
-                                <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="password">
-                                    كلمة المرور
-                                </label>
+                                <div className="flex items-center gap-2">
+                                    <label className="font-semibold text-sm text-gray-600 pb-1 block" htmlFor="password">
+                                        كلمة المرور
+                                    </label>
+                                    <p className="inline-block text-red-500 text-sm text-center min-h-2">{passwordError}</p>
+                                </div>
                                 <input
                                     className="border rounded-lg px-3 py-2 mt-1 mb-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
                                     type={showPassword ? "text" : "password"}
