@@ -1,4 +1,4 @@
-import Example from "@components/SideBar";
+import {Example}  from "../../components/SideBar";
 const page = () => {
     return (
         <div>

@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import { Ripple } from "@/components/landing-page/ripple";
 import Image from 'next/image';
 import { DotPattern } from "@/components/landing-page/dot-pattern";
-import { scale } from "motion";
 
 
 
