@@ -5,11 +5,11 @@ import { FiBarChart, FiChevronDown, FiChevronsRight, FiDollarSign, FiHome, FiMon
 import { motion } from "framer-motion";
 import Image from "next/image";
 
-export  const Example = () => {
+export const DashboardLayout = ({ children }) => {
     return (
         <div className="flex bg-indigo-50">
             <Sidebar />
-            <ExampleContent />
+            <div className="w-full">{children}</div>
         </div>
     );
 };
@@ -29,13 +29,11 @@ const Sidebar = () => {
             <TitleSection open={open} />
 
             <div className="space-y-1">
-                <Option Icon={FiHome} title="Dashboard" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiDollarSign} title="Sales" selected={selected} setSelected={setSelected} open={open} notifs={3} />
-                <Option Icon={FiMonitor} title="View Site" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiShoppingCart} title="Products" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiTag} title="Tags" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiBarChart} title="Analytics" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiUsers} title="Members" selected={selected} setSelected={setSelected} open={open} />
+                <Option Icon={FiHome} title="لوحة تحكم" selected={selected} setSelected={setSelected} open={open} />
+                <Option Icon={FiDollarSign} title="المبيعات" selected={selected} setSelected={setSelected} open={open} notifs={3} />
+                <Option Icon={FiShoppingCart} title="المنتجات / الخدمات" selected={selected} setSelected={setSelected} open={open} />
+                <Option Icon={FiBarChart} title="الاحصائيات" selected={selected} setSelected={setSelected} open={open} />
+                <Option Icon={FiUsers} title="العملاء" selected={selected} setSelected={setSelected} open={open} />
             </div>
 
             <ToggleClose open={open} setOpen={setOpen} />
