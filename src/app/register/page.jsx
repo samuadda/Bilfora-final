@@ -191,7 +191,7 @@ const Form = () => {
                             >
                                 <option value="male">ذكَر</option>
                                 <option value="female">أنثى</option>
-                                <option value="inistitute">مؤسسة</option>
+                                <option value="institute">مؤسسة</option>
                             </select>
                         </div>
                     </div>
