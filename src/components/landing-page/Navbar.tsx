@@ -8,9 +8,9 @@ import { motion } from "framer-motion";
 import {NavigationMenu} from "@/components/landing-page/MobileMenu";
 
 const NavItems = [
-    { name: "الرئيسية", href: "/" },
-    { name: "المزايا", href: "/features" },
-    { name: "كيف أبلفرها", href: "how to" },
+    { name: "الرئيسية", href: "#home" },
+    { name: "المزايا", href: "#features" },
+    { name: "كيف أبلفرها", href: "#how-to" },
     { name: "الأسئلة الشائعة", href: "/faq" },
     { name: "تواصل معنا", href: "/contact" },
 ]

@@ -126,7 +126,7 @@ export default function Home() {
 
     return (
         <>
-            <div className="  relative ">
+            <div className="  relative " id="home">
                 <Navbar />
                 {/* hero section */}
                 <section className="relative flex justify-center items-center h-[90vh] pt-24 pb-10 sm:pt-32 sm:pb-16 lg:pb-24">
@@ -157,11 +157,11 @@ export default function Home() {
                     </div>
                 </section>
                 {/* features */}
-                <div className="mb-60">
+                <div className="mb-60" id="features">
                     <Features />
                 </div>
                 {/* mock up */}
-                <div className="flex flex-col items-center justify-center gap-10 mb-60">
+                <div className="flex flex-col items-center justify-center gap-10 mb-60" >
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl">
                         بلفرها من جوالك أو لابتوبك في ثوانٍ
                     </TextAnimate>
@@ -177,7 +177,7 @@ export default function Home() {
                     </motion.div>
                 </div>
                 {/* how does it work ? */}
-                <div className="mb-60 ">
+                <div className="mb-60 " id="how-to">
                     <TextAnimate as="h2" animation="blurIn" once={true} className="text-4xl font-bold md:text-4xl text-center mx-auto">
                         كيف تبلفرها ؟
                     </TextAnimate>
@@ -205,7 +205,7 @@ export default function Home() {
                     <div className="max-w-[80%] mx-auto relative flex flex-col justify-center items-center gap-10 min-w-2/3 text-sm mx-5 py-6 md:py-10 md:px-5 lg:py-20 lg:px-10 rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-400 overflow-hidden">
                         <Ripple mainCircleSize={450} mainCircleOpacity={0.4} numCircles={10} className="absolute inset-0 z-0" />
                         <h1 className="relative z-10 text-2xl md:text-3xl text-white text-center font-bold max-w-2/3">لا تضيع وقتك مع إكسل أو غيره جرب بِلفورة مجانًا وسوِّ فاتورتك الآن</h1>
-                        <button className="relative z-10 px-10 py-1.5 rounded-4xl text-[#012d46] font-semibold bg-white cursor-pointer active:translate-y-1 shadow-neutral-500">ابدأ الحين</button>
+                        <button className="relative z-10 px-10 py-1.5 rounded-4xl text-[#012d46] font-semibold bg-white cursor-pointer active:translate-y-1 shadow-neutral-500">جرّب الآن</button>
                     </div>
                     <div className="flex border-t mt-20 py-10 px-10 items-center justify-between max-w-[90%] mx-auto">
                         <ul className="flex flex-col md:flex-row gap-7">
