@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FiBarChart, FiChevronDown, FiChevronsRight, FiDollarSign, FiHome, FiMonitor, FiShoppingCart, FiTag, FiUsers } from "react-icons/fi";
+import { FiBarChart, FiChevronDown, FiChevronsLeft, FiChevronsRight, FiDollarSign, FiHome, FiMonitor, FiShoppingCart, FiTag, FiUsers } from "react-icons/fi";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
@@ -28,9 +28,9 @@ const Sidebar = () => {
         >
             <TitleSection open={open} />
 
-            <div className="space-y-1">
+            <div className="space-y-3.5">
                 <Option Icon={FiHome} title="لوحة تحكم" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiDollarSign} title="المبيعات" selected={selected} setSelected={setSelected} open={open} notifs={3} />
+                <Option Icon={FiDollarSign} title="المبيعات" selected={selected} setSelected={setSelected} open={open}/>
                 <Option Icon={FiShoppingCart} title="المنتجات / الخدمات" selected={selected} setSelected={setSelected} open={open} />
                 <Option Icon={FiBarChart} title="الاحصائيات" selected={selected} setSelected={setSelected} open={open} />
                 <Option Icon={FiUsers} title="العملاء" selected={selected} setSelected={setSelected} open={open} />
@@ -52,7 +52,7 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs }) => {
                 <Icon />
             </motion.div>
             {open && (
-                <motion.span layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.125 }} className="text-xs font-medium">
+                <motion.span layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.125 }} className="text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors ">
                     {title}
                 </motion.span>
             )}
@@ -83,8 +83,8 @@ const TitleSection = ({ open }) => {
                     <Logo />
                     {open && (
                         <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.125 }}>
-                            <span className="block text-xs font-semibold">TomIsLoading</span>
-                            <span className="block text-xs text-slate-500">Pro Plan</span>
+                            <span className="block text-xs font-semibold">صدّيق موسى</span>
+                            <span className="block text-xs text-slate-500">نسخة تجريبية</span>
                         </motion.div>
                     )}
                 </div>
@@ -107,11 +107,11 @@ const ToggleClose = ({ open, setOpen }) => {
         <motion.button layout onClick={() => setOpen(pv => !pv)} className="absolute bottom-0 left-0 right-0 border-t border-slate-300 transition-colors hover:bg-slate-100">
             <div className="flex items-center p-2">
                 <motion.div layout className="grid size-10 place-content-center text-lg">
-                    <FiChevronsRight className={`transition-transform ${open && "rotate-180"}`} />
+                    <FiChevronsLeft className={`transition-transform ${open && "rotate-180"}`} />
                 </motion.div>
                 {open && (
                     <motion.span layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.125 }} className="text-xs font-medium">
-                        Hide
+                        إخفاء
                     </motion.span>
                 )}
             </div>
