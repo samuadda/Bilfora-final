@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { FiBarChart, FiChevronDown, FiChevronsLeft, FiChevronsRight, FiDollarSign, FiHome, FiMonitor, FiShoppingCart, FiTag, FiUsers } from "react-icons/fi";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 
 export const DashboardLayout = ({ children }) => {
     return (
@@ -14,14 +15,22 @@ export const DashboardLayout = ({ children }) => {
     );
 };
 
+const navOptions = [
+    { Icon: FiHome, title: "لوحة تحكم", href: "/dashboard" },
+    { Icon: FiDollarSign, title: "الفواتير", href: "/dashboard/invoices" },
+    { Icon: FiShoppingCart, title: "المنتجات / الخدمات", href: "/dashboard/products" },
+    { Icon: FiUsers, title: "العملاء", href: "/dashboard/customers" },
+    { Icon: FiBarChart, title: "الاحصائيات", href: "/dashboard/stats" },
+];
+
 const Sidebar = () => {
-    const [open, setOpen] = useState(true);
-    const [selected, setSelected] = useState("Dashboard");
+    const [open, setOpen] = useState(false);
+    const [selected, setSelected] = useState("لوحة تحكم");
 
     return (
         <motion.nav
             layout
-            className="sticky top-0 h-screen shrink-0 border-r border-slate-300 bg-white p-2"
+            className="sticky top-0 h-screen shrink-0 border-r border-slate-300 bg-white p-2 shadow-xl"
             style={{
                 width: open ? "225px" : "fit-content",
             }}
@@ -29,11 +38,17 @@ const Sidebar = () => {
             <TitleSection open={open} />
 
             <div className="space-y-3.5">
-                <Option Icon={FiHome} title="لوحة تحكم" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiDollarSign} title="المبيعات" selected={selected} setSelected={setSelected} open={open}/>
-                <Option Icon={FiShoppingCart} title="المنتجات / الخدمات" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiBarChart} title="الاحصائيات" selected={selected} setSelected={setSelected} open={open} />
-                <Option Icon={FiUsers} title="العملاء" selected={selected} setSelected={setSelected} open={open} />
+                {navOptions.map(({ Icon, title, href }) => (
+                    <Option
+                        key={title}
+                        Icon={Icon}
+                        title={title}
+                        selected={selected}
+                        setSelected={setSelected}
+                        open={open}
+                        href={href}
+                    />
+                ))}
             </div>
 
             <ToggleClose open={open} setOpen={setOpen} />
@@ -41,37 +56,39 @@ const Sidebar = () => {
     );
 };
 
-const Option = ({ Icon, title, selected, setSelected, open, notifs }) => {
+const Option = ({ Icon, title, selected, setSelected, open, notifs, href }) => {
     return (
-        <motion.button
-            layout
-            onClick={() => setSelected(title)}
-            className={`relative flex h-10 w-full items-center rounded-md transition-colors ${selected === title ? "bg-indigo-100 text-indigo-800" : "text-slate-500 hover:bg-slate-100"}`}
-        >
-            <motion.div layout className="grid h-full w-10 place-content-center text-lg">
-                <Icon />
-            </motion.div>
-            {open && (
-                <motion.span layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.125 }} className="text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors ">
-                    {title}
-                </motion.span>
-            )}
+        <Link href={href} passHref legacyBehavior>
+            <motion.a
+                layout
+                onClick={() => setSelected(title)}
+                className={`relative flex h-10 w-full items-center rounded-md transition-colors ${selected === title ? "bg-indigo-100 text-indigo-800" : "text-slate-500 hover:bg-slate-100"}`}
+            >
+                <motion.div layout className="grid h-full w-10 place-content-center text-lg">
+                    <Icon />
+                </motion.div>
+                {open && (
+                    <motion.span layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.125 }} className="text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors ">
+                        {title}
+                    </motion.span>
+                )}
 
-            {notifs && open && (
-                <motion.span
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{
-                        opacity: 1,
-                        scale: 1,
-                    }}
-                    style={{ y: "-50%" }}
-                    transition={{ delay: 0.5 }}
-                    className="absolute right-2 top-1/2 size-4 rounded bg-indigo-500 text-xs text-white"
-                >
-                    {notifs}
-                </motion.span>
-            )}
-        </motion.button>
+                {notifs && open && (
+                    <motion.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{
+                            opacity: 1,
+                            scale: 1,
+                        }}
+                        style={{ y: "-50%" }}
+                        transition={{ delay: 0.5 }}
+                        className="absolute right-2 top-1/2 size-4 rounded bg-indigo-500 text-xs text-white"
+                    >
+                        {notifs}
+                    </motion.span>
+                )}
+            </motion.a>
+        </Link>
     );
 };
 
