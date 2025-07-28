@@ -1,4 +1,6 @@
 "use client";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation"; // App Router
 
 import Link from "next/link";
 import { DotPattern } from "@/components/landing-page/dot-pattern";
@@ -14,40 +16,47 @@ export default function LoginForm() {
     const [passwordError, setPasswordError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [generalError, setGeneralError] = useState("");
+    const router = useRouter();
 
-    const handleSubmit = e => {
-        e.preventDefault();
-        let isValid = true;
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  let isValid = true;
 
-        setGeneralError("");
-        setEmailError("");
-        setPasswordError("");
+  setGeneralError("");
+  setEmailError("");
+  setPasswordError("");
 
-        if (!email) {
-            setEmailError("البريد الإلكتروني مطلوب");
-            isValid = false;
-        } else {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                setEmailError("صيغة البريد الإلكتروني غير صحيحة");
-                isValid = false;
-            }
-        }
+  if (!email) {
+    setEmailError("البريد الإلكتروني مطلوب");
+    isValid = false;
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("صيغة البريد الإلكتروني غير صحيحة");
+      isValid = false;
+    }
+  }
 
-        if (!password) {
-            setPasswordError("كلمة المرور مطلوبة");
-            isValid = false;
-        }
+  if (!password) {
+    setPasswordError("كلمة المرور مطلوبة");
+    isValid = false;
+  }
 
-        if (!isValid) return;
+  if (!isValid) return;
 
-        if (email !== "test@example.com" || password !== "12345678") {
-            setGeneralError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
-            return;
-        }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-        console.log("نجح تسجيل الدخول");
-    };
+  if (error) {
+    setGeneralError("بيانات الدخول غير صحيحة أو الحساب غير موجود.");
+    return;
+  }
+
+  router.push("/dashboard");
+};
+
 
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff]">

@@ -5,6 +5,8 @@ import { DotPattern } from "@/components/landing-page/dot-pattern";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 const Form = () => {
     const [formData, setFormData] = useState({
@@ -15,6 +17,8 @@ const Form = () => {
         dob: "",
         gender: "male",
     });
+
+    const router = useRouter();
 
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
@@ -78,17 +82,37 @@ const Form = () => {
         setErrors(prev => ({ ...prev, [name]: "" }));
     };
 
-    const handleSubmit = e => {
-        e.preventDefault();
-        const validationErrors = validate();
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            return;
-        }
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const validationErrors = validate();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
 
-        console.log("Form Submitted:", formData);
-        // TODO: Send data to backend
-    };
+  const { data, error } = await supabase.auth.signUp({
+    email: formData.email,
+    password: formData.password,
+    options: {
+      data: {
+        full_name: formData.fullname,
+        username: formData.username,
+        dob: formData.dob,
+        gender: formData.gender,
+      },
+    },
+  });
+
+  if (error) {
+    console.error("Registration Error:", error.message);
+    alert("فشل التسجيل: " + error.message);
+    return;
+  }
+
+  console.log("User registered:", data);
+
+  router.push("/dashboard"); // توجيه بعد النجاح
+};
 
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff]">
