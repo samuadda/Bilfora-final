@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/dialog";
 
 const Form = () => {
 	const [formData, setFormData] = useState({
@@ -22,6 +23,8 @@ const Form = () => {
 
 	const [errors, setErrors] = useState({});
 	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
+
 
 	const calculateAge = (dob) => {
 		const birthDate = new Date(dob);
@@ -113,9 +116,8 @@ const Form = () => {
 		}
 
 		// ✅ ما فيه session لأن المستخدم يحتاج يفعّل إيميله
-		alert(
-			"تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتفعيل الحساب، ثم سجل الدخول."
-		);
+		setShowConfirmModal(true);
+
 	};
 
 	return (
@@ -347,6 +349,31 @@ const Form = () => {
 					</div>
 				</div>
 			</form>
+			<Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+				<DialogContent className="sm:max-w-md rounded-xl text-center p-6">
+					<DialogHeader className="flex flex-col items-center gap-2">
+						<DialogTitle className="text-xl font-bold text-green-600">
+							🎉 تم إنشاء الحساب
+						</DialogTitle>
+						<DialogDescription className="text-gray-600 text-base">
+							تم إرسال رابط التفعيل إلى بريدك الإلكتروني.
+							<br />
+							بعد التفعيل، يمكنك تسجيل الدخول.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="mt-6">
+						<button
+							onClick={() => {
+								setShowConfirmModal(false);
+								router.push("/login");
+							}}
+							className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-md"
+						>
+							الذهاب لتسجيل الدخول
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 };
