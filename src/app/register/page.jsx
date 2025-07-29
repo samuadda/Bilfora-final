@@ -7,13 +7,20 @@ import Image from "next/image";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+} from "@/components/dialog";
 
 const Form = () => {
 	const [formData, setFormData] = useState({
 		fullname: "",
 		email: "",
-		username: "",
+		phone: "", // changed from username
 		password: "",
 		dob: "",
 		gender: "male",
@@ -24,7 +31,6 @@ const Form = () => {
 	const [errors, setErrors] = useState({});
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
-
 
 	const calculateAge = (dob) => {
 		const birthDate = new Date(dob);
@@ -40,7 +46,7 @@ const Form = () => {
 	const validate = () => {
 		const newErrors = {};
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		const usernameRegex = /^[a-zA-Z0-9_]+$/;
+		const phoneRegex = /^05\d{8}$/; // Saudi mobile format example, adjust as needed
 		const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
 		if (!formData.fullname.trim()) {
@@ -53,13 +59,10 @@ const Form = () => {
 			newErrors.email = "البريد الإلكتروني غير صالح";
 		}
 
-		if (!formData.username.trim()) {
-			newErrors.username = "اسم المستخدم مطلوب";
-		} else if (formData.username.length < 3) {
-			newErrors.username = "اسم المستخدم يجب أن يكون 3 أحرف أو أكثر";
-		} else if (!usernameRegex.test(formData.username)) {
-			newErrors.username =
-				"اسم المستخدم يجب أن يكون بالإنجليزية وبدون مسافات";
+		if (!formData.phone.trim()) {
+			newErrors.phone = "رقم الجوال مطلوب";
+		} else if (!phoneRegex.test(formData.phone)) {
+			newErrors.phone = "رقم الجوال غير صالح (مثال: 05xxxxxxxx)";
 		}
 
 		if (!formData.password) {
@@ -102,7 +105,7 @@ const Form = () => {
 			options: {
 				data: {
 					full_name: formData.fullname,
-					username: formData.username,
+					phone: formData.phone, // changed from username
 					dob: formData.dob,
 					gender: formData.gender,
 				},
@@ -115,9 +118,7 @@ const Form = () => {
 			return;
 		}
 
-		// ✅ ما فيه session لأن المستخدم يحتاج يفعّل إيميله
 		setShowConfirmModal(true);
-
 	};
 
 	return (
@@ -186,21 +187,22 @@ const Form = () => {
 						</div>
 						<div>
 							<label
-								htmlFor="username"
+								htmlFor="phone"
 								className="font-semibold text-sm pb-1 block text-gray-600"
 							>
-								اسم المستخدم
+								رقم الجوال
 							</label>
 							<input
-								type="text"
-								name="username"
-								id="username"
-								value={formData.username}
+								type="tel"
+								name="phone"
+								id="phone"
+								value={formData.phone}
 								onChange={handleChange}
 								className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+								placeholder="05xxxxxxxx"
 							/>
 							<p className="text-red-500 text-xs mt-1 h-4">
-								{errors.username || "\u00A0"}
+								{errors.phone || "\u00A0"}
 							</p>
 						</div>
 						<div>
