@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import MainButton from "@/components/MainButton";
 import { TextAnimate } from "@/components/landing-page/text-animate";
+import type { ReactNode } from "react";
 
 export const Features = () => {
     return (
@@ -45,14 +46,30 @@ export const Features = () => {
     );
 };
 
-const BounceCard = ({ className, children }) => {
-    return (
-        <motion.div whileHover={{ scale: 0.95, rotate: "-1deg" }}  className={`group relative min-h-[300px] cursor-pointer overflow-hidden rounded-2xl bg-slate-100 p-8 ${className}`}>
-            {children}
-        </motion.div>
-    );
+type BounceCardProps = {
+	className?: string;
+	children?: ReactNode;
 };
 
-const CardTitle = ({ children }) => {
-    return <h3 className="mx-auto text-center text-3xl font-semibold">{children}</h3>;
+const BounceCard = ({ className, children }: BounceCardProps) => {
+	return (
+		<motion.div
+			whileHover={{ scale: 0.95, rotate: "-1deg" }}
+			className={`group relative min-h-[300px] cursor-pointer overflow-hidden rounded-2xl bg-slate-100 p-8 ${className}`}
+		>
+			{children}
+		</motion.div>
+	);
 };
+
+type CardTitleProps = {
+	children?: ReactNode;
+};
+
+const CardTitle = ({ children }: CardTitleProps) => {
+	return (
+		<h3 className="mx-auto text-center text-3xl font-semibold">
+			{children}
+		</h3>
+	);
+};;
