@@ -24,6 +24,6 @@
 			"@components/*": ["src/components/*"]
 		}
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/dashboard/page.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/dashboard/page.tsx", "next.config.ts"],
   "exclude": ["node_modules"]
 }
