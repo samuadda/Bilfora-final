@@ -7,7 +7,7 @@ import { TypewriterEffect } from "@/components/landing-page/typewriter-effect";
 import { TextAnimate } from "@/components/landing-page/text-animate";
 import { motion } from "framer-motion";
 import { Safari } from "@/components/landing-page/safari";
-import { Features } from "@/components/landing-page/features";
+import { Features } from "@/components/landing-page/Features";
 import Iphone15Pro from "@/components/landing-page/iphone-15-pro";
 import { StickyScroll } from "@/components/landing-page/sticky-scroll-reveal";
 import {Marquee}    from "@/components/landing-page/marquee";
