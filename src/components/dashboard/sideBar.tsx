@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useContext, createContext } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -21,7 +21,32 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-const navItems = [
+// Create context for sidebar state
+interface SidebarContextType {
+	isCollapsed: boolean;
+	setIsCollapsed: (collapsed: boolean) => void;
+}
+
+export const SidebarContext = createContext<SidebarContextType | undefined>(
+	undefined
+);
+
+export const useSidebar = () => {
+	const context = useContext(SidebarContext);
+	if (!context) {
+		throw new Error("useSidebar must be used within a SidebarProvider");
+	}
+	return context;
+};
+
+// Consider adding proper types for navItems
+interface NavItem {
+	href: string;
+	label: string;
+	icon: React.ComponentType<{ size?: number }>;
+}
+
+export const DASHBOARD_NAV_ITEMS: NavItem[] = [
 	{ href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
 	{ href: "/dashboard/orders", label: "الطلبات", icon: ShoppingCart },
 	{ href: "/dashboard/invoices", label: "الفواتير", icon: FileText },
@@ -29,7 +54,7 @@ const navItems = [
 	{ href: "/dashboard/analytics", label: "التحليلات", icon: BarChart3 },
 ];
 
-const bottomNavItems = [
+const bottomNavItems: NavItem[] = [
 	{ href: "/dashboard/profile", label: "الملف الشخصي", icon: UserCircle },
 	{ href: "/dashboard/notifications", label: "الإشعارات", icon: Bell },
 	{ href: "/dashboard/settings", label: "الإعدادات", icon: Settings },
@@ -37,7 +62,7 @@ const bottomNavItems = [
 ];
 
 export default function Sidebar() {
-	const [isCollapsed, setIsCollapsed] = useState(false);
+	const { isCollapsed, setIsCollapsed } = useSidebar();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const pathname = usePathname();
 	const router = useRouter();
@@ -88,6 +113,10 @@ export default function Sidebar() {
 					)}
 					<button
 						onClick={toggleSidebar}
+						aria-label={
+							isCollapsed ? "Expand sidebar" : "Collapse sidebar"
+						}
+						aria-expanded={!isCollapsed}
 						className="p-1 rounded-lg hover:bg-gray-100 hidden md:block"
 					>
 						{isCollapsed ? (
@@ -100,7 +129,7 @@ export default function Sidebar() {
 
 				{/* Main Navigation */}
 				<nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-					{navItems.map(({ href, label, icon: Icon }) => {
+					{DASHBOARD_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
 						const active =
 							pathname === href ||
 							pathname.startsWith(href + "/");
@@ -133,7 +162,7 @@ export default function Sidebar() {
 								className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
 									active
 										? "bg-gray-100 text-gray-900 font-semibold"
-										: "text-gray-600 hover:bg-gray-50"
+										: "text-gray-700 hover:bg-gray-50"
 								}`}
 								title={isCollapsed ? label : ""}
 							>

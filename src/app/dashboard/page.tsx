@@ -48,9 +48,9 @@ export default function DashboardPage() {
 
 	return (
 		<div className="space-y-6">
-			{/* Header Section */}
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<h1 className="text-2xl font-bold">لوحة التحكم</h1>
+			{/* Header Section - Added md:mr-8 and pl-16 for mobile */}
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pl-16 md:pl-0">
+				<h1 className="text-2xl font-bold md:mr-8">لوحة التحكم</h1>
 				<div className="flex flex-wrap gap-2">
 					<button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
 						<span>➕</span>
@@ -196,22 +196,33 @@ export default function DashboardPage() {
 			</div>
 
 			{/* Recent Activity */}
-			<div className="space-y-4">
-				<div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-					<span className="text-purple-600 font-medium">
-						طلب جديد
-					</span>
-					<span className="text-gray-500 text-sm">قبل 5 دقائق</span>
-				</div>
-				<div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-					<span className="text-green-600 font-medium">
-						تم اكتمال الطلب #123
-					</span>
-					<span className="text-gray-500 text-sm">قبل ساعة</span>
-				</div>
-				<div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-					<span className="text-blue-600 font-medium">عميل جديد</span>
-					<span className="text-gray-500 text-sm">قبل ساعتين</span>
+			<div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
+				<h3 className="text-lg font-semibold mb-4 text-right">
+					النشاطات الأخيرة
+				</h3>
+				<div className="space-y-3">
+					<div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+						<span className="text-purple-600 font-medium">
+							طلب جديد
+						</span>
+						<span className="text-gray-500 text-sm">
+							قبل 5 دقائق
+						</span>
+					</div>
+					<div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+						<span className="text-green-600 font-medium">
+							تم اكتمال الطلب #123
+						</span>
+						<span className="text-gray-500 text-sm">قبل ساعة</span>
+					</div>
+					<div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+						<span className="text-blue-600 font-medium">
+							عميل جديد
+						</span>
+						<span className="text-gray-500 text-sm">
+							قبل ساعتين
+						</span>
+					</div>
 				</div>
 			</div>
 		</div>
