@@ -2,22 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import MainButton from "@/components/MainButton";
 import { ChevronLeft } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { NavigationMenu } from "@/components/landing-page/MobileMenu";
 
-const NavItems = [
-	{ name: "الرئيسية", href: "#home" },
-	{ name: "المزايا", href: "#features" },
-	{ name: "كيف أبلفرها", href: "#how-to" },
-	{ name: "الأسئلة الشائعة", href: "/faq" },
-	{ name: "تواصل معنا", href: "/contact" },
-];
-
-const Navbar = () => {
-	const pathname = usePathname();
-
+const SimpleNavbar = () => {
 	return (
 		<>
 			<motion.nav
@@ -37,26 +24,6 @@ const Navbar = () => {
 					</Link>
 				</div>
 
-				<div className="navbar-center hidden md:flex">
-					<ul className="menu menu-horizontal px-1 text-gray-800">
-						{NavItems.map((item) => {
-							const isActive = pathname === item.href;
-							return (
-								<li
-									key={item.name}
-									className={cn(
-										"font-bold px-3",
-										isActive
-											? "bg-gray-100 rounded-4xl border"
-											: "text-gray-800 hover:text-gray-500"
-									)}
-								>
-									<Link href={item.href}>{item.name}</Link>
-								</li>
-							);
-						})}
-					</ul>
-				</div>
 				<div className="navbar-end flex items-center gap-2">
 					<Link
 						href="/dashboard"
@@ -81,9 +48,8 @@ const Navbar = () => {
 					</Link>
 				</div>
 			</motion.nav>
-			<NavigationMenu NavItems={NavItems} MainButtonText="جرب مجانأ" />
 		</>
 	);
 };
 
-export default Navbar;
+export default SimpleNavbar;
