@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import MainButton from "@/components/MainButton";
 import { DotPattern } from "@/components/landing-page/dot-pattern";
+import SimpleNavbar from "@/components/landing-page/SimpleNavbar";
 
 interface FAQItem {
 	id: number;
@@ -160,6 +161,9 @@ export default function FAQPage() {
 		<div className="min-h-screen bg-gradient-to-br from-[#012d46] via-[#7f2dfb] to-[#ff6b9d] relative overflow-hidden">
 			{/* Background Pattern */}
 			<DotPattern className="absolute inset-0 opacity-10" />
+
+			{/* Navigation */}
+			<SimpleNavbar />
 
 			{/* Header Section */}
 			<div className="relative z-10 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
