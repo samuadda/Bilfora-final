@@ -1,0 +1,10 @@
+[33m722d7b6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of https://github.com/samuadda/Bilfora-final
+[33m4c994fa[m  enhacments to faq and contact pages
+[33m9041174[m faq and contact pages update
+[33ma99ae46[m feat: enhance home page with new features and reviews section
+[33mc4f6b69[m feat: implement contact page with form submission and dynamic content
+[33m34d04f8[m feat: implement FAQ page with dynamic content and category filtering
+[33m45f97d8[m feat: enhance dashboard layout and sidebar functionality
+[33m4feac4d[m feat: Refactor dashboard layout and sidebar components
+[33md93d605[m feat: implement confirmed account page with automatic redirect to login
+[33me6a24b3[m feat: update registration form to replace username with phone number and adjust validation
