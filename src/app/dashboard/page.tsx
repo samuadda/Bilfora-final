@@ -15,6 +15,16 @@ import {
 	BarChart,
 	Bar,
 } from "recharts";
+import {
+	Plus,
+	BarChart3,
+	Users,
+	ShoppingCart,
+	CheckCircle,
+	Clock,
+	DollarSign,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
 	const [stats] = useState({
@@ -48,68 +58,110 @@ export default function DashboardPage() {
 
 	return (
 		<div className="space-y-6">
-			{/* Header Section - Added md:mr-8 and pl-16 for mobile */}
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pl-16 md:pl-0">
-				<h1 className="text-2xl font-bold md:mr-8">لوحة التحكم</h1>
-				<div className="flex flex-wrap gap-2">
-					<button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
-						<span>➕</span>
+			{/* Header Section */}
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div>
+					<h1 className="text-2xl font-bold text-gray-900">
+						لوحة التحكم
+					</h1>
+					<p className="text-gray-500 mt-1">
+						نظرة عامة على أداء عملك وإحصائيات المبيعات
+					</p>
+				</div>
+				<div className="flex flex-wrap gap-3">
+					<Link
+						href="/dashboard/orders/new"
+						className="inline-flex items-center gap-2 rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
+					>
+						<Plus size={16} />
 						<span>طلب جديد</span>
-					</button>
-					<button className="px-6 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition flex items-center gap-2">
-						<span>📊</span>
+					</Link>
+					<Link
+						href="/dashboard/analytics"
+						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200 active:translate-y-[1px]"
+					>
+						<BarChart3 size={16} />
 						<span>التقارير</span>
-					</button>
-					<button className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2">
-						<span>👥</span>
+					</Link>
+					<Link
+						href="/dashboard/clients"
+						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200 active:translate-y-[1px]"
+					>
+						<Users size={16} />
 						<span>العملاء</span>
-					</button>
+					</Link>
 				</div>
 			</div>
 
 			{/* Stats Grid */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-				<div className="bg-white rounded-lg shadow p-6">
-					<h3 className="text-gray-500 text-sm mb-1">
-						إجمالي الطلبات
-					</h3>
-					<p className="text-3xl font-bold text-purple-600">
-						{stats.totalOrders}
-					</p>
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+				<div className="bg-white p-4 rounded-xl border border-gray-200">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-gray-600">
+								إجمالي الطلبات
+							</p>
+							<p className="text-2xl font-bold text-gray-900">
+								{stats.totalOrders}
+							</p>
+						</div>
+						<div className="p-2 bg-blue-100 rounded-lg">
+							<ShoppingCart className="w-6 h-6 text-blue-600" />
+						</div>
+					</div>
 				</div>
 
-				<div className="bg-white rounded-lg shadow p-6">
-					<h3 className="text-gray-500 text-sm mb-1">
-						الطلبات المعلقة
-					</h3>
-					<p className="text-3xl font-bold text-pink-500">
-						{stats.pendingOrders}
-					</p>
+				<div className="bg-white p-4 rounded-xl border border-gray-200">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-gray-600">طلبات معلقة</p>
+							<p className="text-2xl font-bold text-yellow-600">
+								{stats.pendingOrders}
+							</p>
+						</div>
+						<div className="p-2 bg-yellow-100 rounded-lg">
+							<Clock className="w-6 h-6 text-yellow-600" />
+						</div>
+					</div>
 				</div>
 
-				<div className="bg-white rounded-lg shadow p-6">
-					<h3 className="text-gray-500 text-sm mb-1">
-						إجمالي الإيرادات
-					</h3>
-					<p className="text-3xl font-bold text-green-500">
-						{stats.totalRevenue} ريال
-					</p>
+				<div className="bg-white p-4 rounded-xl border border-gray-200">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-gray-600">
+								إجمالي المبيعات
+							</p>
+							<p className="text-2xl font-bold text-green-600">
+								{stats.totalRevenue} ريال
+							</p>
+						</div>
+						<div className="p-2 bg-green-100 rounded-lg">
+							<DollarSign className="w-6 h-6 text-green-600" />
+						</div>
+					</div>
 				</div>
 
-				<div className="bg-white rounded-lg shadow p-6">
-					<h3 className="text-gray-500 text-sm mb-1">
-						العملاء النشطون
-					</h3>
-					<p className="text-3xl font-bold text-blue-500">
-						{stats.activeCustomers}
-					</p>
+				<div className="bg-white p-4 rounded-xl border border-gray-200">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-gray-600">
+								العملاء النشطون
+							</p>
+							<p className="text-2xl font-bold text-purple-600">
+								{stats.activeCustomers}
+							</p>
+						</div>
+						<div className="p-2 bg-purple-100 rounded-lg">
+							<Users className="w-6 h-6 text-purple-600" />
+						</div>
+					</div>
 				</div>
 			</div>
 
 			{/* Charts Grid */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				{/* Revenue Chart */}
-				<div className="bg-white p-6 rounded-lg shadow">
+				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
 						تحليل الإيرادات
 					</h3>
@@ -130,7 +182,7 @@ export default function DashboardPage() {
 				</div>
 
 				{/* Orders Chart */}
-				<div className="bg-white p-6 rounded-lg shadow">
+				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
 						حالة الطلبات
 					</h3>
@@ -158,7 +210,7 @@ export default function DashboardPage() {
 				</div>
 
 				{/* Customer Distribution */}
-				<div className="bg-white p-6 rounded-lg shadow">
+				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
 						توزيع العملاء
 					</h3>
@@ -174,7 +226,7 @@ export default function DashboardPage() {
 				</div>
 
 				{/* Monthly Orders Trend */}
-				<div className="bg-white p-6 rounded-lg shadow">
+				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
 						اتجاه الطلبات الشهرية
 					</h3>
@@ -196,29 +248,44 @@ export default function DashboardPage() {
 			</div>
 
 			{/* Recent Activity */}
-			<div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
+			<div className="bg-white rounded-xl border border-gray-200 p-6">
 				<h3 className="text-lg font-semibold mb-4 text-right">
 					النشاطات الأخيرة
 				</h3>
 				<div className="space-y-3">
-					<div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
-						<span className="text-purple-600 font-medium">
-							طلب جديد
-						</span>
+					<div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+						<div className="flex items-center gap-3">
+							<div className="p-2 bg-purple-100 rounded-lg">
+								<Plus className="w-4 h-4 text-purple-600" />
+							</div>
+							<span className="text-gray-900 font-medium">
+								طلب جديد
+							</span>
+						</div>
 						<span className="text-gray-500 text-sm">
 							قبل 5 دقائق
 						</span>
 					</div>
-					<div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
-						<span className="text-green-600 font-medium">
-							تم اكتمال الطلب #123
-						</span>
+					<div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+						<div className="flex items-center gap-3">
+							<div className="p-2 bg-green-100 rounded-lg">
+								<CheckCircle className="w-4 h-4 text-green-600" />
+							</div>
+							<span className="text-gray-900 font-medium">
+								تم اكتمال الطلب #123
+							</span>
+						</div>
 						<span className="text-gray-500 text-sm">قبل ساعة</span>
 					</div>
-					<div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
-						<span className="text-blue-600 font-medium">
-							عميل جديد
-						</span>
+					<div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+						<div className="flex items-center gap-3">
+							<div className="p-2 bg-blue-100 rounded-lg">
+								<Users className="w-4 h-4 text-blue-600" />
+							</div>
+							<span className="text-gray-900 font-medium">
+								عميل جديد
+							</span>
+						</div>
 						<span className="text-gray-500 text-sm">
 							قبل ساعتين
 						</span>
