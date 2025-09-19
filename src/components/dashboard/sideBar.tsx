@@ -58,17 +58,27 @@ const bottomNavItems: NavItem[] = [
 	{ href: "/dashboard/profile", label: "الملف الشخصي", icon: UserCircle },
 	{ href: "/dashboard/notifications", label: "الإشعارات", icon: Bell },
 	{ href: "/dashboard/settings", label: "الإعدادات", icon: Settings },
+	{
+		href: "/dashboard/invoices-settings",
+		label: "إعدادات الفواتير",
+		icon: FileText,
+	},
 	{ href: "/dashboard/help", label: "المساعدة", icon: HelpCircle },
 ];
 
 export default function Sidebar() {
 	const { isCollapsed, setIsCollapsed } = useSidebar();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const pathname = usePathname();
 	const router = useRouter();
 
-	const onLogout = async () => {
+	const confirmLogout = async () => {
+		setIsLoggingOut(true);
 		await supabase.auth.signOut();
+		setIsLoggingOut(false);
+		setIsLogoutOpen(false);
 		router.push("/login");
 	};
 
@@ -174,7 +184,7 @@ export default function Sidebar() {
 
 					{/* Logout Button */}
 					<button
-						onClick={onLogout}
+						onClick={() => setIsLogoutOpen(true)}
 						className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors mt-2"
 						title={isCollapsed ? "تسجيل الخروج" : ""}
 					>
@@ -191,6 +201,49 @@ export default function Sidebar() {
 					onClick={toggleMobileMenu}
 				/>
 			)}
+
+			{/* Logout Modal with animation */}
+			<div
+				className={`fixed inset-0 z-50 flex items-center justify-center ${
+					isLogoutOpen ? "" : "pointer-events-none"
+				}`}
+			>
+				<div
+					className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${
+						isLogoutOpen ? "opacity-100" : "opacity-0"
+					}`}
+					onClick={() => setIsLogoutOpen(false)}
+				/>
+				<div
+					className={`relative bg-white w-[90%] max-w-sm rounded-2xl shadow-xl border p-5 transform transition-all duration-200 ease-out ${
+						isLogoutOpen
+							? "opacity-100 scale-100 translate-y-0"
+							: "opacity-0 scale-95 translate-y-2"
+					}`}
+				>
+					<h3 className="text-lg font-semibold text-gray-900 mb-1">
+						تأكيد تسجيل الخروج
+					</h3>
+					<p className="text-sm text-gray-600 mb-4">
+						هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟
+					</p>
+					<div className="flex items-center justify-end gap-2">
+						<button
+							onClick={() => setIsLogoutOpen(false)}
+							className="px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
+						>
+							إلغاء
+						</button>
+						<button
+							onClick={confirmLogout}
+							disabled={isLoggingOut}
+							className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-60"
+						>
+							{isLoggingOut ? "جاري الخروج…" : "تسجيل الخروج"}
+						</button>
+					</div>
+				</div>
+			</div>
 		</>
 	);
 }
