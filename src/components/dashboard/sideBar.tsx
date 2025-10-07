@@ -140,9 +140,11 @@ export default function Sidebar() {
 				{/* Main Navigation */}
 				<nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
 					{DASHBOARD_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+						// For exact match or nested routes
 						const active =
 							pathname === href ||
-							pathname.startsWith(href + "/");
+							(href !== "/dashboard" &&
+								pathname.startsWith(href + "/"));
 						return (
 							<Link
 								key={href}
@@ -164,7 +166,10 @@ export default function Sidebar() {
 				{/* Bottom Navigation */}
 				<div className="border-t px-2 py-4 space-y-1">
 					{bottomNavItems.map(({ href, label, icon: Icon }) => {
-						const active = pathname === href;
+						// For exact match or nested routes
+						const active =
+							pathname === href ||
+							pathname.startsWith(href + "/");
 						return (
 							<Link
 								key={href}

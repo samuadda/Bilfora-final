@@ -20,80 +20,78 @@ const Form = () => {
 	const [formData, setFormData] = useState({
 		fullname: "",
 		email: "",
-		phone: "", // changed from username
+		phone: "",
 		password: "",
 		dob: "",
-		gender: "male",
+		gender: "male", // 'male' | 'female' | 'institute'
 	});
 
 	const router = useRouter();
 
-	const [errors, setErrors] = useState({});
+	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [generalError, setGeneralError] = useState("");
 
-	const calculateAge = (dob) => {
+	// ===== Utils =====
+	const calculateAge = (dob: string) => {
 		const birthDate = new Date(dob);
 		const today = new Date();
 		let age = today.getFullYear() - birthDate.getFullYear();
 		const m = today.getMonth() - birthDate.getMonth();
-		if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-			age--;
-		}
+		if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
 		return age;
 	};
 
+	// 05xxxxxxxx -> +9665xxxxxxxx (E.164)
+	const normalizeSaPhone = (p: string) =>
+		p
+			.replace(/\D/g, "")
+			.replace(/^966/, "")
+			.replace(/^0/, "")
+			.replace(/^5/, "+9665");
+
 	const validate = () => {
-		const newErrors = {};
+		const newErrors: Record<string, string> = {};
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		const phoneRegex = /^05\d{8}$/; // Saudi mobile format example, adjust as needed
-		const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+		const phoneRegex = /^05\d{8}$/; // إدخال المستخدم
+		// 8+ chars, at least 1 letter & 1 digit (يسمح بالرموز)
+		const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
-		if (!formData.fullname.trim()) {
+		if (!formData.fullname.trim())
 			newErrors.fullname = "الاسم الكامل مطلوب";
-		}
 
-		if (!formData.email.trim()) {
-			newErrors.email = "البريد الإلكتروني مطلوب";
-		} else if (!emailRegex.test(formData.email)) {
+		if (!formData.email.trim()) newErrors.email = "البريد الإلكتروني مطلوب";
+		else if (!emailRegex.test(formData.email))
 			newErrors.email = "البريد الإلكتروني غير صالح";
-		}
 
-		if (!formData.phone.trim()) {
-			newErrors.phone = "رقم الجوال مطلوب";
-		} else if (!phoneRegex.test(formData.phone)) {
+		if (!formData.phone.trim()) newErrors.phone = "رقم الجوال مطلوب";
+		else if (!phoneRegex.test(formData.phone))
 			newErrors.phone = "رقم الجوال غير صالح (مثال: 05xxxxxxxx)";
-		}
 
-		if (!formData.password) {
-			newErrors.password = "كلمة المرور مطلوبة";
-		} else if (!passwordRegex.test(formData.password)) {
+		if (!formData.password) newErrors.password = "كلمة المرور مطلوبة";
+		else if (!passwordRegex.test(formData.password))
 			newErrors.password =
-				"كلمة المرور يجب أن تكون 8 خانات على الأقل، وتحتوي على حرف واحد ورقم واحد على الأقل";
-		}
+				"كلمة المرور يجب أن تكون 8 خانات على الأقل، وتحتوي على حرف ورقم على الأقل";
 
-		if (!formData.dob) {
-			newErrors.dob = "تاريخ الميلاد مطلوب";
-		} else {
-			const age = calculateAge(formData.dob);
-			if (age < 13) {
-				newErrors.dob = "يجب أن يكون عمرك 13 سنة أو أكثر";
-			}
-		}
+		if (!formData.dob) newErrors.dob = "تاريخ الميلاد مطلوب";
+		else if (calculateAge(formData.dob) < 13)
+			newErrors.dob = "يجب أن يكون عمرك 13 سنة أو أكثر";
 
 		return newErrors;
 	};
 
-	const handleChange = (e) => {
+	const handleChange = (
+		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+	) => {
 		const { name, value } = e.target;
 		setFormData((prev) => ({ ...prev, [name]: value }));
 		setErrors((prev) => ({ ...prev, [name]: "" }));
-		setGeneralError(""); // Clear general error when user types
+		setGeneralError("");
 	};
 
-	const handleSubmit = async (e) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
 		const validationErrors = validate();
@@ -106,44 +104,81 @@ const Form = () => {
 		setGeneralError("");
 
 		try {
+			const phoneE164 = normalizeSaPhone(formData.phone);
+
 			const { data, error } = await supabase.auth.signUp({
 				email: formData.email,
 				password: formData.password,
 				options: {
+					emailRedirectTo: `${location.origin}/auth/callback`,
 					data: {
 						full_name: formData.fullname,
-						phone: formData.phone, // changed from username
+						phone: phoneE164,
 						dob: formData.dob,
-						gender: formData.gender,
+						account_type:
+							formData.gender === "institute"
+								? "business"
+								: "individual",
+						gender:
+							formData.gender === "institute"
+								? null
+								: formData.gender,
 					},
 				},
 			});
 
 			if (error) {
-				console.error("Registration Error:", error.message);
-				setGeneralError("فشل التسجيل: " + error.message);
+				// أخطاء شائعة
+				// @ts-ignore
+				if (error.code === "user_already_registered") {
+					setGeneralError(
+						"هذا البريد مسجّل مسبقًا. جرّب تسجيل الدخول."
+					);
+				} else {
+					setGeneralError("فشل التسجيل: " + error.message);
+				}
+				// أفرغ كلمة المرور للأمان (اختياري)
+				setFormData((p) => ({ ...p, password: "" }));
 				return;
 			}
 
 			setShowConfirmModal(true);
-		} catch (error) {
-			console.error("Unexpected Error:", error);
+		} catch (err: any) {
+			console.error("Unexpected Error:", err);
 			setGeneralError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
-	// Password strength indicator
-	const getPasswordStrength = (password) => {
+	// ===== OAuth Providers =====
+	const onGoogle = async () => {
+		setGeneralError("");
+		const { error } = await supabase.auth.signInWithOAuth({
+			provider: "google",
+			options: { redirectTo: `${location.origin}/auth/callback` },
+		});
+		if (error) setGeneralError(error.message);
+	};
+
+	const onApple = async () => {
+		setGeneralError("");
+		const { error } = await supabase.auth.signInWithOAuth({
+			provider: "apple",
+			options: { redirectTo: `${location.origin}/auth/callback` },
+		});
+		if (error) setGeneralError(error.message);
+	};
+
+	// ===== Password strength meter =====
+	const getPasswordStrength = (password: string) => {
 		if (!password) return { strength: 0, color: "bg-gray-200", text: "" };
 
 		let score = 0;
 		if (password.length >= 8) score++;
 		if (/[A-Za-z]/.test(password)) score++;
 		if (/\d/.test(password)) score++;
-		if (/[^A-Za-z\d]/.test(password)) score++;
-
+		if (/[^A-Za-z\d]/.test(password)) score++; // يسمح بالرموز
 		if (score <= 1)
 			return { strength: score, color: "bg-red-500", text: "ضعيفة" };
 		if (score === 2)
@@ -181,7 +216,7 @@ const Form = () => {
 						/>
 					</h1>
 
-					{/* General Error Display */}
+					{/* General Error */}
 					{generalError && (
 						<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
 							<p className="text-red-600 text-xs sm:text-sm text-center">
@@ -211,6 +246,7 @@ const Form = () => {
 								{errors.fullname || "\u00A0"}
 							</p>
 						</div>
+
 						<div>
 							<label
 								htmlFor="email"
@@ -231,6 +267,7 @@ const Form = () => {
 								{errors.email || "\u00A0"}
 							</p>
 						</div>
+
 						<div>
 							<label
 								htmlFor="phone"
@@ -252,6 +289,7 @@ const Form = () => {
 								{errors.phone || "\u00A0"}
 							</p>
 						</div>
+
 						<div className="sm:col-span-2">
 							<label
 								htmlFor="password"
@@ -271,9 +309,7 @@ const Form = () => {
 								/>
 								<button
 									type="button"
-									onClick={() =>
-										setShowPassword(!showPassword)
-									}
+									onClick={() => setShowPassword((s) => !s)}
 									className="absolute inset-y-0 right-2 flex items-center text-xs sm:text-sm text-gray-500 hover:text-gray-700"
 									disabled={isLoading}
 								>
@@ -281,7 +317,7 @@ const Form = () => {
 								</button>
 							</div>
 
-							{/* Password Strength Indicator */}
+							{/* Password Strength */}
 							{formData.password && (
 								<div className="mt-2">
 									<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
@@ -316,7 +352,6 @@ const Form = () => {
 									</div>
 								</div>
 							)}
-
 							<p className="text-red-500 text-xs mt-1 h-4">
 								{errors.password || "\u00A0"}
 							</p>
@@ -344,12 +379,13 @@ const Form = () => {
 								{errors.dob || "\u00A0"}
 							</p>
 						</div>
+
 						<div>
 							<label
 								htmlFor="gender"
 								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
 							>
-								الجنس
+								الجنس/نوع الحساب
 							</label>
 							<select
 								name="gender"
@@ -361,7 +397,9 @@ const Form = () => {
 							>
 								<option value="male">ذكَر</option>
 								<option value="female">أنثى</option>
-								<option value="institute">مؤسسة</option>
+								<option value="institute">
+									مؤسسة (حساب تجاري)
+								</option>
 							</select>
 						</div>
 					</div>
@@ -388,6 +426,7 @@ const Form = () => {
 									"سجل حسابك"
 								)}
 							</button>
+
 							<div className="flex items-center space-x-2 rtl:space-x-reverse">
 								<div className="h-px flex-1 bg-gray-300" />
 								<p className="text-xs sm:text-sm text-gray-500 px-2">
@@ -398,6 +437,7 @@ const Form = () => {
 
 							<button
 								type="button"
+								onClick={onApple}
 								disabled={isLoading}
 								className="flex items-center justify-center gap-2 w-full border rounded-lg px-3 py-2 text-xs sm:text-sm font-medium hover:bg-gray-100 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
@@ -410,8 +450,6 @@ const Form = () => {
 									height={16}
 									width={16}
 									className="sm:h-5 sm:w-5"
-									y="0px"
-									x="0px"
 									xmlns="http://www.w3.org/2000/svg"
 								>
 									<path d="M25.565,9.785c-0.123,0.077-3.051,1.702-3.051,5.305c0.138,4.109,3.695,5.55,3.756,5.55 c-0.061,0.077-0.537,1.963-1.947,3.94C23.204,26.283,21.962,28,20.076,28c-1.794,0-2.438-1.135-4.508-1.135 c-2.223,0-2.852,1.135-4.554,1.135c-1.886,0-3.22-1.809-4.4-3.496c-1.533-2.208-2.836-5.673-2.882-9 c-0.031-1.763,0.307-3.496,1.165-4.968c1.211-2.055,3.373-3.45,5.734-3.496c1.809-0.061,3.419,1.242,4.523,1.242 c1.058,0,3.036-1.242,5.274-1.242C21.394,7.041,23.97,7.332,25.565,9.785z M15.001,6.688c-0.322-1.61,0.567-3.22,1.395-4.247 c1.058-1.242,2.729-2.085,4.17-2.085c0.092,1.61-0.491,3.189-1.533,4.339C18.098,5.937,16.488,6.872,15.001,6.688z" />
@@ -420,6 +458,7 @@ const Form = () => {
 
 							<button
 								type="button"
+								onClick={onGoogle}
 								disabled={isLoading}
 								className="flex items-center justify-center gap-2 w-full border rounded-lg px-3 py-2 text-xs sm:text-sm font-medium hover:bg-gray-100 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
@@ -463,6 +502,7 @@ const Form = () => {
 					</div>
 				</div>
 			</form>
+
 			<Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
 				<DialogContent className="sm:max-w-md rounded-xl text-center p-4 sm:p-6">
 					<DialogHeader className="flex flex-col items-center gap-2">
