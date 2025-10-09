@@ -16,7 +16,7 @@ import {
 	Bar,
 } from "recharts";
 import {
-	Plus,
+	FileText,
 	BarChart3,
 	Users,
 	ShoppingCart,
@@ -434,11 +434,11 @@ export default function DashboardPage() {
 				</div>
 				<div className="flex flex-wrap gap-3">
 					<Link
-						href="/dashboard/orders"
+						href="/dashboard/invoices"
 						className="inline-flex items-center gap-2 rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
 					>
-						<Plus size={16} />
-						<span>طلب جديد</span>
+						<FileText size={16} />
+						<span>إنشاء فاتورة</span>
 					</Link>
 					<Link
 						href="/dashboard/analytics"
