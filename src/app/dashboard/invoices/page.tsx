@@ -13,131 +13,22 @@ import {
 	AlertCircle,
 	FileText,
 	Send,
+	Plus,
+	Search,
+	Trash2,
+	Loader2,
 } from "lucide-react";
 import Link from "next/link";
-
-// Invoice status types
-type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
-
-interface Invoice {
-	id: string;
-	invoiceNumber: string;
-	customerName: string;
-	customerEmail: string;
-	items: number;
-	subtotal: number;
-	tax: number;
-	total: number;
-	status: InvoiceStatus;
-	createdAt: string;
-	dueDate: string;
-	paidAt?: string;
-	paymentMethod?: string;
-	notes?: string;
-}
-
-// Sample data
-const sampleInvoices: Invoice[] = [
-	{
-		id: "1",
-		invoiceNumber: "INV-2024-001",
-		customerName: "شركة التقنية المتقدمة",
-		customerEmail: "billing@tech-advanced.com",
-		items: 3,
-		subtotal: 400.0,
-		tax: 60.0,
-		total: 460.0,
-		status: "paid",
-		createdAt: "2024-01-15",
-		dueDate: "2024-02-15",
-		paidAt: "2024-01-20",
-		paymentMethod: "تحويل بنكي",
-		notes: "دفع مبكر - خصم 5%",
-	},
-	{
-		id: "2",
-		invoiceNumber: "INV-2024-002",
-		customerName: "مؤسسة البناء الحديث",
-		customerEmail: "accounts@modern-construction.com",
-		items: 1,
-		subtotal: 100.0,
-		tax: 15.0,
-		total: 115.0,
-		status: "sent",
-		createdAt: "2024-01-14",
-		dueDate: "2024-02-14",
-	},
-	{
-		id: "3",
-		invoiceNumber: "INV-2024-003",
-		customerName: "مجموعة الاستثمار الذكي",
-		customerEmail: "finance@smart-investment.com",
-		items: 5,
-		subtotal: 750.0,
-		tax: 112.5,
-		total: 862.5,
-		status: "overdue",
-		createdAt: "2024-01-10",
-		dueDate: "2024-01-25",
-	},
-	{
-		id: "4",
-		invoiceNumber: "INV-2024-004",
-		customerName: "شركة الخدمات الرقمية",
-		customerEmail: "billing@digital-services.com",
-		items: 2,
-		subtotal: 300.0,
-		tax: 45.0,
-		total: 345.0,
-		status: "draft",
-		createdAt: "2024-01-12",
-		dueDate: "2024-02-12",
-		notes: "في انتظار الموافقة النهائية",
-	},
-	{
-		id: "5",
-		invoiceNumber: "INV-2024-005",
-		customerName: "مؤسسة التطوير العقاري",
-		customerEmail: "accounts@real-estate-dev.com",
-		items: 4,
-		subtotal: 600.0,
-		tax: 90.0,
-		total: 690.0,
-		status: "cancelled",
-		createdAt: "2024-01-08",
-		dueDate: "2024-02-08",
-		notes: "تم الإلغاء - تغيير في نطاق المشروع",
-	},
-	{
-		id: "6",
-		invoiceNumber: "INV-2024-006",
-		customerName: "شركة النقل السريع",
-		customerEmail: "billing@fast-transport.com",
-		items: 1,
-		subtotal: 250.0,
-		tax: 37.5,
-		total: 287.5,
-		status: "sent",
-		createdAt: "2024-01-20",
-		dueDate: "2024-02-20",
-	},
-	{
-		id: "7",
-		invoiceNumber: "INV-2024-007",
-		customerName: "مؤسسة التصنيع المتقدم",
-		customerEmail: "finance@advanced-manufacturing.com",
-		items: 6,
-		subtotal: 1200.0,
-		tax: 180.0,
-		total: 1380.0,
-		status: "paid",
-		createdAt: "2024-01-18",
-		dueDate: "2024-02-18",
-		paidAt: "2024-01-25",
-		paymentMethod: "بطاقة ائتمان",
-		notes: "دفع جزئي - المتبقي 500 ريال",
-	},
-];
+import { supabase } from "@/lib/supabase";
+import {
+	Invoice,
+	InvoiceWithClientAndItems,
+	CreateInvoiceInput,
+	UpdateInvoiceInput,
+	InvoiceStatus,
+	Client,
+	Order,
+} from "@/types/database";
 
 const statusConfig = {
 	draft: {
@@ -168,44 +59,71 @@ const statusConfig = {
 };
 
 export default function InvoicesPage() {
-	const [invoices, setInvoices] = useState<Invoice[]>(sampleInvoices);
-	const [filteredInvoices, setFilteredInvoices] =
-		useState<Invoice[]>(sampleInvoices);
-	const [searchTerm] = useState("");
+	const [invoices, setInvoices] = useState<InvoiceWithClientAndItems[]>([]);
+	const [filteredInvoices, setFilteredInvoices] = useState<
+		InvoiceWithClientAndItems[]
+	>([]);
+	const [clients, setClients] = useState<Client[]>([]);
+	const [orders, setOrders] = useState<Order[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState<string | null>(null);
+	const [searchTerm, setSearchTerm] = useState("");
 	const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(
 		"all"
 	);
 	const [dateFilter, setDateFilter] = useState("all");
 	const [showFilters, setShowFilters] = useState(false);
+	const [showAddModal, setShowAddModal] = useState(false);
+	const [editingInvoice, setEditingInvoice] =
+		useState<InvoiceWithClientAndItems | null>(null);
+	const [saving, setSaving] = useState(false);
 
-	// Filter invoices based on search and filters
+	// Form state for add/edit
+	const [formData, setFormData] = useState({
+		client_id: "",
+		order_id: "",
+		issue_date: "",
+		due_date: "",
+		status: "draft" as InvoiceStatus,
+		tax_rate: 15,
+		notes: "",
+		items: [{ description: "", quantity: 1, unit_price: 0 }],
+	});
+
+	// Load invoices, clients, and orders on component mount
 	useEffect(() => {
-		let filtered = invoices;
+		loadInvoices();
+		loadClients();
+		loadOrders();
+	}, []);
 
-		// Search filter
+	// Filter invoices when filters change
+	useEffect(() => {
+		let filtered = [...invoices];
+
+		// Filter by status
+		if (statusFilter !== "all") {
+			filtered = filtered.filter((i) => i.status === statusFilter);
+		}
+
+		// Filter by search term
 		if (searchTerm) {
 			filtered = filtered.filter(
-				(invoice) =>
-					invoice.invoiceNumber
+				(i) =>
+					i.invoice_number
 						.toLowerCase()
 						.includes(searchTerm.toLowerCase()) ||
-					invoice.customerName
+					i.client.name
 						.toLowerCase()
 						.includes(searchTerm.toLowerCase()) ||
-					invoice.customerEmail
+					i.client.email
 						.toLowerCase()
 						.includes(searchTerm.toLowerCase())
 			);
 		}
 
-		// Status filter
-		if (statusFilter !== "all") {
-			filtered = filtered.filter(
-				(invoice) => invoice.status === statusFilter
-			);
-		}
-
-		// Date filter
+		// Filter by date
 		if (dateFilter !== "all") {
 			const now = new Date();
 			const filterDate = new Date();
@@ -223,53 +141,422 @@ export default function InvoicesPage() {
 			}
 
 			filtered = filtered.filter(
-				(invoice) => new Date(invoice.createdAt) >= filterDate
+				(i) => new Date(i.created_at) >= filterDate
 			);
 		}
 
 		setFilteredInvoices(filtered);
-	}, [invoices, searchTerm, statusFilter, dateFilter]);
+	}, [invoices, statusFilter, searchTerm, dateFilter]);
+
+	const loadInvoices = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) {
+				setError("يجب تسجيل الدخول أولاً");
+				return;
+			}
+
+			const { data, error } = await supabase
+				.from("invoices")
+				.select(
+					`
+					*,
+					client:clients(*),
+					order:orders(*),
+					items:invoice_items(*)
+				`
+				)
+				.eq("user_id", user.id)
+				.order("created_at", { ascending: false });
+
+			if (error) {
+				console.error("Error loading invoices:", error);
+				setError("فشل في تحميل قائمة الفواتير");
+				return;
+			}
+
+			setInvoices(data || []);
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const loadClients = async () => {
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) return;
+
+			const { data, error } = await supabase
+				.from("clients")
+				.select("*")
+				.eq("user_id", user.id)
+				.eq("status", "active")
+				.order("name");
+
+			if (error) {
+				console.error("Error loading clients:", error);
+				return;
+			}
+
+			setClients(data || []);
+		} catch (err) {
+			console.error("Unexpected error loading clients:", err);
+		}
+	};
+
+	const loadOrders = async () => {
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) return;
+
+			const { data, error } = await supabase
+				.from("orders")
+				.select("*")
+				.eq("user_id", user.id)
+				.eq("status", "completed")
+				.order("created_at", { ascending: false });
+
+			if (error) {
+				console.error("Error loading orders:", error);
+				return;
+			}
+
+			setOrders(data || []);
+		} catch (err) {
+			console.error("Unexpected error loading orders:", err);
+		}
+	};
+
+	const handleInputChange = (
+		e: React.ChangeEvent<
+			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+		>
+	) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	const handleItemChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			items: prev.items.map((item, i) =>
+				i === index ? { ...item, [field]: value } : item
+			),
+		}));
+	};
+
+	const addItem = () => {
+		setFormData((prev) => ({
+			...prev,
+			items: [
+				...prev.items,
+				{ description: "", quantity: 1, unit_price: 0 },
+			],
+		}));
+	};
+
+	const removeItem = (index: number) => {
+		setFormData((prev) => ({
+			...prev,
+			items: prev.items.filter((_, i) => i !== index),
+		}));
+	};
+
+	const resetForm = () => {
+		setFormData({
+			client_id: "",
+			order_id: "",
+			issue_date: "",
+			due_date: "",
+			status: "draft",
+			tax_rate: 15,
+			notes: "",
+			items: [{ description: "", quantity: 1, unit_price: 0 }],
+		});
+		setEditingInvoice(null);
+		setError(null);
+		setSuccess(null);
+	};
+
+	const handleAddInvoice = () => {
+		resetForm();
+		setShowAddModal(true);
+	};
+
+	const handleEditInvoice = (invoice: InvoiceWithClientAndItems) => {
+		setFormData({
+			client_id: invoice.client_id,
+			order_id: invoice.order_id || "",
+			issue_date: invoice.issue_date,
+			due_date: invoice.due_date,
+			status: invoice.status,
+			tax_rate: invoice.tax_rate,
+			notes: invoice.notes || "",
+			items: invoice.items.map((item) => ({
+				description: item.description,
+				quantity: item.quantity,
+				unit_price: item.unit_price,
+			})),
+		});
+		setEditingInvoice(invoice);
+		setShowAddModal(true);
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		try {
+			setSaving(true);
+			setError(null);
+
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) {
+				setError("يجب تسجيل الدخول أولاً");
+				return;
+			}
+
+			// Calculate totals
+			const subtotal = formData.items.reduce(
+				(sum, item) => sum + item.quantity * item.unit_price,
+				0
+			);
+			const taxAmount = subtotal * (formData.tax_rate / 100);
+			const totalAmount = subtotal + taxAmount;
+
+			if (editingInvoice) {
+				// Update existing invoice
+				const { error: invoiceError } = await supabase
+					.from("invoices")
+					.update({
+						client_id: formData.client_id,
+						order_id: formData.order_id || null,
+						issue_date: formData.issue_date,
+						due_date: formData.due_date,
+						status: formData.status,
+						tax_rate: formData.tax_rate,
+						subtotal: subtotal,
+						tax_amount: taxAmount,
+						total_amount: totalAmount,
+						notes: formData.notes || null,
+					})
+					.eq("id", editingInvoice.id);
+
+				if (invoiceError) {
+					console.error("Error updating invoice:", invoiceError);
+					setError("فشل في تحديث الفاتورة");
+					return;
+				}
+
+				// Delete existing items and insert new ones
+				const { error: deleteError } = await supabase
+					.from("invoice_items")
+					.delete()
+					.eq("invoice_id", editingInvoice.id);
+
+				if (deleteError) {
+					console.error("Error deleting invoice items:", deleteError);
+					setError("فشل في تحديث عناصر الفاتورة");
+					return;
+				}
+
+				const { error: insertError } = await supabase
+					.from("invoice_items")
+					.insert(
+						formData.items.map((item) => ({
+							invoice_id: editingInvoice.id,
+							description: item.description,
+							quantity: item.quantity,
+							unit_price: item.unit_price,
+							total: item.quantity * item.unit_price,
+						}))
+					);
+
+				if (insertError) {
+					console.error(
+						"Error inserting invoice items:",
+						insertError
+					);
+					setError("فشل في تحديث عناصر الفاتورة");
+					return;
+				}
+
+				setSuccess("تم تحديث الفاتورة بنجاح");
+			} else {
+				// Create new invoice
+				const { data: invoiceData, error: invoiceError } =
+					await supabase
+						.from("invoices")
+						.insert({
+							user_id: user.id,
+							client_id: formData.client_id,
+							order_id: formData.order_id || null,
+							issue_date: formData.issue_date,
+							due_date: formData.due_date,
+							status: formData.status,
+							tax_rate: formData.tax_rate,
+							subtotal: subtotal,
+							tax_amount: taxAmount,
+							total_amount: totalAmount,
+							notes: formData.notes || null,
+						})
+						.select()
+						.single();
+
+				if (invoiceError) {
+					console.error("Error creating invoice:", invoiceError);
+					setError("فشل في إضافة الفاتورة");
+					return;
+				}
+
+				// Insert invoice items
+				const { error: insertError } = await supabase
+					.from("invoice_items")
+					.insert(
+						formData.items.map((item) => ({
+							invoice_id: invoiceData.id,
+							description: item.description,
+							quantity: item.quantity,
+							unit_price: item.unit_price,
+							total: item.quantity * item.unit_price,
+						}))
+					);
+
+				if (insertError) {
+					console.error(
+						"Error inserting invoice items:",
+						insertError
+					);
+					setError("فشل في إضافة عناصر الفاتورة");
+					return;
+				}
+
+				setSuccess("تم إضافة الفاتورة بنجاح");
+			}
+
+			// Reload invoices and close modal
+			await loadInvoices();
+			setShowAddModal(false);
+			resetForm();
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		} finally {
+			setSaving(false);
+		}
+	};
 
 	const handleStatusChange = async (
 		invoiceId: string,
 		newStatus: InvoiceStatus
 	) => {
-		setInvoices((prev) =>
-			prev.map((invoice) =>
-				invoice.id === invoiceId
-					? {
-							...invoice,
-							status: newStatus,
-							paidAt:
-								newStatus === "paid"
-									? new Date().toISOString().split("T")[0]
-									: undefined,
-					  }
-					: invoice
-			)
-		);
+		try {
+			setError(null);
+
+			const { error } = await supabase
+				.from("invoices")
+				.update({ status: newStatus })
+				.eq("id", invoiceId);
+
+			if (error) {
+				console.error("Error updating invoice status:", error);
+				setError("فشل في تحديث حالة الفاتورة");
+				return;
+			}
+
+			setSuccess("تم تحديث حالة الفاتورة بنجاح");
+			await loadInvoices();
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		}
 	};
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("ar-SA", {
+	const handleDeleteInvoice = async (invoiceId: string) => {
+		if (!confirm("هل أنت متأكد من حذف هذه الفاتورة؟")) return;
+
+		try {
+			setError(null);
+
+			const { error } = await supabase
+				.from("invoices")
+				.delete()
+				.eq("id", invoiceId);
+
+			if (error) {
+				console.error("Error deleting invoice:", error);
+				setError("فشل في حذف الفاتورة");
+				return;
+			}
+
+			setSuccess("تم حذف الفاتورة بنجاح");
+			await loadInvoices();
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		}
+	};
+
+	const formatCurrency = (amount: number) =>
+		new Intl.NumberFormat("ar-SA", {
 			style: "currency",
 			currency: "SAR",
 		}).format(amount);
+
+	const formatDate = (dateString: string) =>
+		new Date(dateString).toLocaleDateString("ar-SA");
+
+	const isOverdue = (dueDate: string, status: InvoiceStatus) => {
+		return new Date(dueDate) < new Date() && status !== "paid";
 	};
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString("ar-SA");
-	};
-
-	const isOverdue = (dueDate: string) => {
+	if (loading) {
 		return (
-			new Date(dueDate) < new Date() &&
-			!invoices.find((inv) => inv.dueDate === dueDate)?.paidAt
+			<div className="flex items-center justify-center min-h-[400px]">
+				<div className="text-center">
+					<Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
+					<p className="text-gray-500">جاري تحميل الفواتير...</p>
+				</div>
+			</div>
 		);
-	};
+	}
 
 	return (
 		<div className="space-y-6">
+			{/* Success/Error Messages */}
+			{success && (
+				<div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+					<CheckCircle className="h-5 w-5 text-green-600" />
+					<p className="text-green-800">{success}</p>
+				</div>
+			)}
+			{error && (
+				<div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+					<AlertCircle className="h-5 w-5 text-red-600" />
+					<p className="text-red-800">{error}</p>
+				</div>
+			)}
+
 			{/* Stats Cards */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 				<div className="bg-white p-4 rounded-xl border border-gray-200">
@@ -296,10 +583,8 @@ export default function InvoicesPage() {
 							</p>
 							<p className="text-2xl font-bold text-red-600">
 								{
-									invoices.filter(
-										(i) =>
-											new Date(i.dueDate) < new Date() &&
-											i.status !== "paid"
+									invoices.filter((i) =>
+										isOverdue(i.due_date, i.status)
 									).length
 								}
 							</p>
@@ -326,7 +611,7 @@ export default function InvoicesPage() {
 										)
 										.reduce(
 											(sum, invoice) =>
-												sum + invoice.total,
+												sum + invoice.total_amount,
 											0
 										)
 								)}
@@ -350,7 +635,7 @@ export default function InvoicesPage() {
 										.filter((i) => i.status === "paid")
 										.reduce(
 											(sum, invoice) =>
-												sum + invoice.total,
+												sum + invoice.total_amount,
 											0
 										)
 								)}
@@ -363,10 +648,40 @@ export default function InvoicesPage() {
 				</div>
 			</div>
 
+			{/* Header with Add Button */}
+			<div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+				<div>
+					<h1 className="text-2xl font-bold text-gray-900">
+						الفواتير
+					</h1>
+					<p className="text-gray-500 mt-1">إدارة فواتير العملاء</p>
+				</div>
+				<button
+					onClick={handleAddInvoice}
+					className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:translate-y-[1px]"
+				>
+					<Plus size={16} />
+					إنشاء فاتورة جديدة
+				</button>
+			</div>
+
 			{/* Filters */}
 			<div className="bg-white p-4 rounded-xl border border-gray-200">
 				<div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
 					<div className="flex flex-wrap gap-3">
+						<div className="relative">
+							<Search
+								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+								size={16}
+							/>
+							<input
+								type="text"
+								placeholder="البحث في الفواتير..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								className="pl-3 pr-9 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 w-64"
+							/>
+						</div>
 						<button
 							onClick={() => setShowFilters(!showFilters)}
 							className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -453,9 +768,10 @@ export default function InvoicesPage() {
 							{filteredInvoices.map((invoice) => {
 								const statusInfo = statusConfig[invoice.status];
 								const StatusIcon = statusInfo.icon;
-								const isOverdueInvoice =
-									isOverdue(invoice.dueDate) &&
-									invoice.status !== "paid";
+								const isOverdueInvoice = isOverdue(
+									invoice.due_date,
+									invoice.status
+								);
 
 								return (
 									<tr
@@ -464,24 +780,26 @@ export default function InvoicesPage() {
 									>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div className="text-sm font-medium text-gray-900">
-												{invoice.invoiceNumber}
+												{invoice.invoice_number}
 											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div>
 												<div className="text-sm font-medium text-gray-900">
-													{invoice.customerName}
+													{invoice.client.name}
 												</div>
 												<div className="text-sm text-gray-500">
-													{invoice.customerEmail}
+													{invoice.client.email}
 												</div>
 											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-											{formatCurrency(invoice.total)}
+											{formatCurrency(
+												invoice.total_amount
+											)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-											{formatCurrency(invoice.tax)}
+											{formatCurrency(invoice.tax_amount)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<span
@@ -498,24 +816,21 @@ export default function InvoicesPage() {
 											</span>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											{formatDate(invoice.dueDate)}
+											{formatDate(invoice.due_date)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
 											<div className="flex items-center gap-2">
-												<Link
-													href={`/dashboard/invoices/${invoice.id}`}
-													className="text-blue-600 hover:text-blue-900"
-													title="عرض الفاتورة"
-												>
-													<Eye size={16} />
-												</Link>
-												<Link
-													href={`/dashboard/invoices/${invoice.id}/edit`}
+												<button
+													onClick={() =>
+														handleEditInvoice(
+															invoice
+														)
+													}
 													className="text-gray-600 hover:text-gray-900"
-													title="تعديل الفاتورة"
+													title="تعديل"
 												>
 													<Edit size={16} />
-												</Link>
+												</button>
 												<button
 													className="text-green-600 hover:text-green-900"
 													title="تحميل PDF"
@@ -546,6 +861,17 @@ export default function InvoicesPage() {
 												>
 													<CheckCircle size={16} />
 												</button>
+												<button
+													onClick={() =>
+														handleDeleteInvoice(
+															invoice.id
+														)
+													}
+													className="text-red-600 hover:text-red-900"
+													title="حذف"
+												>
+													<Trash2 size={16} />
+												</button>
 											</div>
 										</td>
 									</tr>
@@ -563,16 +889,284 @@ export default function InvoicesPage() {
 						<p className="text-gray-400 mt-2">
 							لم يتم العثور على فواتير تطابق المعايير المحددة
 						</p>
-						<Link
-							href="/dashboard/invoices/new"
+						<button
+							onClick={handleAddInvoice}
 							className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
 						>
 							<FileText size={16} />
 							إنشاء فاتورة جديدة
-						</Link>
+						</button>
 					</div>
 				)}
 			</div>
+
+			{/* Add/Edit Modal */}
+			{showAddModal && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+					<div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+						<h2 className="text-xl font-bold mb-4">
+							{editingInvoice
+								? "تعديل الفاتورة"
+								: "إنشاء فاتورة جديدة"}
+						</h2>
+
+						<form onSubmit={handleSubmit} className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										العميل *
+									</label>
+									<select
+										name="client_id"
+										value={formData.client_id}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+										required
+									>
+										<option value="">اختر العميل</option>
+										{clients.map((client) => (
+											<option
+												key={client.id}
+												value={client.id}
+											>
+												{client.name} - {client.email}
+											</option>
+										))}
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										الطلب (اختياري)
+									</label>
+									<select
+										name="order_id"
+										value={formData.order_id}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+									>
+										<option value="">اختر الطلب</option>
+										{orders.map((order) => (
+											<option
+												key={order.id}
+												value={order.id}
+											>
+												{order.order_number} -{" "}
+												{formatCurrency(
+													order.total_amount
+												)}
+											</option>
+										))}
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										تاريخ الإصدار *
+									</label>
+									<input
+										name="issue_date"
+										type="date"
+										value={formData.issue_date}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+										required
+									/>
+								</div>
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										تاريخ الاستحقاق *
+									</label>
+									<input
+										name="due_date"
+										type="date"
+										value={formData.due_date}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+										required
+									/>
+								</div>
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										الحالة
+									</label>
+									<select
+										name="status"
+										value={formData.status}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+									>
+										<option value="draft">مسودة</option>
+										<option value="sent">مرسلة</option>
+										<option value="paid">مدفوعة</option>
+										<option value="cancelled">ملغية</option>
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										معدل الضريبة (%)
+									</label>
+									<input
+										name="tax_rate"
+										type="number"
+										min="0"
+										max="100"
+										step="0.01"
+										value={formData.tax_rate}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+									/>
+								</div>
+							</div>
+
+							{/* Invoice Items */}
+							<div>
+								<div className="flex items-center justify-between mb-4">
+									<label className="block text-sm text-gray-600">
+										عناصر الفاتورة *
+									</label>
+									<button
+										type="button"
+										onClick={addItem}
+										className="text-purple-600 hover:text-purple-700 text-sm"
+									>
+										+ إضافة عنصر
+									</button>
+								</div>
+
+								<div className="space-y-3">
+									{formData.items.map((item, index) => (
+										<div
+											key={index}
+											className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+										>
+											<div className="md:col-span-2">
+												<label className="block text-xs text-gray-600 mb-1">
+													الوصف
+												</label>
+												<input
+													value={item.description}
+													onChange={(e) =>
+														handleItemChange(
+															index,
+															"description",
+															e.target.value
+														)
+													}
+													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+													placeholder="وصف العنصر"
+													required
+												/>
+											</div>
+											<div>
+												<label className="block text-xs text-gray-600 mb-1">
+													الكمية
+												</label>
+												<input
+													type="number"
+													min="1"
+													value={item.quantity}
+													onChange={(e) =>
+														handleItemChange(
+															index,
+															"quantity",
+															parseInt(
+																e.target.value
+															) || 1
+														)
+													}
+													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+													required
+												/>
+											</div>
+											<div>
+												<label className="block text-xs text-gray-600 mb-1">
+													السعر
+												</label>
+												<div className="flex gap-2">
+													<input
+														type="number"
+														min="0"
+														step="0.01"
+														value={item.unit_price}
+														onChange={(e) =>
+															handleItemChange(
+																index,
+																"unit_price",
+																parseFloat(
+																	e.target
+																		.value
+																) || 0
+															)
+														}
+														className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+														required
+													/>
+													<button
+														type="button"
+														onClick={() =>
+															removeItem(index)
+														}
+														className="text-red-600 hover:text-red-700 p-2"
+														disabled={
+															formData.items
+																.length === 1
+														}
+													>
+														<Trash2 size={16} />
+													</button>
+												</div>
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+
+							<div>
+								<label className="block text-sm text-gray-600 mb-1">
+									ملاحظات
+								</label>
+								<textarea
+									name="notes"
+									value={formData.notes}
+									onChange={handleInputChange}
+									rows={3}
+									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+									placeholder="ملاحظات إضافية"
+								/>
+							</div>
+
+							<div className="flex items-center justify-end gap-2 pt-4">
+								<button
+									type="button"
+									onClick={() => {
+										setShowAddModal(false);
+										resetForm();
+									}}
+									className="px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
+								>
+									إلغاء
+								</button>
+								<button
+									type="submit"
+									disabled={saving}
+									className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+								>
+									{saving && (
+										<Loader2
+											size={16}
+											className="animate-spin"
+										/>
+									)}
+									{saving
+										? "جاري الحفظ..."
+										: editingInvoice
+										? "تحديث"
+										: "إنشاء"}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

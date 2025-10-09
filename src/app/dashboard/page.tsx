@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	AreaChart,
 	Area,
@@ -23,38 +23,402 @@ import {
 	CheckCircle,
 	Clock,
 	DollarSign,
+	Loader2,
+	AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import {
+	DashboardStats,
+	MonthlyData,
+	OrderStatusData,
+	CustomerData,
+} from "@/types/database";
 
 export default function DashboardPage() {
-	const [stats] = useState({
-		totalOrders: 150,
-		pendingOrders: 25,
-		totalRevenue: 15000,
-		activeCustomers: 45,
+	const [stats, setStats] = useState<DashboardStats>({
+		totalOrders: 0,
+		pendingOrders: 0,
+		totalRevenue: 0,
+		activeCustomers: 0,
 	});
+	const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+	const [orderStatusData, setOrderStatusData] = useState<OrderStatusData[]>(
+		[]
+	);
+	const [customerData, setCustomerData] = useState<CustomerData[]>([]);
+	const [recentActivity, setRecentActivity] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
-	// Sample data for charts
-	const monthlyData = [
-		{ name: "يناير", orders: 65, revenue: 12000 },
-		{ name: "فبراير", orders: 75, revenue: 15000 },
-		{ name: "مارس", orders: 85, revenue: 18000 },
-		{ name: "أبريل", orders: 95, revenue: 21000 },
-		{ name: "مايو", orders: 110, revenue: 24000 },
-		{ name: "يونيو", orders: 150, revenue: 15000 },
-	];
+	// Load dashboard data on component mount
+	useEffect(() => {
+		loadDashboardData();
+	}, []);
 
-	const orderStatusData = [
-		{ name: "مكتمل", value: 85, color: "#10B981" },
-		{ name: "معلق", value: 25, color: "#F59E0B" },
-		{ name: "ملغي", value: 15, color: "#EF4444" },
-	];
+	const loadDashboardData = async () => {
+		try {
+			setLoading(true);
+			setError(null);
 
-	const customerData = [
-		{ name: "جدد", value: 30 },
-		{ name: "عائدون", value: 45 },
-		{ name: "منتظمون", value: 25 },
-	];
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) {
+				setError("يجب تسجيل الدخول أولاً");
+				return;
+			}
+
+			// Load all dashboard data in parallel
+			await Promise.all([
+				loadStats(user.id),
+				loadMonthlyData(user.id),
+				loadOrderStatusData(user.id),
+				loadCustomerData(user.id),
+				loadRecentActivity(user.id),
+			]);
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const loadStats = async (userId: string) => {
+		try {
+			// Get orders stats
+			const { data: ordersData, error: ordersError } = await supabase
+				.from("orders")
+				.select("status, total_amount")
+				.eq("user_id", userId);
+
+			if (ordersError) {
+				console.error("Error loading orders stats:", ordersError);
+				return;
+			}
+
+			// Get clients stats
+			const { data: clientsData, error: clientsError } = await supabase
+				.from("clients")
+				.select("status")
+				.eq("user_id", userId);
+
+			if (clientsError) {
+				console.error("Error loading clients stats:", clientsError);
+				return;
+			}
+
+			const totalOrders = ordersData?.length || 0;
+			const pendingOrders =
+				ordersData?.filter((o) => o.status === "pending").length || 0;
+			const totalRevenue =
+				ordersData?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+			const activeCustomers =
+				clientsData?.filter((c) => c.status === "active").length || 0;
+
+			setStats({
+				totalOrders,
+				pendingOrders,
+				totalRevenue,
+				activeCustomers,
+			});
+		} catch (err) {
+			console.error("Error loading stats:", err);
+		}
+	};
+
+	const loadMonthlyData = async (userId: string) => {
+		try {
+			const { data, error } = await supabase
+				.from("orders")
+				.select("created_at, total_amount")
+				.eq("user_id", userId)
+				.gte(
+					"created_at",
+					new Date(
+						Date.now() - 6 * 30 * 24 * 60 * 60 * 1000
+					).toISOString()
+				)
+				.order("created_at");
+
+			if (error) {
+				console.error("Error loading monthly data:", error);
+				return;
+			}
+
+			// Group data by month
+			const monthlyMap = new Map<
+				string,
+				{ orders: number; revenue: number }
+			>();
+
+			data?.forEach((order) => {
+				const date = new Date(order.created_at);
+				const monthKey = `${date.getFullYear()}-${String(
+					date.getMonth() + 1
+				).padStart(2, "0")}`;
+				const monthName = date.toLocaleDateString("ar-SA", {
+					month: "long",
+				});
+
+				if (!monthlyMap.has(monthKey)) {
+					monthlyMap.set(monthKey, { orders: 0, revenue: 0 });
+				}
+
+				const monthData = monthlyMap.get(monthKey)!;
+				monthData.orders += 1;
+				monthData.revenue += order.total_amount;
+			});
+
+			// Convert to array format
+			const monthlyArray = Array.from(monthlyMap.entries())
+				.map(([key, data]) => {
+					const [year, month] = key.split("-");
+					const date = new Date(parseInt(year), parseInt(month) - 1);
+					return {
+						name: date.toLocaleDateString("ar-SA", {
+							month: "long",
+						}),
+						orders: data.orders,
+						revenue: data.revenue,
+					};
+				})
+				.sort((a, b) => {
+					const monthOrder = [
+						"يناير",
+						"فبراير",
+						"مارس",
+						"أبريل",
+						"مايو",
+						"يونيو",
+						"يوليو",
+						"أغسطس",
+						"سبتمبر",
+						"أكتوبر",
+						"نوفمبر",
+						"ديسمبر",
+					];
+					return (
+						monthOrder.indexOf(a.name) - monthOrder.indexOf(b.name)
+					);
+				});
+
+			setMonthlyData(monthlyArray);
+		} catch (err) {
+			console.error("Error loading monthly data:", err);
+		}
+	};
+
+	const loadOrderStatusData = async (userId: string) => {
+		try {
+			const { data, error } = await supabase
+				.from("orders")
+				.select("status")
+				.eq("user_id", userId);
+
+			if (error) {
+				console.error("Error loading order status data:", error);
+				return;
+			}
+
+			// Count orders by status
+			const statusCounts =
+				data?.reduce((acc, order) => {
+					acc[order.status] = (acc[order.status] || 0) + 1;
+					return acc;
+				}, {} as Record<string, number>) || {};
+
+			const statusData = [
+				{
+					name: "مكتمل",
+					value: statusCounts.completed || 0,
+					color: "#10B981",
+				},
+				{
+					name: "معلق",
+					value: statusCounts.pending || 0,
+					color: "#F59E0B",
+				},
+				{
+					name: "قيد المعالجة",
+					value: statusCounts.processing || 0,
+					color: "#3B82F6",
+				},
+				{
+					name: "ملغي",
+					value: statusCounts.cancelled || 0,
+					color: "#EF4444",
+				},
+			].filter((item) => item.value > 0);
+
+			setOrderStatusData(statusData);
+		} catch (err) {
+			console.error("Error loading order status data:", err);
+		}
+	};
+
+	const loadCustomerData = async (userId: string) => {
+		try {
+			const { data, error } = await supabase
+				.from("clients")
+				.select("status, created_at")
+				.eq("user_id", userId);
+
+			if (error) {
+				console.error("Error loading customer data:", error);
+				return;
+			}
+
+			const now = new Date();
+			const thirtyDaysAgo = new Date(
+				now.getTime() - 30 * 24 * 60 * 60 * 1000
+			);
+			const ninetyDaysAgo = new Date(
+				now.getTime() - 90 * 24 * 60 * 60 * 1000
+			);
+
+			const newCustomers =
+				data?.filter((c) => new Date(c.created_at) >= thirtyDaysAgo)
+					.length || 0;
+			const returningCustomers =
+				data?.filter((c) => {
+					const created = new Date(c.created_at);
+					return created >= ninetyDaysAgo && created < thirtyDaysAgo;
+				}).length || 0;
+			const regularCustomers =
+				data?.filter((c) => new Date(c.created_at) < ninetyDaysAgo)
+					.length || 0;
+
+			setCustomerData([
+				{ name: "جدد", value: newCustomers },
+				{ name: "عائدون", value: returningCustomers },
+				{ name: "منتظمون", value: regularCustomers },
+			]);
+		} catch (err) {
+			console.error("Error loading customer data:", err);
+		}
+	};
+
+	const loadRecentActivity = async (userId: string) => {
+		try {
+			// Get recent orders
+			const { data: ordersData, error: ordersError } = await supabase
+				.from("orders")
+				.select(
+					`
+					created_at,
+					status,
+					order_number,
+					client:clients(name)
+				`
+				)
+				.eq("user_id", userId)
+				.order("created_at", { ascending: false })
+				.limit(5);
+
+			if (ordersError) {
+				console.error("Error loading recent orders:", ordersError);
+				return;
+			}
+
+			// Get recent clients
+			const { data: clientsData, error: clientsError } = await supabase
+				.from("clients")
+				.select("created_at, name")
+				.eq("user_id", userId)
+				.order("created_at", { ascending: false })
+				.limit(3);
+
+			if (clientsError) {
+				console.error("Error loading recent clients:", clientsError);
+				return;
+			}
+
+			// Combine and format activity
+			const activities = [
+				...(ordersData?.map((order) => ({
+					type: "order",
+					title: `طلب جديد - ${order.order_number}`,
+					subtitle: order.client?.name || "عميل غير محدد",
+					time: order.created_at,
+					icon: ShoppingCart,
+					color: "purple",
+				})) || []),
+				...(clientsData?.map((client) => ({
+					type: "client",
+					title: "عميل جديد",
+					subtitle: client.name,
+					time: client.created_at,
+					icon: Users,
+					color: "blue",
+				})) || []),
+			]
+				.sort(
+					(a, b) =>
+						new Date(b.time).getTime() - new Date(a.time).getTime()
+				)
+				.slice(0, 5);
+
+			setRecentActivity(activities);
+		} catch (err) {
+			console.error("Error loading recent activity:", err);
+		}
+	};
+
+	const formatCurrency = (amount: number) =>
+		new Intl.NumberFormat("ar-SA", {
+			style: "currency",
+			currency: "SAR",
+		}).format(amount);
+
+	const formatTimeAgo = (dateString: string) => {
+		const date = new Date(dateString);
+		const now = new Date();
+		const diffInMinutes = Math.floor(
+			(now.getTime() - date.getTime()) / (1000 * 60)
+		);
+
+		if (diffInMinutes < 60) {
+			return `قبل ${diffInMinutes} دقيقة`;
+		} else if (diffInMinutes < 1440) {
+			const hours = Math.floor(diffInMinutes / 60);
+			return `قبل ${hours} ساعة`;
+		} else {
+			const days = Math.floor(diffInMinutes / 1440);
+			return `قبل ${days} يوم`;
+		}
+	};
+
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-[400px]">
+				<div className="text-center">
+					<Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
+					<p className="text-gray-500">
+						جاري تحميل بيانات لوحة التحكم...
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex items-center justify-center min-h-[400px]">
+				<div className="text-center">
+					<AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+					<p className="text-red-600">{error}</p>
+					<button
+						onClick={loadDashboardData}
+						className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+					>
+						إعادة المحاولة
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
@@ -70,7 +434,7 @@ export default function DashboardPage() {
 				</div>
 				<div className="flex flex-wrap gap-3">
 					<Link
-						href="/dashboard/orders/new"
+						href="/dashboard/orders"
 						className="inline-flex items-center gap-2 rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
 					>
 						<Plus size={16} />
@@ -132,7 +496,7 @@ export default function DashboardPage() {
 								إجمالي المبيعات
 							</p>
 							<p className="text-2xl font-bold text-green-600">
-								{stats.totalRevenue} ريال
+								{formatCurrency(stats.totalRevenue)}
 							</p>
 						</div>
 						<div className="p-2 bg-green-100 rounded-lg">
@@ -170,7 +534,16 @@ export default function DashboardPage() {
 							<CartesianGrid strokeDasharray="3 3" />
 							<XAxis dataKey="name" />
 							<YAxis />
-							<Tooltip />
+							<Tooltip
+								formatter={(value, name) => [
+									name === "revenue"
+										? formatCurrency(Number(value))
+										: value,
+									name === "revenue"
+										? "الإيرادات"
+										: "الطلبات",
+								]}
+							/>
 							<Area
 								type="monotone"
 								dataKey="revenue"
@@ -253,43 +626,52 @@ export default function DashboardPage() {
 					النشاطات الأخيرة
 				</h3>
 				<div className="space-y-3">
-					<div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-						<div className="flex items-center gap-3">
-							<div className="p-2 bg-purple-100 rounded-lg">
-								<Plus className="w-4 h-4 text-purple-600" />
-							</div>
-							<span className="text-gray-900 font-medium">
-								طلب جديد
-							</span>
+					{recentActivity.length > 0 ? (
+						recentActivity.map((activity, index) => {
+							const IconComponent = activity.icon;
+							const colorClasses = {
+								purple: "bg-purple-100 text-purple-600",
+								blue: "bg-blue-100 text-blue-600",
+								green: "bg-green-100 text-green-600",
+							};
+
+							return (
+								<div
+									key={index}
+									className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
+								>
+									<div className="flex items-center gap-3">
+										<div
+											className={`p-2 rounded-lg ${
+												colorClasses[
+													activity.color as keyof typeof colorClasses
+												]
+											}`}
+										>
+											<IconComponent className="w-4 h-4" />
+										</div>
+										<div>
+											<span className="text-gray-900 font-medium">
+												{activity.title}
+											</span>
+											<p className="text-sm text-gray-500">
+												{activity.subtitle}
+											</p>
+										</div>
+									</div>
+									<span className="text-gray-500 text-sm">
+										{formatTimeAgo(activity.time)}
+									</span>
+								</div>
+							);
+						})
+					) : (
+						<div className="text-center py-8">
+							<p className="text-gray-500">
+								لا توجد نشاطات حديثة
+							</p>
 						</div>
-						<span className="text-gray-500 text-sm">
-							قبل 5 دقائق
-						</span>
-					</div>
-					<div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-						<div className="flex items-center gap-3">
-							<div className="p-2 bg-green-100 rounded-lg">
-								<CheckCircle className="w-4 h-4 text-green-600" />
-							</div>
-							<span className="text-gray-900 font-medium">
-								تم اكتمال الطلب #123
-							</span>
-						</div>
-						<span className="text-gray-500 text-sm">قبل ساعة</span>
-					</div>
-					<div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-						<div className="flex items-center gap-3">
-							<div className="p-2 bg-blue-100 rounded-lg">
-								<Users className="w-4 h-4 text-blue-600" />
-							</div>
-							<span className="text-gray-900 font-medium">
-								عميل جديد
-							</span>
-						</div>
-						<span className="text-gray-500 text-sm">
-							قبل ساعتين
-						</span>
-					</div>
+					)}
 				</div>
 			</div>
 		</div>

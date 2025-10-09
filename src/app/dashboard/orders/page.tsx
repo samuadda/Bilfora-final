@@ -11,97 +11,21 @@ import {
 	Clock,
 	XCircle,
 	AlertCircle,
+	Plus,
+	Search,
+	Trash2,
+	Loader2,
 } from "lucide-react";
 import Link from "next/link";
-
-// Order status types
-type OrderStatus =
-	| "pending"
-	| "processing"
-	| "completed"
-	| "cancelled"
-	| "refunded";
-
-interface Order {
-	id: string;
-	orderNumber: string;
-	customerName: string;
-	customerEmail: string;
-	items: number;
-	total: number;
-	status: OrderStatus;
-	createdAt: string;
-	updatedAt: string;
-	paymentMethod: string;
-	notes?: string;
-}
-
-// Sample data
-const sampleOrders: Order[] = [
-	{
-		id: "1",
-		orderNumber: "ORD-2024-001",
-		customerName: "أحمد محمد",
-		customerEmail: "ahmed@example.com",
-		items: 3,
-		total: 450.0,
-		status: "completed",
-		createdAt: "2024-01-15",
-		updatedAt: "2024-01-16",
-		paymentMethod: "تحويل بنكي",
-		notes: "طلب عاجل",
-	},
-	{
-		id: "2",
-		orderNumber: "ORD-2024-002",
-		customerName: "فاطمة علي",
-		customerEmail: "fatima@example.com",
-		items: 1,
-		total: 120.0,
-		status: "pending",
-		createdAt: "2024-01-14",
-		updatedAt: "2024-01-14",
-		paymentMethod: "نقدي",
-	},
-	{
-		id: "3",
-		orderNumber: "ORD-2024-003",
-		customerName: "محمد السعد",
-		customerEmail: "mohammed@example.com",
-		items: 5,
-		total: 890.0,
-		status: "processing",
-		createdAt: "2024-01-13",
-		updatedAt: "2024-01-15",
-		paymentMethod: "بطاقة ائتمان",
-	},
-	{
-		id: "4",
-		orderNumber: "ORD-2024-004",
-		customerName: "نورا أحمد",
-		customerEmail: "nora@example.com",
-		items: 2,
-		total: 340.0,
-		status: "cancelled",
-		createdAt: "2024-01-12",
-		updatedAt: "2024-01-13",
-		paymentMethod: "تحويل بنكي",
-		notes: "تم الإلغاء بناءً على طلب العميل",
-	},
-	{
-		id: "5",
-		orderNumber: "ORD-2024-005",
-		customerName: "خالد العتيبي",
-		customerEmail: "khalid@example.com",
-		items: 4,
-		total: 670.0,
-		status: "refunded",
-		createdAt: "2024-01-11",
-		updatedAt: "2024-01-14",
-		paymentMethod: "بطاقة ائتمان",
-		notes: "استرداد كامل",
-	},
-];
+import { supabase } from "@/lib/supabase";
+import {
+	Order,
+	OrderWithClientAndItems,
+	CreateOrderInput,
+	UpdateOrderInput,
+	OrderStatus,
+	Client,
+} from "@/types/database";
 
 const statusConfig = {
 	pending: {
@@ -124,51 +48,68 @@ const statusConfig = {
 		color: "bg-red-100 text-red-800",
 		icon: XCircle,
 	},
-	refunded: {
-		label: "مسترد",
-		color: "bg-gray-100 text-gray-800",
-		icon: XCircle,
-	},
 };
 
 export default function OrdersPage() {
-	const [orders, setOrders] = useState<Order[]>(sampleOrders);
-	const [filteredOrders, setFilteredOrders] = useState<Order[]>(sampleOrders);
-	const [searchTerm] = useState("");
+	const [orders, setOrders] = useState<OrderWithClientAndItems[]>([]);
+	const [filteredOrders, setFilteredOrders] = useState<
+		OrderWithClientAndItems[]
+	>([]);
+	const [clients, setClients] = useState<Client[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState<string | null>(null);
+	const [searchTerm, setSearchTerm] = useState("");
 	const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">(
 		"all"
 	);
 	const [dateFilter, setDateFilter] = useState("all");
 	const [showFilters, setShowFilters] = useState(false);
+	const [showAddModal, setShowAddModal] = useState(false);
+	const [editingOrder, setEditingOrder] =
+		useState<OrderWithClientAndItems | null>(null);
+	const [saving, setSaving] = useState(false);
 
-	// Filter orders based on search and filters
+	// Form state for add/edit
+	const [formData, setFormData] = useState({
+		client_id: "",
+		status: "pending" as OrderStatus,
+		notes: "",
+		items: [{ description: "", quantity: 1, unit_price: 0 }],
+	});
+
+	// Load orders and clients on component mount
 	useEffect(() => {
-		let filtered = orders;
+		loadOrders();
+		loadClients();
+	}, []);
 
-		// Search filter
+	// Filter orders when filters change
+	useEffect(() => {
+		let filtered = [...orders];
+
+		// Filter by status
+		if (statusFilter !== "all") {
+			filtered = filtered.filter((o) => o.status === statusFilter);
+		}
+
+		// Filter by search term
 		if (searchTerm) {
 			filtered = filtered.filter(
-				(order) =>
-					order.orderNumber
+				(o) =>
+					o.order_number
 						.toLowerCase()
 						.includes(searchTerm.toLowerCase()) ||
-					order.customerName
+					o.client.name
 						.toLowerCase()
 						.includes(searchTerm.toLowerCase()) ||
-					order.customerEmail
+					o.client.email
 						.toLowerCase()
 						.includes(searchTerm.toLowerCase())
 			);
 		}
 
-		// Status filter
-		if (statusFilter !== "all") {
-			filtered = filtered.filter(
-				(order) => order.status === statusFilter
-			);
-		}
-
-		// Date filter
+		// Filter by date
 		if (dateFilter !== "all") {
 			const now = new Date();
 			const filterDate = new Date();
@@ -186,43 +127,363 @@ export default function OrdersPage() {
 			}
 
 			filtered = filtered.filter(
-				(order) => new Date(order.createdAt) >= filterDate
+				(o) => new Date(o.created_at) >= filterDate
 			);
 		}
 
 		setFilteredOrders(filtered);
-	}, [orders, searchTerm, statusFilter, dateFilter]);
+	}, [orders, statusFilter, searchTerm, dateFilter]);
+
+	const loadOrders = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) {
+				setError("يجب تسجيل الدخول أولاً");
+				return;
+			}
+
+			const { data, error } = await supabase
+				.from("orders")
+				.select(
+					`
+					*,
+					client:clients(*),
+					items:order_items(*)
+				`
+				)
+				.eq("user_id", user.id)
+				.order("created_at", { ascending: false });
+
+			if (error) {
+				console.error("Error loading orders:", error);
+				setError("فشل في تحميل قائمة الطلبات");
+				return;
+			}
+
+			setOrders(data || []);
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const loadClients = async () => {
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) return;
+
+			const { data, error } = await supabase
+				.from("clients")
+				.select("*")
+				.eq("user_id", user.id)
+				.eq("status", "active")
+				.order("name");
+
+			if (error) {
+				console.error("Error loading clients:", error);
+				return;
+			}
+
+			setClients(data || []);
+		} catch (err) {
+			console.error("Unexpected error loading clients:", err);
+		}
+	};
+
+	const handleInputChange = (
+		e: React.ChangeEvent<
+			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+		>
+	) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	const handleItemChange = (
+		index: number,
+		field: string,
+		value: string | number
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			items: prev.items.map((item, i) =>
+				i === index ? { ...item, [field]: value } : item
+			),
+		}));
+	};
+
+	const addItem = () => {
+		setFormData((prev) => ({
+			...prev,
+			items: [
+				...prev.items,
+				{ description: "", quantity: 1, unit_price: 0 },
+			],
+		}));
+	};
+
+	const removeItem = (index: number) => {
+		setFormData((prev) => ({
+			...prev,
+			items: prev.items.filter((_, i) => i !== index),
+		}));
+	};
+
+	const resetForm = () => {
+		setFormData({
+			client_id: "",
+			status: "pending",
+			notes: "",
+			items: [{ description: "", quantity: 1, unit_price: 0 }],
+		});
+		setEditingOrder(null);
+		setError(null);
+		setSuccess(null);
+	};
+
+	const handleAddOrder = () => {
+		resetForm();
+		setShowAddModal(true);
+	};
+
+	const handleEditOrder = (order: OrderWithClientAndItems) => {
+		setFormData({
+			client_id: order.client_id,
+			status: order.status,
+			notes: order.notes || "",
+			items: order.items.map((item) => ({
+				description: item.description,
+				quantity: item.quantity,
+				unit_price: item.unit_price,
+			})),
+		});
+		setEditingOrder(order);
+		setShowAddModal(true);
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		try {
+			setSaving(true);
+			setError(null);
+
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) {
+				setError("يجب تسجيل الدخول أولاً");
+				return;
+			}
+
+			// Calculate total amount
+			const totalAmount = formData.items.reduce(
+				(sum, item) => sum + item.quantity * item.unit_price,
+				0
+			);
+
+			if (editingOrder) {
+				// Update existing order
+				const { error: orderError } = await supabase
+					.from("orders")
+					.update({
+						client_id: formData.client_id,
+						status: formData.status,
+						total_amount: totalAmount,
+						notes: formData.notes || null,
+					})
+					.eq("id", editingOrder.id);
+
+				if (orderError) {
+					console.error("Error updating order:", orderError);
+					setError("فشل في تحديث الطلب");
+					return;
+				}
+
+				// Delete existing items and insert new ones
+				const { error: deleteError } = await supabase
+					.from("order_items")
+					.delete()
+					.eq("order_id", editingOrder.id);
+
+				if (deleteError) {
+					console.error("Error deleting order items:", deleteError);
+					setError("فشل في تحديث عناصر الطلب");
+					return;
+				}
+
+				const { error: insertError } = await supabase
+					.from("order_items")
+					.insert(
+						formData.items.map((item) => ({
+							order_id: editingOrder.id,
+							description: item.description,
+							quantity: item.quantity,
+							unit_price: item.unit_price,
+							total: item.quantity * item.unit_price,
+						}))
+					);
+
+				if (insertError) {
+					console.error("Error inserting order items:", insertError);
+					setError("فشل في تحديث عناصر الطلب");
+					return;
+				}
+
+				setSuccess("تم تحديث الطلب بنجاح");
+			} else {
+				// Create new order
+				const { data: orderData, error: orderError } = await supabase
+					.from("orders")
+					.insert({
+						user_id: user.id,
+						client_id: formData.client_id,
+						status: formData.status,
+						total_amount: totalAmount,
+						notes: formData.notes || null,
+					})
+					.select()
+					.single();
+
+				if (orderError) {
+					console.error("Error creating order:", orderError);
+					setError("فشل في إضافة الطلب");
+					return;
+				}
+
+				// Insert order items
+				const { error: insertError } = await supabase
+					.from("order_items")
+					.insert(
+						formData.items.map((item) => ({
+							order_id: orderData.id,
+							description: item.description,
+							quantity: item.quantity,
+							unit_price: item.unit_price,
+							total: item.quantity * item.unit_price,
+						}))
+					);
+
+				if (insertError) {
+					console.error("Error inserting order items:", insertError);
+					setError("فشل في إضافة عناصر الطلب");
+					return;
+				}
+
+				setSuccess("تم إضافة الطلب بنجاح");
+			}
+
+			// Reload orders and close modal
+			await loadOrders();
+			setShowAddModal(false);
+			resetForm();
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		} finally {
+			setSaving(false);
+		}
+	};
 
 	const handleStatusChange = async (
 		orderId: string,
 		newStatus: OrderStatus
 	) => {
-		setOrders((prev) =>
-			prev.map((order) =>
-				order.id === orderId
-					? {
-							...order,
-							status: newStatus,
-							updatedAt: new Date().toISOString().split("T")[0],
-					  }
-					: order
-			)
-		);
+		try {
+			setError(null);
+
+			const { error } = await supabase
+				.from("orders")
+				.update({ status: newStatus })
+				.eq("id", orderId);
+
+			if (error) {
+				console.error("Error updating order status:", error);
+				setError("فشل في تحديث حالة الطلب");
+				return;
+			}
+
+			setSuccess("تم تحديث حالة الطلب بنجاح");
+			await loadOrders();
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		}
 	};
 
-	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat("ar-SA", {
+	const handleDeleteOrder = async (orderId: string) => {
+		if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
+
+		try {
+			setError(null);
+
+			const { error } = await supabase
+				.from("orders")
+				.delete()
+				.eq("id", orderId);
+
+			if (error) {
+				console.error("Error deleting order:", error);
+				setError("فشل في حذف الطلب");
+				return;
+			}
+
+			setSuccess("تم حذف الطلب بنجاح");
+			await loadOrders();
+		} catch (err) {
+			console.error("Unexpected error:", err);
+			setError("حدث خطأ غير متوقع");
+		}
+	};
+
+	const formatCurrency = (amount: number) =>
+		new Intl.NumberFormat("ar-SA", {
 			style: "currency",
 			currency: "SAR",
 		}).format(amount);
-	};
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString("ar-SA");
-	};
+	const formatDate = (dateString: string) =>
+		new Date(dateString).toLocaleDateString("ar-SA");
+
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-[400px]">
+				<div className="text-center">
+					<Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
+					<p className="text-gray-500">جاري تحميل الطلبات...</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
+			{/* Success/Error Messages */}
+			{success && (
+				<div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+					<CheckCircle className="h-5 w-5 text-green-600" />
+					<p className="text-green-800">{success}</p>
+				</div>
+			)}
+			{error && (
+				<div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+					<AlertCircle className="h-5 w-5 text-red-600" />
+					<p className="text-red-800">{error}</p>
+				</div>
+			)}
+
 			{/* Stats Cards */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 				<div className="bg-white p-4 rounded-xl border border-gray-200">
@@ -287,7 +548,8 @@ export default function OrdersPage() {
 							<p className="text-2xl font-bold text-purple-600">
 								{formatCurrency(
 									orders.reduce(
-										(sum, order) => sum + order.total,
+										(sum, order) =>
+											sum + order.total_amount,
 										0
 									)
 								)}
@@ -300,10 +562,40 @@ export default function OrdersPage() {
 				</div>
 			</div>
 
+			{/* Header with Add Button */}
+			<div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+				<div>
+					<h1 className="text-2xl font-bold text-gray-900">
+						الطلبات
+					</h1>
+					<p className="text-gray-500 mt-1">إدارة طلبات العملاء</p>
+				</div>
+				<button
+					onClick={handleAddOrder}
+					className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:translate-y-[1px]"
+				>
+					<Plus size={16} />
+					إضافة طلب جديد
+				</button>
+			</div>
+
 			{/* Filters */}
 			<div className="bg-white p-4 rounded-xl border border-gray-200">
 				<div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
 					<div className="flex flex-wrap gap-3">
+						<div className="relative">
+							<Search
+								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+								size={16}
+							/>
+							<input
+								type="text"
+								placeholder="البحث في الطلبات..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								className="pl-3 pr-9 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 w-64"
+							/>
+						</div>
 						<button
 							onClick={() => setShowFilters(!showFilters)}
 							className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -333,7 +625,6 @@ export default function OrdersPage() {
 									</option>
 									<option value="completed">مكتمل</option>
 									<option value="cancelled">ملغي</option>
-									<option value="refunded">مسترد</option>
 								</select>
 
 								<select
@@ -399,24 +690,24 @@ export default function OrdersPage() {
 									>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div className="text-sm font-medium text-gray-900">
-												{order.orderNumber}
+												{order.order_number}
 											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div>
 												<div className="text-sm font-medium text-gray-900">
-													{order.customerName}
+													{order.client.name}
 												</div>
 												<div className="text-sm text-gray-500">
-													{order.customerEmail}
+													{order.client.email}
 												</div>
 											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-											{order.items} عنصر
+											{order.items.length} عنصر
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-											{formatCurrency(order.total)}
+											{formatCurrency(order.total_amount)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<span
@@ -427,24 +718,19 @@ export default function OrdersPage() {
 											</span>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											{formatDate(order.createdAt)}
+											{formatDate(order.created_at)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
 											<div className="flex items-center gap-2">
-												<Link
-													href={`/dashboard/orders/${order.id}`}
-													className="text-blue-600 hover:text-blue-900"
-													title="عرض التفاصيل"
-												>
-													<Eye size={16} />
-												</Link>
-												<Link
-													href={`/dashboard/orders/${order.id}/edit`}
+												<button
+													onClick={() =>
+														handleEditOrder(order)
+													}
 													className="text-gray-600 hover:text-gray-900"
 													title="تعديل"
 												>
 													<Edit size={16} />
-												</Link>
+												</button>
 												<button
 													onClick={() =>
 														handleStatusChange(
@@ -469,6 +755,17 @@ export default function OrdersPage() {
 												>
 													<XCircle size={16} />
 												</button>
+												<button
+													onClick={() =>
+														handleDeleteOrder(
+															order.id
+														)
+													}
+													className="text-red-600 hover:text-red-900"
+													title="حذف"
+												>
+													<Trash2 size={16} />
+												</button>
 											</div>
 										</td>
 									</tr>
@@ -486,9 +783,219 @@ export default function OrdersPage() {
 						<p className="text-gray-400 mt-2">
 							لم يتم العثور على طلبات تطابق المعايير المحددة
 						</p>
+						<button
+							onClick={handleAddOrder}
+							className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+						>
+							<Plus size={16} />
+							إضافة طلب جديد
+						</button>
 					</div>
 				)}
 			</div>
+
+			{/* Add/Edit Modal */}
+			{showAddModal && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+					<div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+						<h2 className="text-xl font-bold mb-4">
+							{editingOrder ? "تعديل الطلب" : "إضافة طلب جديد"}
+						</h2>
+
+						<form onSubmit={handleSubmit} className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										العميل *
+									</label>
+									<select
+										name="client_id"
+										value={formData.client_id}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+										required
+									>
+										<option value="">اختر العميل</option>
+										{clients.map((client) => (
+											<option
+												key={client.id}
+												value={client.id}
+											>
+												{client.name} - {client.email}
+											</option>
+										))}
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm text-gray-600 mb-1">
+										الحالة
+									</label>
+									<select
+										name="status"
+										value={formData.status}
+										onChange={handleInputChange}
+										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+									>
+										<option value="pending">معلق</option>
+										<option value="processing">
+											قيد المعالجة
+										</option>
+										<option value="completed">مكتمل</option>
+										<option value="cancelled">ملغي</option>
+									</select>
+								</div>
+							</div>
+
+							{/* Order Items */}
+							<div>
+								<div className="flex items-center justify-between mb-4">
+									<label className="block text-sm text-gray-600">
+										عناصر الطلب *
+									</label>
+									<button
+										type="button"
+										onClick={addItem}
+										className="text-purple-600 hover:text-purple-700 text-sm"
+									>
+										+ إضافة عنصر
+									</button>
+								</div>
+
+								<div className="space-y-3">
+									{formData.items.map((item, index) => (
+										<div
+											key={index}
+											className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+										>
+											<div className="md:col-span-2">
+												<label className="block text-xs text-gray-600 mb-1">
+													الوصف
+												</label>
+												<input
+													value={item.description}
+													onChange={(e) =>
+														handleItemChange(
+															index,
+															"description",
+															e.target.value
+														)
+													}
+													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+													placeholder="وصف العنصر"
+													required
+												/>
+											</div>
+											<div>
+												<label className="block text-xs text-gray-600 mb-1">
+													الكمية
+												</label>
+												<input
+													type="number"
+													min="1"
+													value={item.quantity}
+													onChange={(e) =>
+														handleItemChange(
+															index,
+															"quantity",
+															parseInt(
+																e.target.value
+															) || 1
+														)
+													}
+													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+													required
+												/>
+											</div>
+											<div>
+												<label className="block text-xs text-gray-600 mb-1">
+													السعر
+												</label>
+												<div className="flex gap-2">
+													<input
+														type="number"
+														min="0"
+														step="0.01"
+														value={item.unit_price}
+														onChange={(e) =>
+															handleItemChange(
+																index,
+																"unit_price",
+																parseFloat(
+																	e.target
+																		.value
+																) || 0
+															)
+														}
+														className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+														required
+													/>
+													<button
+														type="button"
+														onClick={() =>
+															removeItem(index)
+														}
+														className="text-red-600 hover:text-red-700 p-2"
+														disabled={
+															formData.items
+																.length === 1
+														}
+													>
+														<Trash2 size={16} />
+													</button>
+												</div>
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+
+							<div>
+								<label className="block text-sm text-gray-600 mb-1">
+									ملاحظات
+								</label>
+								<textarea
+									name="notes"
+									value={formData.notes}
+									onChange={handleInputChange}
+									rows={3}
+									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+									placeholder="ملاحظات إضافية"
+								/>
+							</div>
+
+							<div className="flex items-center justify-end gap-2 pt-4">
+								<button
+									type="button"
+									onClick={() => {
+										setShowAddModal(false);
+										resetForm();
+									}}
+									className="px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
+								>
+									إلغاء
+								</button>
+								<button
+									type="submit"
+									disabled={saving}
+									className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+								>
+									{saving && (
+										<Loader2
+											size={16}
+											className="animate-spin"
+										/>
+									)}
+									{saving
+										? "جاري الحفظ..."
+										: editingOrder
+										? "تحديث"
+										: "إضافة"}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
