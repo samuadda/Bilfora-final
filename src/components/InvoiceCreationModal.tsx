@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-	FileText,
-	Loader2,
-	AlertCircle,
-	Trash2,
-	Plus,
-	X,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { z } from "zod";
+import toast from "react-hot-toast";
+import { Loader2, AlertCircle, Trash2, Plus, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
 	Client,
@@ -20,7 +15,7 @@ import {
 interface InvoiceCreationModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSuccess?: () => void;
+	onSuccess?: (id?: string) => void;
 }
 
 export default function InvoiceCreationModal({
@@ -28,6 +23,23 @@ export default function InvoiceCreationModal({
 	onClose,
 	onSuccess,
 }: InvoiceCreationModalProps) {
+	// Validation schemas
+	const itemSchema = z.object({
+		description: z.string().min(1, "الوصف مطلوب"),
+		quantity: z.coerce.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
+		unit_price: z.coerce.number().min(0, "السعر لا يمكن أن يكون سالبًا"),
+	});
+
+	const invoiceSchema = z.object({
+		client_id: z.string().uuid("العميل غير صالح"),
+		order_id: z.string().uuid().optional().or(z.literal("")),
+		issue_date: z.string().min(1, "تاريخ الإصدار مطلوب"),
+		due_date: z.string().min(1, "تاريخ الاستحقاق مطلوب"),
+		status: z.enum(["draft", "sent", "paid", "cancelled"]),
+		tax_rate: z.coerce.number().min(0).max(100),
+		notes: z.string().optional(),
+		items: z.array(itemSchema).min(1, "يجب إضافة عنصر واحد على الأقل"),
+	});
 	// Modal state
 	const [clients, setClients] = useState<Client[]>([]);
 	const [orders, setOrders] = useState<Order[]>([]);
@@ -59,6 +71,22 @@ export default function InvoiceCreationModal({
 	});
 	const [error, setError] = useState<string | null>(null);
 
+	// Totals helpers
+	const calcSubtotal = () =>
+		invoiceFormData.items.reduce(
+			(sum, it) =>
+				sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
+			0
+		);
+	const calcVat = (subtotal: number) =>
+		subtotal * (Number(invoiceFormData.tax_rate || 0) / 100);
+	const calcTotal = (subtotal: number, vat: number) => subtotal + vat;
+
+	const closeModal = useCallback(() => {
+		resetInvoiceForm();
+		onClose();
+	}, [onClose]);
+
 	// Load data when modal opens
 	useEffect(() => {
 		if (isOpen) {
@@ -84,7 +112,7 @@ export default function InvoiceCreationModal({
 			document.removeEventListener("keydown", handleKeyDown);
 			document.body.style.overflow = "unset";
 		};
-	}, [isOpen]);
+	}, [isOpen, closeModal]);
 
 	const loadClientsForInvoice = async () => {
 		try {
@@ -219,11 +247,19 @@ export default function InvoiceCreationModal({
 			setSaving(true);
 			setError(null);
 
+			const parsed = invoiceSchema.safeParse(invoiceFormData);
+			if (!parsed.success) {
+				const msg =
+					parsed.error.issues[0]?.message || "البيانات غير صالحة";
+				toast.error(msg);
+				return;
+			}
+
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
 			if (!user) {
-				setError("يجب تسجيل الدخول أولاً");
+				toast.error("يجب تسجيل الدخول أولاً");
 				return;
 			}
 
@@ -245,7 +281,7 @@ export default function InvoiceCreationModal({
 
 			if (invoiceError) {
 				console.error("Error creating invoice:", invoiceError);
-				setError("فشل في إنشاء الفاتورة");
+				toast.error("فشل في إنشاء الفاتورة");
 				return;
 			}
 
@@ -263,18 +299,25 @@ export default function InvoiceCreationModal({
 
 			if (itemsError) {
 				console.error("Error creating invoice items:", itemsError);
-				setError("فشل في إنشاء عناصر الفاتورة");
+				toast.error("فشل في إنشاء عناصر الفاتورة");
 				return;
 			}
 
-			// Success - close modal and reset form
+			// Update totals (in case trigger latency)
+			try {
+				await supabase.rpc("recalc_invoice_totals", {
+					inv_id: invoiceData.id,
+				});
+			} catch {}
+
+			toast.success("تم إنشاء الفاتورة بنجاح");
 			closeModal();
 			if (onSuccess) {
-				onSuccess();
+				onSuccess(invoiceData.id);
 			}
 		} catch (err) {
 			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
+			toast.error("حدث خطأ غير متوقع");
 		} finally {
 			setSaving(false);
 		}
@@ -358,10 +401,7 @@ export default function InvoiceCreationModal({
 		}
 	};
 
-	const closeModal = () => {
-		resetInvoiceForm();
-		onClose();
-	};
+	// closeModal moved above and memoized
 
 	const formatCurrency = (amount: number) =>
 		new Intl.NumberFormat("ar-SA", {
@@ -380,7 +420,7 @@ export default function InvoiceCreationModal({
 				}
 			}}
 		>
-			<div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl">
+			<div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl">
 				{/* Fixed Header */}
 				<div className="flex items-center justify-between p-6 border-b border-gray-200">
 					<h2 className="text-xl font-bold text-right">
@@ -404,10 +444,7 @@ export default function InvoiceCreationModal({
 
 				{/* Scrollable Body */}
 				<div className="flex-1 overflow-y-auto p-6">
-					<form
-						onSubmit={handleInvoiceSubmit}
-						className="space-y-6"
-					>
+					<form onSubmit={handleInvoiceSubmit} className="space-y-6">
 						{/* Customer Selection */}
 						<div className="space-y-4">
 							<div className="flex items-center justify-between">
@@ -433,16 +470,13 @@ export default function InvoiceCreationModal({
 									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 									required
 								>
-									<option value="">
-										اختر العميل
-									</option>
+									<option value="">اختر العميل</option>
 									{clients.map((client) => (
 										<option
 											key={client.id}
 											value={client.id}
 										>
-											{client.name} -{" "}
-											{client.email}
+											{client.name} - {client.email}
 										</option>
 									))}
 								</select>
@@ -455,9 +489,7 @@ export default function InvoiceCreationModal({
 										<input
 											name="name"
 											value={newCustomerData.name}
-											onChange={
-												handleNewCustomerChange
-											}
+											onChange={handleNewCustomerChange}
 											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 											required
 										/>
@@ -469,12 +501,8 @@ export default function InvoiceCreationModal({
 										<input
 											name="email"
 											type="email"
-											value={
-												newCustomerData.email
-											}
-											onChange={
-												handleNewCustomerChange
-											}
+											value={newCustomerData.email}
+											onChange={handleNewCustomerChange}
 											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 											required
 										/>
@@ -485,12 +513,8 @@ export default function InvoiceCreationModal({
 										</label>
 										<input
 											name="phone"
-											value={
-												newCustomerData.phone
-											}
-											onChange={
-												handleNewCustomerChange
-											}
+											value={newCustomerData.phone}
+											onChange={handleNewCustomerChange}
 											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 										/>
 									</div>
@@ -500,21 +524,15 @@ export default function InvoiceCreationModal({
 										</label>
 										<input
 											name="company_name"
-											value={
-												newCustomerData.company_name
-											}
-											onChange={
-												handleNewCustomerChange
-											}
+											value={newCustomerData.company_name}
+											onChange={handleNewCustomerChange}
 											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 										/>
 									</div>
 									<div className="md:col-span-2 flex justify-end">
 										<button
 											type="button"
-											onClick={
-												handleCreateNewCustomer
-											}
+											onClick={handleCreateNewCustomer}
 											className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700"
 										>
 											إنشاء العميل
@@ -532,20 +550,15 @@ export default function InvoiceCreationModal({
 								</label>
 								<select
 									name="order_id"
-									value={invoiceFormData.order_id}
+									value={invoiceFormData.order_id ?? ""}
 									onChange={handleInvoiceInputChange}
 									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 								>
 									<option value="">اختر الطلب</option>
 									{orders.map((order) => (
-										<option
-											key={order.id}
-											value={order.id}
-										>
+										<option key={order.id} value={order.id}>
 											{order.order_number} -{" "}
-											{formatCurrency(
-												order.total_amount
-											)}
+											{formatCurrency(order.total_amount)}
 										</option>
 									))}
 								</select>
@@ -589,9 +602,7 @@ export default function InvoiceCreationModal({
 									<option value="draft">مسودة</option>
 									<option value="sent">مرسلة</option>
 									<option value="paid">مدفوعة</option>
-									<option value="cancelled">
-										ملغية
-									</option>
+									<option value="cancelled">ملغية</option>
 								</select>
 							</div>
 							<div>
@@ -604,7 +615,7 @@ export default function InvoiceCreationModal({
 									min="0"
 									max="100"
 									step="0.01"
-									value={invoiceFormData.tax_rate}
+									value={invoiceFormData.tax_rate ?? 0}
 									onChange={handleInvoiceInputChange}
 									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 								/>
@@ -615,7 +626,7 @@ export default function InvoiceCreationModal({
 								</label>
 								<textarea
 									name="notes"
-									value={invoiceFormData.notes}
+									value={invoiceFormData.notes ?? ""}
 									onChange={handleInvoiceInputChange}
 									rows={2}
 									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
@@ -640,6 +651,46 @@ export default function InvoiceCreationModal({
 								</button>
 							</div>
 
+							{/* Totals */}
+							<div className="border-t border-gray-200 pt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+								{(() => {
+									const subtotal = calcSubtotal();
+									const vat = calcVat(subtotal);
+									const total = calcTotal(subtotal, vat);
+									return (
+										<>
+											<div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+												<span className="text-gray-600">
+													المجموع الفرعي
+												</span>
+												<span className="font-semibold">
+													{formatCurrency(subtotal)}
+												</span>
+											</div>
+											<div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+												<span className="text-gray-600">
+													الضريبة (
+													{invoiceFormData.tax_rate ||
+														0}
+													%)
+												</span>
+												<span className="font-semibold">
+													{formatCurrency(vat)}
+												</span>
+											</div>
+											<div className="flex items-center justify-between bg-purple-50 rounded-xl p-3">
+												<span className="text-gray-700 font-medium">
+													الإجمالي
+												</span>
+												<span className="font-bold text-purple-700">
+													{formatCurrency(total)}
+												</span>
+											</div>
+										</>
+									);
+								})()}
+							</div>
+
 							<div className="space-y-3">
 								{invoiceFormData.items
 									.slice(0, 4)
@@ -653,15 +704,12 @@ export default function InvoiceCreationModal({
 													الوصف
 												</label>
 												<input
-													value={
-														item.description
-													}
+													value={item.description}
 													onChange={(e) =>
 														handleInvoiceItemChange(
 															index,
 															"description",
-															e.target
-																.value
+															e.target.value
 														)
 													}
 													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
@@ -675,16 +723,13 @@ export default function InvoiceCreationModal({
 												<input
 													type="number"
 													min="1"
-													value={
-														item.quantity
-													}
+													value={item.quantity}
 													onChange={(e) =>
 														handleInvoiceItemChange(
 															index,
 															"quantity",
 															parseInt(
-																e.target
-																	.value
+																e.target.value
 															) || 1
 														)
 													}
@@ -701,16 +746,13 @@ export default function InvoiceCreationModal({
 														type="number"
 														min="0"
 														step="0.01"
-														value={
-															item.unit_price
-														}
+														value={item.unit_price}
 														onChange={(e) =>
 															handleInvoiceItemChange(
 																index,
 																"unit_price",
 																parseFloat(
-																	e
-																		.target
+																	e.target
 																		.value
 																) || 0
 															)
@@ -722,16 +764,12 @@ export default function InvoiceCreationModal({
 												<button
 													type="button"
 													onClick={() =>
-														removeInvoiceItem(
-															index
-														)
+														removeInvoiceItem(index)
 													}
 													className="text-red-600 hover:text-red-700 p-2"
 													disabled={
-														invoiceFormData
-															.items
-															.length ===
-														1
+														invoiceFormData.items
+															.length === 1
 													}
 												>
 													<Trash2 size={16} />
@@ -749,9 +787,8 @@ export default function InvoiceCreationModal({
 										className="text-purple-600 hover:text-purple-700 text-sm font-medium"
 									>
 										+ إضافة المزيد (
-										{invoiceFormData.items.length -
-											4}{" "}
-										عنصر إضافي)
+										{invoiceFormData.items.length - 4} عنصر
+										إضافي)
 									</button>
 								</div>
 							)}
@@ -775,11 +812,42 @@ export default function InvoiceCreationModal({
 						className="px-6 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 					>
 						{saving && (
-							<Loader2
-								size={16}
-								className="animate-spin"
-							/>
+							<Loader2 size={16} className="animate-spin" />
 						)}
+
+						{/* Client preview */}
+						{invoiceFormData.client_id &&
+							(() => {
+								const selectedClient = clients.find(
+									(c) => c.id === invoiceFormData.client_id
+								);
+								if (!selectedClient) return null;
+								return (
+									<div className="mt-3 rounded-xl border border-gray-200 p-3 text-sm bg-gray-50">
+										<div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+											<div>
+												<span className="text-gray-500">
+													البريد:
+												</span>{" "}
+												{selectedClient.email || "-"}
+											</div>
+											<div>
+												<span className="text-gray-500">
+													الهاتف:
+												</span>{" "}
+												{selectedClient.phone || "-"}
+											</div>
+											<div>
+												<span className="text-gray-500">
+													الشركة:
+												</span>{" "}
+												{selectedClient.company_name ||
+													"-"}
+											</div>
+										</div>
+									</div>
+								);
+							})()}
 						{saving ? "جاري الحفظ..." : "إنشاء الفاتورة"}
 					</button>
 				</div>

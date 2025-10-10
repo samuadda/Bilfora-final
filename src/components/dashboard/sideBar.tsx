@@ -202,7 +202,7 @@ export default function Sidebar() {
 			{/* Overlay for mobile */}
 			{isMobileMenuOpen && (
 				<div
-					className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+					className="fixed inset-0 backdrop-blur-md bg-white/30 z-30 md:hidden"
 					onClick={toggleMobileMenu}
 				/>
 			)}
@@ -214,7 +214,7 @@ export default function Sidebar() {
 				}`}
 			>
 				<div
-					className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${
+					className={`absolute inset-0 backdrop-blur-md bg-white/30 transition-opacity duration-200 ${
 						isLogoutOpen ? "opacity-100" : "opacity-0"
 					}`}
 					onClick={() => setIsLogoutOpen(false)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 
@@ -10,6 +11,7 @@ export default function InvoicesLayout({
 	children: React.ReactNode;
 }) {
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+	const router = useRouter();
 
 	const openInvoiceModal = () => {
 		setShowInvoiceModal(true);
@@ -19,9 +21,9 @@ export default function InvoicesLayout({
 		setShowInvoiceModal(false);
 	};
 
-	const handleInvoiceSuccess = () => {
-		// The invoices page will handle reloading
-		window.location.reload();
+	const handleInvoiceSuccess = (id?: string) => {
+		if (id) router.push(`/dashboard/invoices/${id}`);
+		else window.location.reload();
 	};
 
 	return (

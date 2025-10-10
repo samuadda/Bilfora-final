@@ -35,8 +35,10 @@ import {
 	CustomerData,
 } from "@/types/database";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+	const router = useRouter();
 	const [stats, setStats] = useState<DashboardStats>({
 		totalOrders: 0,
 		pendingOrders: 0,
@@ -379,9 +381,12 @@ export default function DashboardPage() {
 		setShowInvoiceModal(false);
 	};
 
-	const handleInvoiceSuccess = () => {
-		// Reload dashboard data to show updated stats
-		loadDashboardData();
+	const handleInvoiceSuccess = (id?: string) => {
+		if (id) {
+			router.push(`/dashboard/invoices/${id}`);
+		} else {
+			loadDashboardData();
+		}
 	};
 
 	const formatCurrency = (amount: number) =>
