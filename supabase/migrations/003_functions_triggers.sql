@@ -1,17 +1,41 @@
--- Migration: Functions and Triggers
+-- Migration: Functions and Triggers (idempotent)
 -- Description: Creates utility functions and triggers for automation
 
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- 0) Ensure this file can run multiple times safely by dropping dependent objects first
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
+DROP TRIGGER IF EXISTS update_clients_updated_at ON clients;
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON invoices;
+DROP TRIGGER IF EXISTS generate_order_number_trigger ON orders;
+DROP TRIGGER IF EXISTS generate_invoice_number_trigger ON invoices;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS update_order_total_trigger ON order_items;
+DROP TRIGGER IF EXISTS update_invoice_totals_trigger ON invoice_items;
+
+DROP FUNCTION IF EXISTS update_updated_at_column();
+DROP FUNCTION IF EXISTS generate_order_number();
+DROP FUNCTION IF EXISTS generate_invoice_number();
+DROP FUNCTION IF EXISTS generate_order_number_text();
+DROP FUNCTION IF EXISTS generate_invoice_number_text();
+DROP FUNCTION IF EXISTS set_order_number();
+DROP FUNCTION IF EXISTS set_invoice_number();
+DROP FUNCTION IF EXISTS handle_new_user();
+DROP FUNCTION IF EXISTS calculate_order_total(uuid);
+DROP FUNCTION IF EXISTS calculate_invoice_totals(uuid);
+DROP FUNCTION IF EXISTS update_order_total();
+DROP FUNCTION IF EXISTS update_invoice_totals();
+
+-- 1) Utility functions
+CREATE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
--- Function to generate order numbers (ORD-YYYY-NNNN)
-CREATE OR REPLACE FUNCTION generate_order_number()
+-- Generates order numbers like ORD-YYYY-NNNN
+CREATE FUNCTION generate_order_number_text()
 RETURNS TEXT AS $$
 DECLARE
     year_part TEXT;
@@ -19,21 +43,18 @@ DECLARE
     next_number INTEGER;
 BEGIN
     year_part := EXTRACT(YEAR FROM NOW())::TEXT;
-    
-    -- Get the next sequence number for this year
     SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM 9) AS INTEGER)), 0) + 1
     INTO next_number
     FROM orders
     WHERE order_number LIKE 'ORD-' || year_part || '-%';
-    
+
     sequence_part := LPAD(next_number::TEXT, 4, '0');
-    
     RETURN 'ORD-' || year_part || '-' || sequence_part;
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to generate invoice numbers (INV-YYYY-NNNN)
-CREATE OR REPLACE FUNCTION generate_invoice_number()
+-- Generates invoice numbers like INV-YYYY-NNNN
+CREATE FUNCTION generate_invoice_number_text()
 RETURNS TEXT AS $$
 DECLARE
     year_part TEXT;
@@ -41,21 +62,39 @@ DECLARE
     next_number INTEGER;
 BEGIN
     year_part := EXTRACT(YEAR FROM NOW())::TEXT;
-    
-    -- Get the next sequence number for this year
     SELECT COALESCE(MAX(CAST(SUBSTRING(invoice_number FROM 9) AS INTEGER)), 0) + 1
     INTO next_number
     FROM invoices
     WHERE invoice_number LIKE 'INV-' || year_part || '-%';
-    
+
     sequence_part := LPAD(next_number::TEXT, 4, '0');
-    
     RETURN 'INV-' || year_part || '-' || sequence_part;
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to auto-populate profile from auth.users
-CREATE OR REPLACE FUNCTION handle_new_user()
+-- Trigger wrappers to set numbers
+CREATE FUNCTION set_order_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.order_number IS NULL OR NEW.order_number = '' THEN
+        NEW.order_number := generate_order_number_text();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION set_invoice_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.invoice_number IS NULL OR NEW.invoice_number = '' THEN
+        NEW.invoice_number := generate_invoice_number_text();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Populate profile row after auth.users insert
+CREATE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO profiles (
@@ -85,23 +124,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to calculate order total
-CREATE OR REPLACE FUNCTION calculate_order_total(order_uuid UUID)
+-- Calculate order total from its items
+CREATE FUNCTION calculate_order_total(order_uuid UUID)
 RETURNS DECIMAL(10,2) AS $$
-DECLARE
-    total DECIMAL(10,2);
+DECLARE total DECIMAL(10,2);
 BEGIN
     SELECT COALESCE(SUM(total), 0)
     INTO total
     FROM order_items
     WHERE order_id = order_uuid;
-    
     RETURN total;
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to calculate invoice totals
-CREATE OR REPLACE FUNCTION calculate_invoice_totals(invoice_uuid UUID)
+-- Calculate invoice totals from its items and tax_rate
+CREATE FUNCTION calculate_invoice_totals(invoice_uuid UUID)
 RETURNS TABLE(subtotal DECIMAL(10,2), tax_amount DECIMAL(10,2), total_amount DECIMAL(10,2)) AS $$
 DECLARE
     invoice_tax_rate DECIMAL(5,2);
@@ -109,29 +146,72 @@ DECLARE
     invoice_tax_amount DECIMAL(10,2);
     invoice_total_amount DECIMAL(10,2);
 BEGIN
-    -- Get subtotal from invoice items
     SELECT COALESCE(SUM(total), 0)
     INTO invoice_subtotal
     FROM invoice_items
     WHERE invoice_id = invoice_uuid;
-    
-    -- Get tax rate from invoice
-    SELECT tax_rate
-    INTO invoice_tax_rate
-    FROM invoices
-    WHERE id = invoice_uuid;
-    
-    -- Calculate tax amount
+
+    SELECT tax_rate INTO invoice_tax_rate FROM invoices WHERE id = invoice_uuid;
+
     invoice_tax_amount := invoice_subtotal * (invoice_tax_rate / 100);
-    
-    -- Calculate total amount
     invoice_total_amount := invoice_subtotal + invoice_tax_amount;
-    
+
     RETURN QUERY SELECT invoice_subtotal, invoice_tax_amount, invoice_total_amount;
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for updated_at
+-- 2) Trigger functions
+CREATE FUNCTION update_order_total()
+RETURNS TRIGGER AS $$
+DECLARE order_uuid UUID;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        order_uuid := OLD.order_id;
+    ELSE
+        order_uuid := NEW.order_id;
+    END IF;
+
+    UPDATE orders
+    SET total_amount = calculate_order_total(order_uuid)
+    WHERE id = order_uuid;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION update_invoice_totals()
+RETURNS TRIGGER AS $$
+DECLARE
+    invoice_uuid UUID;
+    totals RECORD;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        invoice_uuid := OLD.invoice_id;
+    ELSE
+        invoice_uuid := NEW.invoice_id;
+    END IF;
+
+    SELECT * INTO totals FROM calculate_invoice_totals(invoice_uuid);
+
+    UPDATE invoices
+    SET subtotal = totals.subtotal,
+        tax_amount = totals.tax_amount,
+        total_amount = totals.total_amount
+    WHERE id = invoice_uuid;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3) Triggers
 CREATE TRIGGER update_profiles_updated_at
     BEFORE UPDATE ON profiles
     FOR EACH ROW
@@ -152,98 +232,34 @@ CREATE TRIGGER update_invoices_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Create trigger for auto-generating order numbers
 CREATE TRIGGER generate_order_number_trigger
     BEFORE INSERT ON orders
     FOR EACH ROW
-    WHEN (NEW.order_number IS NULL OR NEW.order_number = '')
-    EXECUTE FUNCTION generate_order_number();
+    EXECUTE FUNCTION set_order_number();
 
--- Create trigger for auto-generating invoice numbers
 CREATE TRIGGER generate_invoice_number_trigger
     BEFORE INSERT ON invoices
     FOR EACH ROW
-    WHEN (NEW.invoice_number IS NULL OR NEW.invoice_number = '')
-    EXECUTE FUNCTION generate_invoice_number();
+    EXECUTE FUNCTION set_invoice_number();
 
--- Create trigger for auto-populating profiles
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW
     EXECUTE FUNCTION handle_new_user();
-
--- Create trigger to update order total when items change
-CREATE OR REPLACE FUNCTION update_order_total()
-RETURNS TRIGGER AS $$
-DECLARE
-    order_uuid UUID;
-BEGIN
-    -- Get the order_id from the trigger context
-    IF TG_OP = 'DELETE' THEN
-        order_uuid := OLD.order_id;
-    ELSE
-        order_uuid := NEW.order_id;
-    END IF;
-    
-    -- Update the order total
-    UPDATE orders
-    SET total_amount = calculate_order_total(order_uuid)
-    WHERE id = order_uuid;
-    
-    IF TG_OP = 'DELETE' THEN
-        RETURN OLD;
-    ELSE
-        RETURN NEW;
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_order_total_trigger
     AFTER INSERT OR UPDATE OR DELETE ON order_items
     FOR EACH ROW
     EXECUTE FUNCTION update_order_total();
 
--- Create trigger to update invoice totals when items change
-CREATE OR REPLACE FUNCTION update_invoice_totals()
-RETURNS TRIGGER AS $$
-DECLARE
-    invoice_uuid UUID;
-    totals RECORD;
-BEGIN
-    -- Get the invoice_id from the trigger context
-    IF TG_OP = 'DELETE' THEN
-        invoice_uuid := OLD.invoice_id;
-    ELSE
-        invoice_uuid := NEW.invoice_id;
-    END IF;
-    
-    -- Calculate totals
-    SELECT * INTO totals FROM calculate_invoice_totals(invoice_uuid);
-    
-    -- Update the invoice totals
-    UPDATE invoices
-    SET 
-        subtotal = totals.subtotal,
-        tax_amount = totals.tax_amount,
-        total_amount = totals.total_amount
-    WHERE id = invoice_uuid;
-    
-    IF TG_OP = 'DELETE' THEN
-        RETURN OLD;
-    ELSE
-        RETURN NEW;
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE TRIGGER update_invoice_totals_trigger
     AFTER INSERT OR UPDATE OR DELETE ON invoice_items
     FOR EACH ROW
     EXECUTE FUNCTION update_invoice_totals();
 
--- Add comments for documentation
-COMMENT ON FUNCTION generate_order_number() IS 'Generates unique order numbers in format ORD-YYYY-NNNN';
-COMMENT ON FUNCTION generate_invoice_number() IS 'Generates unique invoice numbers in format INV-YYYY-NNNN';
+-- 4) Comments
+COMMENT ON FUNCTION generate_order_number_text() IS 'Generates unique order numbers in format ORD-YYYY-NNNN';
+COMMENT ON FUNCTION generate_invoice_number_text() IS 'Generates unique invoice numbers in format INV-YYYY-NNNN';
 COMMENT ON FUNCTION handle_new_user() IS 'Auto-populates profile when new user is created in auth.users';
 COMMENT ON FUNCTION calculate_order_total(UUID) IS 'Calculates total amount for an order from its items';
 COMMENT ON FUNCTION calculate_invoice_totals(UUID) IS 'Calculates subtotal, tax, and total for an invoice';

@@ -1,17 +1,19 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import Sidebar, { useSidebar } from "../../components/dashboard/sideBar";
-import SidebarProvider from "../../components/dashboard/SidebarProvider";
+import Sidebar, { useSidebar } from "@/components/dashboard/sideBar";
+import SidebarProvider from "@/components/dashboard/SidebarProvider";
 import { Loader2 } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner"; // ✅ Add global toast provider
+import { motion } from "framer-motion"; // optional, for smooth fade-in
 
 interface DashboardLayoutWrapperProps {
 	children: ReactNode;
 }
 
-// Component that uses the sidebar context
+// 🧩 Main dashboard content (responsive, RTL-aware)
 function DashboardContent({ children }: { children: ReactNode }) {
 	const { isCollapsed } = useSidebar();
 
@@ -21,22 +23,26 @@ function DashboardContent({ children }: { children: ReactNode }) {
 				${isCollapsed ? "md:mr-16" : "md:mr-64"} 
 				w-full max-w-[100vw] overflow-x-hidden`}
 		>
-			<div className="max-w-7xl mx-auto">{children}</div>
+			<motion.div
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={{ duration: 0.3 }}
+				className="max-w-7xl mx-auto"
+			>
+				{children}
+			</motion.div>
 		</main>
 	);
 }
 
-// Authentication wrapper component
+// 🔒 Authentication wrapper
 function AuthWrapper({ children }: { children: ReactNode }) {
 	const [authChecked, setAuthChecked] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const router = useRouter();
 
-	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	const checkAuth = async () => {
+	// ✅ Check authentication once on mount
+	const checkAuth = useCallback(async () => {
 		try {
 			setIsLoading(true);
 			const {
@@ -44,23 +50,34 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 			} = await supabase.auth.getUser();
 
 			if (!user) {
-				// User is not authenticated, redirect to login
-				router.push("/login");
+				router.replace("/login"); // safer than push()
 				return;
 			}
-
-			// User is authenticated, allow access to dashboard
 			setAuthChecked(true);
 		} catch (error) {
 			console.error("Error checking authentication:", error);
-			// On error, redirect to login for safety
-			router.push("/login");
+			router.replace("/login");
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [router]);
 
-	// Show loading spinner while checking authentication
+	useEffect(() => {
+		checkAuth();
+
+		// ✅ Real-time auth listener
+		const { data: subscription } = supabase.auth.onAuthStateChange(
+			(event, session) => {
+				if (!session) router.replace("/login");
+			}
+		);
+
+		return () => {
+			subscription.subscription.unsubscribe();
+		};
+	}, [checkAuth, router]);
+
+	// ⏳ Loading state
 	if (isLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -72,10 +89,8 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 		);
 	}
 
-	// Only render dashboard if user is authenticated
-	if (!authChecked) {
-		return null;
-	}
+	// 🧱 Render dashboard if authenticated
+	if (!authChecked) return null;
 
 	return (
 		<SidebarProvider>
@@ -87,8 +102,14 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 	);
 }
 
+// 🌟 Main layout wrapper
 export default function DashboardLayoutWrapper({
 	children,
 }: DashboardLayoutWrapperProps) {
-	return <AuthWrapper>{children}</AuthWrapper>;
+	return (
+		<>
+			<AuthWrapper>{children}</AuthWrapper>
+			<Toaster /> {/* ✅ Global toast support for all dashboard pages */}
+		</>
+	);
 }

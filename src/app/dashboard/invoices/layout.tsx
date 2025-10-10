@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 
@@ -12,6 +12,9 @@ export default function InvoicesLayout({
 }) {
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const q = searchParams.get("q") || "";
 
 	const openInvoiceModal = () => {
 		setShowInvoiceModal(true);
@@ -24,6 +27,15 @@ export default function InvoicesLayout({
 	const handleInvoiceSuccess = (id?: string) => {
 		if (id) router.push(`/dashboard/invoices/${id}`);
 		else window.location.reload();
+	};
+
+	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		const params = new URLSearchParams(Array.from(searchParams.entries()));
+		if (value) params.set("q", value);
+		else params.delete("q");
+		const query = params.toString();
+		router.push(query ? `${pathname}?${query}` : pathname);
 	};
 
 	return (
@@ -49,6 +61,8 @@ export default function InvoicesLayout({
 						<input
 							type="search"
 							placeholder="ابحث في الفواتير..."
+							value={q}
+							onChange={handleSearchChange}
 							className="w-56 rounded-xl border border-gray-200 pl-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 						/>
 					</div>

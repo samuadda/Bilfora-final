@@ -20,11 +20,9 @@ import {
 	BarChart3,
 	Users,
 	ShoppingCart,
-	CheckCircle,
 	Clock,
 	DollarSign,
 	Loader2,
-	AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -36,9 +34,13 @@ import {
 } from "@/types/database";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { motion } from "framer-motion";
 
 export default function DashboardPage() {
 	const router = useRouter();
+	const { toast } = useToast();
+
 	const [stats, setStats] = useState<DashboardStats>({
 		totalOrders: 0,
 		pendingOrders: 0,
@@ -52,12 +54,9 @@ export default function DashboardPage() {
 	const [customerData, setCustomerData] = useState<CustomerData[]>([]);
 	const [recentActivity, setRecentActivity] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
-	// Invoice modal state
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
-	// Load dashboard data on component mount
 	useEffect(() => {
 		loadDashboardData();
 	}, []);
@@ -65,17 +64,18 @@ export default function DashboardPage() {
 	const loadDashboardData = async () => {
 		try {
 			setLoading(true);
-			setError(null);
-
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
 			if (!user) {
-				setError("يجب تسجيل الدخول أولاً");
+				toast({
+					title: "غير مصرح",
+					description: "يجب تسجيل الدخول أولاً",
+					variant: "destructive",
+				});
 				return;
 			}
 
-			// Load all dashboard data in parallel
 			await Promise.all([
 				loadStats(user.id),
 				loadMonthlyData(user.id),
@@ -84,310 +84,172 @@ export default function DashboardPage() {
 				loadRecentActivity(user.id),
 			]);
 		} catch (err) {
-			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
+			console.error(err);
+			toast({
+				title: "خطأ في التحميل",
+				description: "حدث خطأ أثناء تحميل بيانات لوحة التحكم",
+				variant: "destructive",
+			});
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	const loadStats = async (userId: string) => {
-		try {
-			// Get orders stats
-			const { data: ordersData, error: ordersError } = await supabase
-				.from("orders")
-				.select("status, total_amount")
-				.eq("user_id", userId);
+		const { data: orders } = await supabase
+			.from("orders")
+			.select("status, total_amount")
+			.eq("user_id", userId);
 
-			if (ordersError) {
-				console.error("Error loading orders stats:", ordersError);
-				return;
-			}
+		const { data: clients } = await supabase
+			.from("clients")
+			.select("status")
+			.eq("user_id", userId)
+			.is("deleted_at", null);
 
-			// Get clients stats
-			const { data: clientsData, error: clientsError } = await supabase
-				.from("clients")
-				.select("status")
-				.eq("user_id", userId);
-
-			if (clientsError) {
-				console.error("Error loading clients stats:", clientsError);
-				return;
-			}
-
-			const totalOrders = ordersData?.length || 0;
-			const pendingOrders =
-				ordersData?.filter((o) => o.status === "pending").length || 0;
-			const totalRevenue =
-				ordersData?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
-			const activeCustomers =
-				clientsData?.filter((c) => c.status === "active").length || 0;
-
-			setStats({
-				totalOrders,
-				pendingOrders,
-				totalRevenue,
-				activeCustomers,
-			});
-		} catch (err) {
-			console.error("Error loading stats:", err);
-		}
+		setStats({
+			totalOrders: orders?.length || 0,
+			pendingOrders:
+				orders?.filter((o) => o.status === "pending").length || 0,
+			totalRevenue:
+				orders?.reduce(
+					(sum, o) => sum + Number(o.total_amount || 0),
+					0
+				) || 0,
+			activeCustomers:
+				clients?.filter((c) => c.status === "active").length || 0,
+		});
 	};
 
 	const loadMonthlyData = async (userId: string) => {
-		try {
-			const { data, error } = await supabase
-				.from("orders")
-				.select("created_at, total_amount")
-				.eq("user_id", userId)
-				.gte(
-					"created_at",
-					new Date(
-						Date.now() - 6 * 30 * 24 * 60 * 60 * 1000
-					).toISOString()
-				)
-				.order("created_at");
+		const { data } = await supabase
+			.from("orders")
+			.select("created_at, total_amount")
+			.eq("user_id", userId)
+			.order("created_at");
 
-			if (error) {
-				console.error("Error loading monthly data:", error);
-				return;
-			}
+		if (!data) return;
 
-			// Group data by month
-			const monthlyMap = new Map<
-				string,
-				{ orders: number; revenue: number }
-			>();
+		const monthlyMap = new Map<
+			string,
+			{ orders: number; revenue: number; name: string }
+		>();
 
-			data?.forEach((order) => {
-				const date = new Date(order.created_at);
-				const monthKey = `${date.getFullYear()}-${String(
-					date.getMonth() + 1
-				).padStart(2, "0")}`;
-				const monthName = date.toLocaleDateString("ar-SA", {
-					month: "long",
-				});
+		data.forEach((order) => {
+			const d = new Date(order.created_at);
+			const month = d.toLocaleDateString("ar-SA", { month: "long" });
+			if (!monthlyMap.has(month))
+				monthlyMap.set(month, { orders: 0, revenue: 0, name: month });
+			const entry = monthlyMap.get(month)!;
+			entry.orders += 1;
+			entry.revenue += Number(order.total_amount);
+		});
 
-				if (!monthlyMap.has(monthKey)) {
-					monthlyMap.set(monthKey, { orders: 0, revenue: 0 });
-				}
-
-				const monthData = monthlyMap.get(monthKey)!;
-				monthData.orders += 1;
-				monthData.revenue += order.total_amount;
-			});
-
-			// Convert to array format
-			const monthlyArray = Array.from(monthlyMap.entries())
-				.map(([key, data]) => {
-					const [year, month] = key.split("-");
-					const date = new Date(parseInt(year), parseInt(month) - 1);
-					return {
-						name: date.toLocaleDateString("ar-SA", {
-							month: "long",
-						}),
-						orders: data.orders,
-						revenue: data.revenue,
-					};
-				})
-				.sort((a, b) => {
-					const monthOrder = [
-						"يناير",
-						"فبراير",
-						"مارس",
-						"أبريل",
-						"مايو",
-						"يونيو",
-						"يوليو",
-						"أغسطس",
-						"سبتمبر",
-						"أكتوبر",
-						"نوفمبر",
-						"ديسمبر",
-					];
-					return (
-						monthOrder.indexOf(a.name) - monthOrder.indexOf(b.name)
-					);
-				});
-
-			setMonthlyData(monthlyArray);
-		} catch (err) {
-			console.error("Error loading monthly data:", err);
-		}
+		setMonthlyData(Array.from(monthlyMap.values()));
 	};
 
 	const loadOrderStatusData = async (userId: string) => {
-		try {
-			const { data, error } = await supabase
-				.from("orders")
-				.select("status")
-				.eq("user_id", userId);
+		const { data } = await supabase
+			.from("orders")
+			.select("status")
+			.eq("user_id", userId);
 
-			if (error) {
-				console.error("Error loading order status data:", error);
-				return;
-			}
+		if (!data) return;
 
-			// Count orders by status
-			const statusCounts =
-				data?.reduce((acc, order) => {
-					acc[order.status] = (acc[order.status] || 0) + 1;
-					return acc;
-				}, {} as Record<string, number>) || {};
+		const count = data.reduce(
+			(acc, cur) => ({
+				...acc,
+				[cur.status]: (acc[cur.status] || 0) + 1,
+			}),
+			{} as Record<string, number>
+		);
 
-			const statusData = [
+		setOrderStatusData(
+			[
 				{
 					name: "مكتمل",
-					value: statusCounts.completed || 0,
+					value: count.completed || 0,
 					color: "#10B981",
 				},
-				{
-					name: "معلق",
-					value: statusCounts.pending || 0,
-					color: "#F59E0B",
-				},
+				{ name: "معلق", value: count.pending || 0, color: "#F59E0B" },
 				{
 					name: "قيد المعالجة",
-					value: statusCounts.processing || 0,
+					value: count.processing || 0,
 					color: "#3B82F6",
 				},
-				{
-					name: "ملغي",
-					value: statusCounts.cancelled || 0,
-					color: "#EF4444",
-				},
-			].filter((item) => item.value > 0);
-
-			setOrderStatusData(statusData);
-		} catch (err) {
-			console.error("Error loading order status data:", err);
-		}
+				{ name: "ملغي", value: count.cancelled || 0, color: "#EF4444" },
+			].filter((d) => d.value > 0)
+		);
 	};
 
 	const loadCustomerData = async (userId: string) => {
-		try {
-			const { data, error } = await supabase
-				.from("clients")
-				.select("status, created_at")
-				.eq("user_id", userId);
+		const { data } = await supabase
+			.from("clients")
+			.select("created_at")
+			.eq("user_id", userId)
+			.is("deleted_at", null);
 
-			if (error) {
-				console.error("Error loading customer data:", error);
-				return;
-			}
+		if (!data) return;
 
-			const now = new Date();
-			const thirtyDaysAgo = new Date(
-				now.getTime() - 30 * 24 * 60 * 60 * 1000
-			);
-			const ninetyDaysAgo = new Date(
-				now.getTime() - 90 * 24 * 60 * 60 * 1000
-			);
+		const now = new Date();
+		const days = (d: string) =>
+			(now.getTime() - new Date(d).getTime()) / (1000 * 60 * 60 * 24);
 
-			const newCustomers =
-				data?.filter((c) => new Date(c.created_at) >= thirtyDaysAgo)
-					.length || 0;
-			const returningCustomers =
-				data?.filter((c) => {
-					const created = new Date(c.created_at);
-					return created >= ninetyDaysAgo && created < thirtyDaysAgo;
-				}).length || 0;
-			const regularCustomers =
-				data?.filter((c) => new Date(c.created_at) < ninetyDaysAgo)
-					.length || 0;
+		const newC = data.filter((c) => days(c.created_at) <= 30).length;
+		const returningC = data.filter(
+			(c) => days(c.created_at) > 30 && days(c.created_at) <= 90
+		).length;
+		const regularC = data.filter((c) => days(c.created_at) > 90).length;
 
-			setCustomerData([
-				{ name: "جدد", value: newCustomers },
-				{ name: "عائدون", value: returningCustomers },
-				{ name: "منتظمون", value: regularCustomers },
-			]);
-		} catch (err) {
-			console.error("Error loading customer data:", err);
-		}
+		setCustomerData([
+			{ name: "جدد", value: newC },
+			{ name: "عائدون", value: returningC },
+			{ name: "منتظمون", value: regularC },
+		]);
 	};
 
 	const loadRecentActivity = async (userId: string) => {
-		try {
-			// Get recent orders
-			const { data: ordersData, error: ordersError } = await supabase
-				.from("orders")
-				.select(
-					`
-					created_at,
-					status,
-					order_number,
-					client:clients(name)
-				`
-				)
-				.eq("user_id", userId)
-				.order("created_at", { ascending: false })
-				.limit(5);
+		const { data: orders } = await supabase
+			.from("orders")
+			.select(`created_at, order_number, client:clients(name)`)
+			.eq("user_id", userId)
+			.order("created_at", { ascending: false })
+			.limit(5);
 
-			if (ordersError) {
-				console.error("Error loading recent orders:", ordersError);
-				return;
-			}
+		const { data: clients } = await supabase
+			.from("clients")
+			.select("created_at, name")
+			.eq("user_id", userId)
+			.is("deleted_at", null)
+			.order("created_at", { ascending: false })
+			.limit(3);
 
-			// Get recent clients
-			const { data: clientsData, error: clientsError } = await supabase
-				.from("clients")
-				.select("created_at, name")
-				.eq("user_id", userId)
-				.order("created_at", { ascending: false })
-				.limit(3);
+		const activity = [
+			...(orders?.map((o) => ({
+				type: "order",
+				title: `طلب جديد - ${o.order_number}`,
+				subtitle: o.client?.name || "عميل غير معروف",
+				time: o.created_at,
+				icon: ShoppingCart,
+				color: "purple",
+			})) || []),
+			...(clients?.map((c) => ({
+				type: "client",
+				title: "عميل جديد",
+				subtitle: c.name,
+				time: c.created_at,
+				icon: Users,
+				color: "blue",
+			})) || []),
+		]
+			.sort((a, b) => +new Date(b.time) - +new Date(a.time))
+			.slice(0, 5);
 
-			if (clientsError) {
-				console.error("Error loading recent clients:", clientsError);
-				return;
-			}
-
-			// Combine and format activity
-			const activities = [
-				...(ordersData?.map((order) => ({
-					type: "order",
-					title: `طلب جديد - ${order.order_number}`,
-					subtitle: order.client?.name || "عميل غير محدد",
-					time: order.created_at,
-					icon: ShoppingCart,
-					color: "purple",
-				})) || []),
-				...(clientsData?.map((client) => ({
-					type: "client",
-					title: "عميل جديد",
-					subtitle: client.name,
-					time: client.created_at,
-					icon: Users,
-					color: "blue",
-				})) || []),
-			]
-				.sort(
-					(a, b) =>
-						new Date(b.time).getTime() - new Date(a.time).getTime()
-				)
-				.slice(0, 5);
-
-			setRecentActivity(activities);
-		} catch (err) {
-			console.error("Error loading recent activity:", err);
-		}
+		setRecentActivity(activity);
 	};
 
-	// Invoice modal handlers
-	const openInvoiceModal = () => {
-		setShowInvoiceModal(true);
-	};
-
-	const closeInvoiceModal = () => {
-		setShowInvoiceModal(false);
-	};
-
-	const handleInvoiceSuccess = (id?: string) => {
-		if (id) {
-			router.push(`/dashboard/invoices/${id}`);
-		} else {
-			loadDashboardData();
-		}
-	};
+	const openInvoiceModal = () => setShowInvoiceModal(true);
+	const closeInvoiceModal = () => setShowInvoiceModal(false);
 
 	const formatCurrency = (amount: number) =>
 		new Intl.NumberFormat("ar-SA", {
@@ -396,63 +258,30 @@ export default function DashboardPage() {
 		}).format(amount);
 
 	const formatTimeAgo = (dateString: string) => {
-		const date = new Date(dateString);
-		const now = new Date();
-		const diffInMinutes = Math.floor(
-			(now.getTime() - date.getTime()) / (1000 * 60)
-		);
-
-		if (diffInMinutes < 60) {
-			return `قبل ${diffInMinutes} دقيقة`;
-		} else if (diffInMinutes < 1440) {
-			const hours = Math.floor(diffInMinutes / 60);
-			return `قبل ${hours} ساعة`;
-		} else {
-			const days = Math.floor(diffInMinutes / 1440);
-			return `قبل ${days} يوم`;
-		}
+		const diff =
+			(Date.now() - new Date(dateString).getTime()) / (1000 * 60);
+		if (diff < 60) return `قبل ${Math.floor(diff)} دقيقة`;
+		if (diff < 1440) return `قبل ${Math.floor(diff / 60)} ساعة`;
+		return `قبل ${Math.floor(diff / 1440)} يوم`;
 	};
 
-	if (loading) {
+	if (loading)
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-center">
-					<Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
-					<p className="text-gray-500">
-						جاري تحميل بيانات لوحة التحكم...
-					</p>
-				</div>
+				<Loader2 className="h-8 w-8 animate-spin text-purple-600" />
 			</div>
 		);
-	}
-
-	if (error) {
-		return (
-			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-center">
-					<AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-					<p className="text-red-600">{error}</p>
-					<button
-						onClick={loadDashboardData}
-						className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-					>
-						إعادة المحاولة
-					</button>
-				</div>
-			</div>
-		);
-	}
 
 	return (
 		<div className="space-y-6">
-			{/* Header Section */}
+			{/* Header */}
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-gray-900">
 						لوحة التحكم
 					</h1>
 					<p className="text-gray-500 mt-1">
-						نظرة عامة على أداء عملك وإحصائيات المبيعات
+						نظرة عامة على أداء عملك
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-3">
@@ -465,14 +294,14 @@ export default function DashboardPage() {
 					</button>
 					<Link
 						href="/dashboard/analytics"
-						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200 active:translate-y-[1px]"
+						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200"
 					>
 						<BarChart3 size={16} />
 						<span>التقارير</span>
 					</Link>
 					<Link
 						href="/dashboard/clients"
-						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200 active:translate-y-[1px]"
+						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200"
 					>
 						<Users size={16} />
 						<span>العملاء</span>
@@ -480,167 +309,125 @@ export default function DashboardPage() {
 				</div>
 			</div>
 
-			{/* Stats Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								إجمالي الطلبات
-							</p>
-							<p className="text-2xl font-bold text-gray-900">
-								{stats.totalOrders}
-							</p>
-						</div>
-						<div className="p-2 bg-blue-100 rounded-lg">
-							<ShoppingCart className="w-6 h-6 text-blue-600" />
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">طلبات معلقة</p>
-							<p className="text-2xl font-bold text-yellow-600">
-								{stats.pendingOrders}
-							</p>
-						</div>
-						<div className="p-2 bg-yellow-100 rounded-lg">
-							<Clock className="w-6 h-6 text-yellow-600" />
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								إجمالي المبيعات
-							</p>
-							<p className="text-2xl font-bold text-green-600">
-								{formatCurrency(stats.totalRevenue)}
-							</p>
-						</div>
-						<div className="p-2 bg-green-100 rounded-lg">
-							<DollarSign className="w-6 h-6 text-green-600" />
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								العملاء النشطون
-							</p>
-							<p className="text-2xl font-bold text-purple-600">
-								{stats.activeCustomers}
-							</p>
-						</div>
-						<div className="p-2 bg-purple-100 rounded-lg">
-							<Users className="w-6 h-6 text-purple-600" />
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Charts Grid */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				{/* Revenue Chart */}
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						تحليل الإيرادات
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<AreaChart data={monthlyData}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="name" />
-							<YAxis />
-							<Tooltip
-								formatter={(value, name) => [
-									name === "revenue"
-										? formatCurrency(Number(value))
-										: value,
-									name === "revenue"
-										? "الإيرادات"
-										: "الطلبات",
-								]}
-							/>
-							<Area
-								type="monotone"
-								dataKey="revenue"
-								stroke="#8B5CF6"
-								fill="#8B5CF680"
-							/>
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
-
-				{/* Orders Chart */}
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						حالة الطلبات
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<PieChart>
-							<Pie
-								data={orderStatusData}
-								cx="50%"
-								cy="50%"
-								innerRadius={60}
-								outerRadius={80}
-								paddingAngle={5}
-								dataKey="value"
+			{/* Stats */}
+			<motion.div
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				className="grid grid-cols-1 md:grid-cols-4 gap-4"
+			>
+				{[
+					{
+						title: "إجمالي الطلبات",
+						value: stats.totalOrders,
+						color: "blue",
+						icon: ShoppingCart,
+					},
+					{
+						title: "طلبات معلقة",
+						value: stats.pendingOrders,
+						color: "yellow",
+						icon: Clock,
+					},
+					{
+						title: "إجمالي المبيعات",
+						value: formatCurrency(stats.totalRevenue),
+						color: "green",
+						icon: DollarSign,
+					},
+					{
+						title: "العملاء النشطون",
+						value: stats.activeCustomers,
+						color: "purple",
+						icon: Users,
+					},
+				].map((item, i) => {
+					const Icon = item.icon;
+					return (
+						<div
+							key={i}
+							className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center"
+						>
+							<div>
+								<p className="text-sm text-gray-600">
+									{item.title}
+								</p>
+								<p
+									className={`text-2xl font-bold ${
+										item.color === "blue"
+											? "text-blue-600"
+											: item.color === "yellow"
+											? "text-yellow-600"
+											: item.color === "green"
+											? "text-green-600"
+											: "text-purple-600"
+									}`}
+								>
+									{item.value}
+								</p>
+							</div>
+							<div
+								className={`p-2 rounded-lg ${
+									item.color === "blue"
+										? "bg-blue-100"
+										: item.color === "yellow"
+										? "bg-yellow-100"
+										: item.color === "green"
+										? "bg-green-100"
+										: "bg-purple-100"
+								}`}
 							>
-								{orderStatusData.map((entry, index) => (
-									<Cell
-										key={`cell-${index}`}
-										fill={entry.color}
-									/>
-								))}
-							</Pie>
-							<Tooltip />
-						</PieChart>
-					</ResponsiveContainer>
-				</div>
+								<Icon className={`w-6 h-6`} />
+							</div>
+						</div>
+					);
+				})}
+			</motion.div>
 
-				{/* Customer Distribution */}
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						توزيع العملاء
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<BarChart data={customerData}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="name" />
-							<YAxis />
-							<Tooltip />
-							<Bar dataKey="value" fill="#EC4899" />
-						</BarChart>
-					</ResponsiveContainer>
-				</div>
+			{/* Charts */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+				{/* Revenue */}
+				<ChartCard title="تحليل الإيرادات">
+					{monthlyData.length ? (
+						<AreaChartComponent
+							data={monthlyData}
+							dataKey="revenue"
+							color="#8B5CF6"
+						/>
+					) : (
+						<EmptyChart />
+					)}
+				</ChartCard>
 
-				{/* Monthly Orders Trend */}
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						اتجاه الطلبات الشهرية
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<AreaChart data={monthlyData}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="name" />
-							<YAxis />
-							<Tooltip />
-							<Area
-								type="monotone"
-								dataKey="orders"
-								stroke="#60A5FA"
-								fill="#60A5FA80"
-							/>
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
+				{/* Orders Status */}
+				<ChartCard title="حالة الطلبات">
+					{orderStatusData.length ? (
+						<PieChartComponent data={orderStatusData} />
+					) : (
+						<EmptyChart />
+					)}
+				</ChartCard>
+
+				{/* Customers */}
+				<ChartCard title="توزيع العملاء">
+					{customerData.length ? (
+						<BarChartComponent data={customerData} />
+					) : (
+						<EmptyChart />
+					)}
+				</ChartCard>
+
+				{/* Monthly Orders */}
+				<ChartCard title="اتجاه الطلبات الشهرية">
+					{monthlyData.length ? (
+						<AreaChartComponent
+							data={monthlyData}
+							dataKey="orders"
+							color="#60A5FA"
+						/>
+					) : (
+						<EmptyChart />
+					)}
+				</ChartCard>
 			</div>
 
 			{/* Recent Activity */}
@@ -648,62 +435,126 @@ export default function DashboardPage() {
 				<h3 className="text-lg font-semibold mb-4 text-right">
 					النشاطات الأخيرة
 				</h3>
-				<div className="space-y-3">
-					{recentActivity.length > 0 ? (
-						recentActivity.map((activity, index) => {
-							const IconComponent = activity.icon;
-							const colorClasses = {
-								purple: "bg-purple-100 text-purple-600",
-								blue: "bg-blue-100 text-blue-600",
-								green: "bg-green-100 text-green-600",
-							};
-
+				{recentActivity.length ? (
+					<div className="space-y-3">
+						{recentActivity.map((act, i) => {
+							const Icon = act.icon;
 							return (
 								<div
-									key={index}
+									key={i}
 									className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
 								>
 									<div className="flex items-center gap-3">
 										<div
 											className={`p-2 rounded-lg ${
-												colorClasses[
-													activity.color as keyof typeof colorClasses
-												]
+												act.color === "purple"
+													? "bg-purple-100 text-purple-600"
+													: "bg-blue-100 text-blue-600"
 											}`}
 										>
-											<IconComponent className="w-4 h-4" />
+											<Icon className="w-4 h-4" />
 										</div>
 										<div>
 											<span className="text-gray-900 font-medium">
-												{activity.title}
+												{act.title}
 											</span>
 											<p className="text-sm text-gray-500">
-												{activity.subtitle}
+												{act.subtitle}
 											</p>
 										</div>
 									</div>
 									<span className="text-gray-500 text-sm">
-										{formatTimeAgo(activity.time)}
+										{formatTimeAgo(act.time)}
 									</span>
 								</div>
 							);
-						})
-					) : (
-						<div className="text-center py-8">
-							<p className="text-gray-500">
-								لا توجد نشاطات حديثة
-							</p>
-						</div>
-					)}
-				</div>
+						})}
+					</div>
+				) : (
+					<EmptyChart message="لا توجد نشاطات حديثة" />
+				)}
 			</div>
 
-			{/* Invoice Creation Modal */}
+			{/* Invoice Modal */}
 			<InvoiceCreationModal
 				isOpen={showInvoiceModal}
 				onClose={closeInvoiceModal}
-				onSuccess={handleInvoiceSuccess}
+				onSuccess={() => loadDashboardData()}
 			/>
 		</div>
 	);
 }
+
+/* Helper Components */
+const ChartCard = ({
+	title,
+	children,
+}: {
+	title: string;
+	children: React.ReactNode;
+}) => (
+	<div className="bg-white p-6 rounded-xl border border-gray-200">
+		<h3 className="text-lg font-semibold mb-4 text-right">{title}</h3>
+		{children}
+	</div>
+);
+
+const EmptyChart = ({
+	message = "لا توجد بيانات بعد",
+}: {
+	message?: string;
+}) => (
+	<div className="flex items-center justify-center h-[300px] text-gray-400">
+		{message}
+	</div>
+);
+
+const AreaChartComponent = ({ data, dataKey, color }: any) => (
+	<ResponsiveContainer width="100%" height={300}>
+		<AreaChart data={data}>
+			<CartesianGrid strokeDasharray="3 3" />
+			<XAxis dataKey="name" />
+			<YAxis />
+			<Tooltip />
+			<Area
+				type="monotone"
+				dataKey={dataKey}
+				stroke={color}
+				fill={`${color}80`}
+			/>
+		</AreaChart>
+	</ResponsiveContainer>
+);
+
+const PieChartComponent = ({ data }: any) => (
+	<ResponsiveContainer width="100%" height={300}>
+		<PieChart>
+			<Pie
+				data={data}
+				cx="50%"
+				cy="50%"
+				innerRadius={60}
+				outerRadius={80}
+				paddingAngle={5}
+				dataKey="value"
+			>
+				{data.map((entry: any, i: number) => (
+					<Cell key={i} fill={entry.color} />
+				))}
+			</Pie>
+			<Tooltip />
+		</PieChart>
+	</ResponsiveContainer>
+);
+
+const BarChartComponent = ({ data }: any) => (
+	<ResponsiveContainer width="100%" height={300}>
+		<BarChart data={data}>
+			<CartesianGrid strokeDasharray="3 3" />
+			<XAxis dataKey="name" />
+			<YAxis />
+			<Tooltip />
+			<Bar dataKey="value" fill="#EC4899" />
+		</BarChart>
+	</ResponsiveContainer>
+);

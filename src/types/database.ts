@@ -38,6 +38,8 @@ export interface Client {
 	status: ClientStatus;
 	created_at: string; // Timestamptz as ISO string
 	updated_at: string; // Timestamptz as ISO string
+	deleted_at?: string | null; // Timestamptz as ISO string for soft delete
+	invoice_count?: number; // Computed field for invoice count
 }
 
 export interface Order {

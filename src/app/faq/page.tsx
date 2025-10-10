@@ -143,11 +143,14 @@ const categories = [
 export default function FAQPage() {
 	const [selectedCategory, setSelectedCategory] = useState("all");
 	const [openItems, setOpenItems] = useState<number[]>([]);
+	const [searchTerm, setSearchTerm] = useState("");
 
-	const filteredFAQs =
-		selectedCategory === "all"
-			? faqData
-			: faqData.filter((faq) => faq.category === selectedCategory);
+	const filteredFAQs = faqData.filter(
+		(faq) =>
+			(selectedCategory === "all" || faq.category === selectedCategory) &&
+			(faq.question.includes(searchTerm) ||
+				faq.answer.includes(searchTerm))
+	);
 
 	const toggleItem = (id: number) => {
 		setOpenItems((prev) =>
@@ -158,28 +161,27 @@ export default function FAQPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-[#012d46] via-[#7f2dfb] to-[#ff6b9d] relative overflow-hidden">
-			{/* Background Pattern */}
-			<DotPattern className="absolute inset-0 opacity-10" />
-
-			{/* Navigation */}
+		<div className="min-h-screen bg-white relative overflow-hidden">
+			{/* subtle shiny gradient from bottom right */}
+			<div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-gradient-to-tl from-[#7f2dfb]/30 via-[#ff6b9d]/20 to-transparent blur-3xl rounded-full opacity-70 pointer-events-none" />
+			<DotPattern className="absolute inset-0 opacity-[0.04]" />
 			<SimpleNavbar />
 
-			{/* Header Section */}
-			<div className="relative z-10 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+			{/* Header */}
+			<div className="relative z-10 pt-24 pb-16 px-4 sm:px-6 lg:px-8 text-center">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6 }}
-					className="text-center max-w-4xl mx-auto"
+					className="max-w-4xl mx-auto"
 				>
-					<div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full mb-6">
-						<HelpCircle className="w-8 h-8 text-white" />
+					<div className="inline-flex items-center justify-center w-16 h-16 bg-[#7f2dfb]/10 rounded-full mb-6">
+						<HelpCircle className="w-8 h-8 text-[#7f2dfb]" />
 					</div>
-					<h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+					<h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
 						الأسئلة الشائعة
 					</h1>
-					<p className="text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
+					<p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
 						إجابات على أكثر الأسئلة شيوعاً حول نظام إدارة الفواتير
 					</p>
 				</motion.div>
@@ -191,8 +193,16 @@ export default function FAQPage() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6, delay: 0.2 }}
-					className="max-w-6xl mx-auto"
+					className="max-w-6xl mx-auto flex flex-col items-center"
 				>
+					<input
+						type="text"
+						placeholder="ابحث عن سؤالك..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						className="w-full max-w-md mb-6 rounded-full px-4 py-2 bg-gray-50 border border-gray-200 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/40 text-center"
+					/>
+
 					<div className="flex flex-wrap justify-center gap-3">
 						{categories.map((category) => (
 							<button
@@ -202,8 +212,8 @@ export default function FAQPage() {
 								}
 								className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-200 ${
 									selectedCategory === category.value
-										? "bg-white text-[#012d46] shadow-lg"
-										: "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm"
+										? "bg-[#7f2dfb] text-white shadow-lg"
+										: "bg-gray-100 text-gray-700 hover:bg-gray-200"
 								}`}
 							>
 								{category.icon}
@@ -214,41 +224,53 @@ export default function FAQPage() {
 				</motion.div>
 			</div>
 
-			{/* FAQ Content */}
+			{/* FAQ List */}
 			<div className="relative z-10 px-4 sm:px-6 lg:px-8 pb-20">
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.6, delay: 0.4 }}
-					className="max-w-4xl mx-auto"
-				>
-					<AnimatePresence mode="wait">
+				<AnimatePresence mode="wait">
+					<motion.div
+						key={selectedCategory + searchTerm}
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -20 }}
+						transition={{ duration: 0.3 }}
+						className="max-w-4xl mx-auto"
+					>
+						{filteredFAQs.length === 0 && (
+							<div className="text-center text-gray-500 py-10">
+								<p>لا توجد أسئلة مطابقة حالياً.</p>
+							</div>
+						)}
+
 						{filteredFAQs.map((faq, index) => (
 							<motion.div
 								key={faq.id}
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, y: -20 }}
 								transition={{
-									duration: 0.3,
-									delay: index * 0.1,
+									duration: 0.4,
+									delay: index * 0.05,
 								}}
 								className="mb-4"
 							>
-								<div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 overflow-hidden">
+								<div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 									<button
 										onClick={() => toggleItem(faq.id)}
-										className="w-full px-6 py-4 text-right flex items-center justify-between hover:bg-white/10 transition-all duration-200"
+										aria-expanded={openItems.includes(
+											faq.id
+										)}
+										aria-controls={`faq-answer-${faq.id}`}
+										id={`faq-question-${faq.id}`}
+										className="w-full px-6 py-4 text-right flex items-center justify-between hover:bg-gray-50 transition-all duration-200"
 									>
 										<div className="flex items-center gap-3">
 											<div className="text-[#7f2dfb]">
 												{faq.icon}
 											</div>
-											<span className="text-white font-semibold text-lg">
+											<span className="text-gray-900 font-semibold text-lg">
 												{faq.question}
 											</span>
 										</div>
-										<div className="text-white">
+										<div className="text-gray-600">
 											{openItems.includes(faq.id) ? (
 												<ChevronUp className="w-5 h-5" />
 											) : (
@@ -260,6 +282,9 @@ export default function FAQPage() {
 									<AnimatePresence>
 										{openItems.includes(faq.id) && (
 											<motion.div
+												id={`faq-answer-${faq.id}`}
+												role="region"
+												aria-labelledby={`faq-question-${faq.id}`}
 												initial={{
 													height: 0,
 													opacity: 0,
@@ -273,7 +298,7 @@ export default function FAQPage() {
 												className="overflow-hidden"
 											>
 												<div className="px-6 pb-4">
-													<p className="text-white/90 leading-relaxed">
+													<p className="text-gray-700 leading-relaxed">
 														{faq.answer}
 													</p>
 												</div>
@@ -283,11 +308,11 @@ export default function FAQPage() {
 								</div>
 							</motion.div>
 						))}
-					</AnimatePresence>
-				</motion.div>
+					</motion.div>
+				</AnimatePresence>
 			</div>
 
-			{/* CTA Section */}
+			{/* CTA */}
 			<div className="relative z-10 px-4 sm:px-6 lg:px-8 pb-20">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
@@ -295,29 +320,29 @@ export default function FAQPage() {
 					transition={{ duration: 0.6, delay: 0.6 }}
 					className="max-w-4xl mx-auto text-center"
 				>
-					<div className="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 md:p-12">
-						<h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+					<div className="bg-gradient-to-r from-[#7f2dfb]/10 to-[#ff6b9d]/10 border border-gray-100 rounded-3xl p-8 md:p-12 shadow-sm">
+						<h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
 							لم تجد إجابة لسؤالك؟
 						</h2>
-						<p className="text-xl text-white/90 mb-8">
+						<p className="text-xl text-gray-600 mb-8">
 							فريق الدعم الفني جاهز لمساعدتك في أي وقت
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 justify-center">
 							<Link href="/contact">
 								<MainButton
 									text="تواصل معنا"
-									bgColor="bg-white"
-									textColor="text-[#012d46]"
-									hoverBgColor="hover:bg-gray-100"
+									bgColor="bg-[#7f2dfb]"
+									textColor="text-white"
+									hoverBgColor="hover:bg-[#6a1fd8]"
 									className="text-lg px-8 py-3"
 								/>
 							</Link>
 							<Link href="/dashboard">
 								<MainButton
 									text="جرب النظام"
-									bgColor="bg-[#7f2dfb]"
-									textColor="text-white"
-									hoverBgColor="hover:bg-[#6a1fd8]"
+									bgColor="bg-gray-100"
+									textColor="text-[#012d46]"
+									hoverBgColor="hover:bg-gray-200"
 									className="text-lg px-8 py-3"
 								/>
 							</Link>

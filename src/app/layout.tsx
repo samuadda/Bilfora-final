@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "@/components/ui/sonner";
 
 const vazirmatn = Vazirmatn({
 	subsets: ["arabic"],
@@ -24,7 +24,7 @@ export default function RootLayout({
 		<html lang="ar" dir="rtl" className="scroll-smooth">
 			<body className={`${vazirmatn.className} font-sans antialiased`}>
 				{children}
-				<Toaster position="top-center" />
+				<Toaster />
 			</body>
 		</html>
 	);

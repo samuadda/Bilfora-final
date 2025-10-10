@@ -57,6 +57,9 @@ const statusConfig = {
 };
 
 export default function InvoicesPage() {
+	const searchParams = useSearchParams();
+	const pathname = usePathname();
+	const router = useRouter();
 	const [invoices, setInvoices] = useState<InvoiceWithClientAndItems[]>([]);
 	const [filteredInvoices, setFilteredInvoices] = useState<
 		InvoiceWithClientAndItems[]
@@ -88,6 +91,19 @@ export default function InvoicesPage() {
 		notes: "",
 		items: [{ description: "", quantity: 1, unit_price: 0 }],
 	});
+
+	// Initialize search term from URL on first render
+	useEffect(() => {
+		const q = searchParams.get("q") || "";
+		setSearchTerm(q);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	// Keep search term in sync when URL query changes (e.g., from layout input)
+	useEffect(() => {
+		const q = searchParams.get("q") || "";
+		setSearchTerm((prev) => (prev !== q ? q : prev));
+	}, [searchParams]);
 
 	// Load invoices, clients, and orders on component mount
 	useEffect(() => {
@@ -145,6 +161,15 @@ export default function InvoicesPage() {
 
 		setFilteredInvoices(filtered);
 	}, [invoices, statusFilter, searchTerm, dateFilter]);
+
+	const handleSearchChange = (value: string) => {
+		setSearchTerm(value);
+		const params = new URLSearchParams(Array.from(searchParams.entries()));
+		if (value) params.set("q", value);
+		else params.delete("q");
+		const query = params.toString();
+		router.push(query ? `${pathname}?${query}` : pathname);
+	};
 
 	const loadInvoices = async () => {
 		try {
@@ -684,7 +709,9 @@ export default function InvoicesPage() {
 								type="text"
 								placeholder="البحث في الفواتير..."
 								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
+								onChange={(e) =>
+									handleSearchChange(e.target.value)
+								}
 								className="pl-3 pr-9 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 w-64"
 							/>
 						</div>
