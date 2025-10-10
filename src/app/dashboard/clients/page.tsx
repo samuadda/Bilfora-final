@@ -60,11 +60,11 @@ export default function ClientsPage() {
 		name: "",
 		email: "",
 		phone: "",
-		company_name: "",
-		tax_number: "",
-		address: "",
-		city: "",
-		notes: "",
+		company_name: null,
+		tax_number: null,
+		address: null,
+		city: null,
+		notes: null,
 		status: "active",
 	});
 
@@ -141,7 +141,7 @@ export default function ClientsPage() {
 		const { name, value } = e.target;
 		setFormData((prev) => ({
 			...prev,
-			[name]: value,
+			[name]: value === "" ? null : value,
 		}));
 	};
 
@@ -150,11 +150,11 @@ export default function ClientsPage() {
 			name: "",
 			email: "",
 			phone: "",
-			company_name: "",
-			tax_number: "",
-			address: "",
-			city: "",
-			notes: "",
+			company_name: null,
+			tax_number: null,
+			address: null,
+			city: null,
+			notes: null,
 			status: "active",
 		});
 		setEditingClient(null);
@@ -172,11 +172,11 @@ export default function ClientsPage() {
 			name: client.name,
 			email: client.email,
 			phone: client.phone,
-			company_name: client.company_name || "",
-			tax_number: client.tax_number || "",
-			address: client.address || "",
-			city: client.city || "",
-			notes: client.notes || "",
+			company_name: client.company_name || null,
+			tax_number: client.tax_number || null,
+			address: client.address || null,
+			city: client.city || null,
+			notes: client.notes || null,
 			status: client.status,
 		});
 		setEditingClient(client);
@@ -195,6 +195,33 @@ export default function ClientsPage() {
 			} = await supabase.auth.getUser();
 			if (!user) {
 				setError("يجب تسجيل الدخول أولاً");
+				return;
+			}
+
+			// Check if user has a profile
+			const { data: profile, error: profileError } = await supabase
+				.from("profiles")
+				.select("id")
+				.eq("id", user.id)
+				.single();
+
+			if (profileError || !profile) {
+				console.error("Profile error:", profileError);
+				setError("خطأ في بيانات المستخدم. يرجى المحاولة مرة أخرى.");
+				return;
+			}
+
+			// Basic validation
+			if (!formData.name.trim()) {
+				setError("اسم العميل مطلوب");
+				return;
+			}
+			if (!formData.email.trim()) {
+				setError("البريد الإلكتروني مطلوب");
+				return;
+			}
+			if (!formData.phone.trim()) {
+				setError("رقم الجوال مطلوب");
 				return;
 			}
 
@@ -224,7 +251,7 @@ export default function ClientsPage() {
 				setSuccess("تم تحديث العميل بنجاح");
 			} else {
 				// Create new client
-				const { error } = await supabase.from("clients").insert({
+				const clientData = {
 					user_id: user.id,
 					name: formData.name,
 					email: formData.email,
@@ -235,11 +262,23 @@ export default function ClientsPage() {
 					city: formData.city || null,
 					notes: formData.notes || null,
 					status: formData.status,
-				});
+				};
+
+				console.log("Creating client with data:", clientData);
+
+				const { error } = await supabase
+					.from("clients")
+					.insert(clientData);
 
 				if (error) {
 					console.error("Error creating client:", error);
-					setError("فشل في إضافة العميل");
+					console.error(
+						"Error details:",
+						error.message,
+						error.details,
+						error.hint
+					);
+					setError(`فشل في إضافة العميل: ${error.message}`);
 					return;
 				}
 
@@ -661,7 +700,7 @@ export default function ClientsPage() {
 									</label>
 									<input
 										name="company_name"
-										value={formData.company_name}
+										value={formData.company_name || ""}
 										onChange={handleInputChange}
 										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 										placeholder="اسم الشركة"
@@ -673,7 +712,7 @@ export default function ClientsPage() {
 									</label>
 									<input
 										name="tax_number"
-										value={formData.tax_number}
+										value={formData.tax_number || ""}
 										onChange={handleInputChange}
 										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 										placeholder="الرقم الضريبي"
@@ -685,7 +724,7 @@ export default function ClientsPage() {
 									</label>
 									<input
 										name="city"
-										value={formData.city}
+										value={formData.city || ""}
 										onChange={handleInputChange}
 										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 										placeholder="المدينة"
@@ -714,7 +753,7 @@ export default function ClientsPage() {
 								</label>
 								<input
 									name="address"
-									value={formData.address}
+									value={formData.address || ""}
 									onChange={handleInputChange}
 									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 									placeholder="العنوان التفصيلي"
@@ -726,7 +765,7 @@ export default function ClientsPage() {
 								</label>
 								<textarea
 									name="notes"
-									value={formData.notes}
+									value={formData.notes || ""}
 									onChange={handleInputChange}
 									rows={3}
 									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
