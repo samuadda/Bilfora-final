@@ -34,6 +34,7 @@ import {
 	OrderStatusData,
 	CustomerData,
 } from "@/types/database";
+import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 
 export default function DashboardPage() {
 	const [stats, setStats] = useState<DashboardStats>({
@@ -50,6 +51,9 @@ export default function DashboardPage() {
 	const [recentActivity, setRecentActivity] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+
+	// Invoice modal state
+	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
 	// Load dashboard data on component mount
 	useEffect(() => {
@@ -366,6 +370,20 @@ export default function DashboardPage() {
 		}
 	};
 
+	// Invoice modal handlers
+	const openInvoiceModal = () => {
+		setShowInvoiceModal(true);
+	};
+
+	const closeInvoiceModal = () => {
+		setShowInvoiceModal(false);
+	};
+
+	const handleInvoiceSuccess = () => {
+		// Reload dashboard data to show updated stats
+		loadDashboardData();
+	};
+
 	const formatCurrency = (amount: number) =>
 		new Intl.NumberFormat("ar-SA", {
 			style: "currency",
@@ -433,13 +451,13 @@ export default function DashboardPage() {
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-3">
-					<Link
-						href="/dashboard/invoices"
+					<button
+						onClick={openInvoiceModal}
 						className="inline-flex items-center gap-2 rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
 					>
 						<FileText size={16} />
 						<span>إنشاء فاتورة</span>
-					</Link>
+					</button>
 					<Link
 						href="/dashboard/analytics"
 						className="inline-flex items-center gap-2 rounded-xl bg-gray-100 text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-200 active:translate-y-[1px]"
@@ -674,6 +692,13 @@ export default function DashboardPage() {
 					)}
 				</div>
 			</div>
+
+			{/* Invoice Creation Modal */}
+			<InvoiceCreationModal
+				isOpen={showInvoiceModal}
+				onClose={closeInvoiceModal}
+				onSuccess={handleInvoiceSuccess}
+			/>
 		</div>
 	);
 }

@@ -23,12 +23,10 @@ import { supabase } from "@/lib/supabase";
 import {
 	Invoice,
 	InvoiceWithClientAndItems,
-	CreateInvoiceInput,
 	UpdateInvoiceInput,
 	InvoiceStatus,
-	Client,
-	Order,
 } from "@/types/database";
+import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 
 const statusConfig = {
 	draft: {
@@ -74,7 +72,7 @@ export default function InvoicesPage() {
 	);
 	const [dateFilter, setDateFilter] = useState("all");
 	const [showFilters, setShowFilters] = useState(false);
-	const [showAddModal, setShowAddModal] = useState(false);
+	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 	const [editingInvoice, setEditingInvoice] =
 		useState<InvoiceWithClientAndItems | null>(null);
 	const [saving, setSaving] = useState(false);
@@ -298,8 +296,16 @@ export default function InvoicesPage() {
 	};
 
 	const handleAddInvoice = () => {
-		resetForm();
-		setShowAddModal(true);
+		setShowInvoiceModal(true);
+	};
+
+	const closeInvoiceModal = () => {
+		setShowInvoiceModal(false);
+	};
+
+	const handleInvoiceSuccess = () => {
+		// Reload invoices to show the new one
+		loadInvoices();
 	};
 
 	const handleEditInvoice = (invoice: InvoiceWithClientAndItems) => {
@@ -900,273 +906,12 @@ export default function InvoicesPage() {
 				)}
 			</div>
 
-			{/* Add/Edit Modal */}
-			{showAddModal && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-					<div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-						<h2 className="text-xl font-bold mb-4">
-							{editingInvoice
-								? "تعديل الفاتورة"
-								: "إنشاء فاتورة جديدة"}
-						</h2>
-
-						<form onSubmit={handleSubmit} className="space-y-4">
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-								<div>
-									<label className="block text-sm text-gray-600 mb-1">
-										العميل *
-									</label>
-									<select
-										name="client_id"
-										value={formData.client_id}
-										onChange={handleInputChange}
-										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-										required
-									>
-										<option value="">اختر العميل</option>
-										{clients.map((client) => (
-											<option
-												key={client.id}
-												value={client.id}
-											>
-												{client.name} - {client.email}
-											</option>
-										))}
-									</select>
-								</div>
-								<div>
-									<label className="block text-sm text-gray-600 mb-1">
-										الطلب (اختياري)
-									</label>
-									<select
-										name="order_id"
-										value={formData.order_id}
-										onChange={handleInputChange}
-										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									>
-										<option value="">اختر الطلب</option>
-										{orders.map((order) => (
-											<option
-												key={order.id}
-												value={order.id}
-											>
-												{order.order_number} -{" "}
-												{formatCurrency(
-													order.total_amount
-												)}
-											</option>
-										))}
-									</select>
-								</div>
-								<div>
-									<label className="block text-sm text-gray-600 mb-1">
-										تاريخ الإصدار *
-									</label>
-									<input
-										name="issue_date"
-										type="date"
-										value={formData.issue_date}
-										onChange={handleInputChange}
-										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-										required
-									/>
-								</div>
-								<div>
-									<label className="block text-sm text-gray-600 mb-1">
-										تاريخ الاستحقاق *
-									</label>
-									<input
-										name="due_date"
-										type="date"
-										value={formData.due_date}
-										onChange={handleInputChange}
-										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-										required
-									/>
-								</div>
-								<div>
-									<label className="block text-sm text-gray-600 mb-1">
-										الحالة
-									</label>
-									<select
-										name="status"
-										value={formData.status}
-										onChange={handleInputChange}
-										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									>
-										<option value="draft">مسودة</option>
-										<option value="sent">مرسلة</option>
-										<option value="paid">مدفوعة</option>
-										<option value="cancelled">ملغية</option>
-									</select>
-								</div>
-								<div>
-									<label className="block text-sm text-gray-600 mb-1">
-										معدل الضريبة (%)
-									</label>
-									<input
-										name="tax_rate"
-										type="number"
-										min="0"
-										max="100"
-										step="0.01"
-										value={formData.tax_rate}
-										onChange={handleInputChange}
-										className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									/>
-								</div>
-							</div>
-
-							{/* Invoice Items */}
-							<div>
-								<div className="flex items-center justify-between mb-4">
-									<label className="block text-sm text-gray-600">
-										عناصر الفاتورة *
-									</label>
-									<button
-										type="button"
-										onClick={addItem}
-										className="text-purple-600 hover:text-purple-700 text-sm"
-									>
-										+ إضافة عنصر
-									</button>
-								</div>
-
-								<div className="space-y-3">
-									{formData.items.map((item, index) => (
-										<div
-											key={index}
-											className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
-										>
-											<div className="md:col-span-2">
-												<label className="block text-xs text-gray-600 mb-1">
-													الوصف
-												</label>
-												<input
-													value={item.description}
-													onChange={(e) =>
-														handleItemChange(
-															index,
-															"description",
-															e.target.value
-														)
-													}
-													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-													placeholder="وصف العنصر"
-													required
-												/>
-											</div>
-											<div>
-												<label className="block text-xs text-gray-600 mb-1">
-													الكمية
-												</label>
-												<input
-													type="number"
-													min="1"
-													value={item.quantity}
-													onChange={(e) =>
-														handleItemChange(
-															index,
-															"quantity",
-															parseInt(
-																e.target.value
-															) || 1
-														)
-													}
-													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-													required
-												/>
-											</div>
-											<div>
-												<label className="block text-xs text-gray-600 mb-1">
-													السعر
-												</label>
-												<div className="flex gap-2">
-													<input
-														type="number"
-														min="0"
-														step="0.01"
-														value={item.unit_price}
-														onChange={(e) =>
-															handleItemChange(
-																index,
-																"unit_price",
-																parseFloat(
-																	e.target
-																		.value
-																) || 0
-															)
-														}
-														className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-														required
-													/>
-													<button
-														type="button"
-														onClick={() =>
-															removeItem(index)
-														}
-														className="text-red-600 hover:text-red-700 p-2"
-														disabled={
-															formData.items
-																.length === 1
-														}
-													>
-														<Trash2 size={16} />
-													</button>
-												</div>
-											</div>
-										</div>
-									))}
-								</div>
-							</div>
-
-							<div>
-								<label className="block text-sm text-gray-600 mb-1">
-									ملاحظات
-								</label>
-								<textarea
-									name="notes"
-									value={formData.notes}
-									onChange={handleInputChange}
-									rows={3}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									placeholder="ملاحظات إضافية"
-								/>
-							</div>
-
-							<div className="flex items-center justify-end gap-2 pt-4">
-								<button
-									type="button"
-									onClick={() => {
-										setShowAddModal(false);
-										resetForm();
-									}}
-									className="px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
-								>
-									إلغاء
-								</button>
-								<button
-									type="submit"
-									disabled={saving}
-									className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-								>
-									{saving && (
-										<Loader2
-											size={16}
-											className="animate-spin"
-										/>
-									)}
-									{saving
-										? "جاري الحفظ..."
-										: editingInvoice
-										? "تحديث"
-										: "إنشاء"}
-								</button>
-							</div>
-						</form>
-					</div>
-				</div>
-			)}
+			{/* Invoice Creation Modal */}
+			<InvoiceCreationModal
+				isOpen={showInvoiceModal}
+				onClose={closeInvoiceModal}
+				onSuccess={handleInvoiceSuccess}
+			/>
 		</div>
 	);
 }

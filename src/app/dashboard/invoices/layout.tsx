@@ -1,11 +1,29 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
 import { Plus, Search } from "lucide-react";
+import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 
 export default function InvoicesLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
+	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+	const openInvoiceModal = () => {
+		setShowInvoiceModal(true);
+	};
+
+	const closeInvoiceModal = () => {
+		setShowInvoiceModal(false);
+	};
+
+	const handleInvoiceSuccess = () => {
+		// The invoices page will handle reloading
+		window.location.reload();
+	};
+
 	return (
 		<div className="space-y-6">
 			{/* Page header */}
@@ -32,13 +50,13 @@ export default function InvoicesLayout({
 							className="w-56 rounded-xl border border-gray-200 pl-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
 						/>
 					</div>
-					<Link
-						href="/dashboard/invoices/new"
+					<button
+						onClick={openInvoiceModal}
 						className="inline-flex items-center gap-2 rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
 					>
 						<Plus size={16} />
 						<span>فاتورة جديدة</span>
-					</Link>
+					</button>
 				</div>
 			</div>
 
@@ -46,6 +64,13 @@ export default function InvoicesLayout({
 			<section className="rounded-2xl bg-white border border-gray-200 p-4 md:p-6 shadow-sm">
 				{children}
 			</section>
+
+			{/* Invoice Creation Modal */}
+			<InvoiceCreationModal
+				isOpen={showInvoiceModal}
+				onClose={closeInvoiceModal}
+				onSuccess={handleInvoiceSuccess}
+			/>
 		</div>
 	);
 }
