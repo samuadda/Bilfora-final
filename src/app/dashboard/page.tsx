@@ -16,13 +16,13 @@ import {
 	Bar,
 } from "recharts";
 import {
-	FileText,
-	BarChart3,
-	Users,
-	ShoppingCart,
-	Clock,
-	DollarSign,
-	Loader2,
+    FileText,
+    BarChart3,
+    Users,
+    ShoppingCart,
+    Clock,
+    DollarSign,
+    Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -41,12 +41,12 @@ export default function DashboardPage() {
 	const router = useRouter();
 	const { toast } = useToast();
 
-	const [stats, setStats] = useState<DashboardStats>({
-		totalOrders: 0,
-		pendingOrders: 0,
-		totalRevenue: 0,
-		activeCustomers: 0,
-	});
+    const [stats, setStats] = useState({
+        totalInvoices: 0,
+        overdueInvoices: 0,
+        totalRevenue: 0,
+        activeCustomers: 0,
+    });
 	const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 	const [orderStatusData, setOrderStatusData] = useState<OrderStatusData[]>(
 		[]
@@ -76,13 +76,13 @@ export default function DashboardPage() {
 				return;
 			}
 
-			await Promise.all([
-				loadStats(user.id),
-				loadMonthlyData(user.id),
-				loadOrderStatusData(user.id),
-				loadCustomerData(user.id),
-				loadRecentActivity(user.id),
-			]);
+            await Promise.all([
+                loadStats(user.id),
+                loadMonthlyData(user.id),
+                loadInvoiceStatusData(user.id),
+                loadCustomerData(user.id),
+                loadRecentActivity(user.id),
+            ]);
 		} catch (err) {
 			console.error(err);
 			toast({
@@ -95,38 +95,41 @@ export default function DashboardPage() {
 		}
 	};
 
-	const loadStats = async (userId: string) => {
-		const { data: orders } = await supabase
-			.from("orders")
-			.select("status, total_amount")
-			.eq("user_id", userId);
+    const loadStats = async (userId: string) => {
+        const { data: invoices } = await supabase
+            .from("invoices")
+            .select("status, total_amount, due_date")
+            .eq("user_id", userId);
 
-		const { data: clients } = await supabase
+        const { data: clients } = await supabase
 			.from("clients")
 			.select("status")
 			.eq("user_id", userId)
 			.is("deleted_at", null);
 
-		setStats({
-			totalOrders: orders?.length || 0,
-			pendingOrders:
-				orders?.filter((o) => o.status === "pending").length || 0,
-			totalRevenue:
-				orders?.reduce(
-					(sum, o) => sum + Number(o.total_amount || 0),
-					0
-				) || 0,
-			activeCustomers:
-				clients?.filter((c) => c.status === "active").length || 0,
-		});
+        const now = new Date();
+        setStats({
+            totalInvoices: invoices?.length || 0,
+            overdueInvoices:
+                invoices?.filter(
+                    (i) => new Date(i.due_date) < now && i.status !== "paid" && i.status !== "cancelled"
+                ).length || 0,
+            totalRevenue:
+                invoices?.reduce(
+                    (sum, i) => sum + Number(i.total_amount || 0),
+                    0
+                ) || 0,
+            activeCustomers:
+                clients?.filter((c) => c.status === "active").length || 0,
+        });
 	};
 
-	const loadMonthlyData = async (userId: string) => {
-		const { data } = await supabase
-			.from("orders")
-			.select("created_at, total_amount")
-			.eq("user_id", userId)
-			.order("created_at");
+    const loadMonthlyData = async (userId: string) => {
+        const { data } = await supabase
+            .from("invoices")
+            .select("created_at, total_amount")
+            .eq("user_id", userId)
+            .order("created_at");
 
 		if (!data) return;
 
@@ -135,24 +138,24 @@ export default function DashboardPage() {
 			{ orders: number; revenue: number; name: string }
 		>();
 
-		data.forEach((order) => {
-			const d = new Date(order.created_at);
+        data.forEach((inv) => {
+            const d = new Date(inv.created_at);
 			const month = d.toLocaleDateString("ar-SA", { month: "long" });
 			if (!monthlyMap.has(month))
 				monthlyMap.set(month, { orders: 0, revenue: 0, name: month });
 			const entry = monthlyMap.get(month)!;
-			entry.orders += 1;
-			entry.revenue += Number(order.total_amount);
+            entry.orders += 1;
+            entry.revenue += Number(inv.total_amount);
 		});
 
 		setMonthlyData(Array.from(monthlyMap.values()));
 	};
 
-	const loadOrderStatusData = async (userId: string) => {
-		const { data } = await supabase
-			.from("orders")
-			.select("status")
-			.eq("user_id", userId);
+    const loadInvoiceStatusData = async (userId: string) => {
+        const { data } = await supabase
+            .from("invoices")
+            .select("status")
+            .eq("user_id", userId);
 
 		if (!data) return;
 
@@ -164,20 +167,13 @@ export default function DashboardPage() {
 			{} as Record<string, number>
 		);
 
-		setOrderStatusData(
+        setOrderStatusData(
 			[
-				{
-					name: "مكتمل",
-					value: count.completed || 0,
-					color: "#10B981",
-				},
-				{ name: "معلق", value: count.pending || 0, color: "#F59E0B" },
-				{
-					name: "قيد المعالجة",
-					value: count.processing || 0,
-					color: "#3B82F6",
-				},
-				{ name: "ملغي", value: count.cancelled || 0, color: "#EF4444" },
+                { name: "مسودة", value: count.draft || 0, color: "#9CA3AF" },
+                { name: "مرسلة", value: count.sent || 0, color: "#3B82F6" },
+                { name: "مدفوعة", value: count.paid || 0, color: "#10B981" },
+                { name: "متأخرة", value: count.overdue || 0, color: "#F59E0B" },
+                { name: "ملغية", value: count.cancelled || 0, color: "#EF4444" },
 			].filter((d) => d.value > 0)
 		);
 	};
@@ -208,13 +204,13 @@ export default function DashboardPage() {
 		]);
 	};
 
-	const loadRecentActivity = async (userId: string) => {
-		const { data: orders } = await supabase
-			.from("orders")
-			.select(`created_at, order_number, client:clients(name)`)
-			.eq("user_id", userId)
-			.order("created_at", { ascending: false })
-			.limit(5);
+    const loadRecentActivity = async (userId: string) => {
+        const { data: invoices } = await supabase
+            .from("invoices")
+            .select(`created_at, invoice_number, client:clients(name)`) 
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(5);
 
 		const { data: clients } = await supabase
 			.from("clients")
@@ -225,12 +221,12 @@ export default function DashboardPage() {
 			.limit(3);
 
 		const activity = [
-			...(orders?.map((o) => ({
-				type: "order",
-				title: `طلب جديد - ${o.order_number}`,
+            ...(invoices?.map((o) => ({
+                type: "invoice",
+                title: `فاتورة جديدة - ${o.invoice_number}`,
 				subtitle: o.client?.name || "عميل غير معروف",
 				time: o.created_at,
-				icon: ShoppingCart,
+                icon: FileText,
 				color: "purple",
 			})) || []),
 			...(clients?.map((c) => ({
@@ -315,32 +311,32 @@ export default function DashboardPage() {
 				animate={{ opacity: 1, y: 0 }}
 				className="grid grid-cols-1 md:grid-cols-4 gap-4"
 			>
-				{[
-					{
-						title: "إجمالي الطلبات",
-						value: stats.totalOrders,
-						color: "blue",
-						icon: ShoppingCart,
-					},
-					{
-						title: "طلبات معلقة",
-						value: stats.pendingOrders,
-						color: "yellow",
-						icon: Clock,
-					},
-					{
-						title: "إجمالي المبيعات",
-						value: formatCurrency(stats.totalRevenue),
-						color: "green",
-						icon: DollarSign,
-					},
-					{
-						title: "العملاء النشطون",
-						value: stats.activeCustomers,
-						color: "purple",
-						icon: Users,
-					},
-				].map((item, i) => {
+                {[
+                    {
+                        title: "إجمالي الفواتير",
+                        value: stats.totalInvoices,
+                        color: "blue",
+                        icon: FileText,
+                    },
+                    {
+                        title: "فواتير متأخرة",
+                        value: stats.overdueInvoices,
+                        color: "yellow",
+                        icon: Clock,
+                    },
+                    {
+                        title: "إجمالي المبيعات",
+                        value: formatCurrency(stats.totalRevenue),
+                        color: "green",
+                        icon: DollarSign,
+                    },
+                    {
+                        title: "العملاء النشطون",
+                        value: stats.activeCustomers,
+                        color: "purple",
+                        icon: Users,
+                    },
+                ].map((item, i) => {
 					const Icon = item.icon;
 					return (
 						<div

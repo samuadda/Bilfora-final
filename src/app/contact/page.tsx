@@ -8,7 +8,6 @@ import {
 	MapPin,
 	Send,
 	MessageCircle,
-	User,
 	Building,
 	Globe,
 } from "lucide-react";

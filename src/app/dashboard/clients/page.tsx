@@ -6,6 +6,14 @@ import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { Client, ClientStatus } from "@/types/database";
 import { useToast } from "@/components/ui/use-toast"; // ⬅️ from shadcn/ui
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/dialog";
+import { Button } from "@/components/dialogButton";
 
 const statusConfig = {
 	active: { label: "نشط", className: "bg-green-100 text-green-800" },
@@ -41,7 +49,23 @@ export default function ClientsPage() {
 	const [editingClient, setEditingClient] = useState<Client | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [formData, setFormData] = useState<Partial<Client>>({});
+    const [deleteCandidate, setDeleteCandidate] = useState<Client | null>(null);
 	const { toast } = useToast();
+
+	// Only allow fields that exist on the clients table and are updatable
+	const pickUpdatableFields = (data: Partial<Client>) => {
+		return {
+			name: data.name ?? null,
+			email: data.email ?? null,
+			phone: data.phone ?? null,
+			company_name: data.company_name ?? null,
+			tax_number: data.tax_number ?? null,
+			address: data.address ?? null,
+			city: data.city ?? null,
+			notes: data.notes ?? null,
+			status: data.status ?? ("active" as ClientStatus),
+		};
+	};
 
 	useEffect(() => {
 		loadClients();
@@ -73,12 +97,15 @@ export default function ClientsPage() {
 
 			if (error) throw error;
 
-			setClients(
-				data.map((c: Client & { invoices?: any[] }) => ({
-					...c,
-					invoice_count: c.invoices?.length || 0,
-				}))
-			);
+            setClients(
+                data.map((c: Client & { invoices?: any[] }) => ({
+                    ...c,
+                    // invoices(count) returns an array like [{ count: N }]
+                    invoice_count: Array.isArray(c.invoices)
+                        ? (c.invoices[0] as any)?.count ?? 0
+                        : 0,
+                }))
+            );
 			setTotalCount(count || 0);
 		} catch (err) {
 			toast({
@@ -111,20 +138,21 @@ export default function ClientsPage() {
 	};
 
 	// 🚀 Add/Edit Logic
-	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
 		const { name, value } = e.target;
 		setFormData((prev) => ({ ...prev, [name]: value || null }));
 	};
 
 	const openAddModal = () => {
 		setEditingClient(null);
-		setFormData({});
+		setFormData({ status: "active" }); // Set default status
 		setShowModal(true);
 	};
 
 	const openEditModal = (client: Client) => {
 		setEditingClient(client);
-		setFormData(client);
+		// Avoid including computed fields like invoice_count or relation payloads
+		setFormData(pickUpdatableFields(client));
 		setShowModal(true);
 	};
 
@@ -146,58 +174,88 @@ export default function ClientsPage() {
 			} = await supabase.auth.getUser();
 			if (!user) return;
 
+			// Ensure a corresponding profile row exists to satisfy FK (profiles -> clients)
+			const { data: existingProfile } = await supabase
+				.from("profiles")
+				.select("id")
+				.eq("id", user.id)
+				.single();
+			if (!existingProfile) {
+				// Create a minimal profile using safe defaults identical to DB trigger
+				const { error: profileError } = await supabase.from("profiles").insert({
+					id: user.id,
+					full_name: "",
+					phone: "",
+					dob: "1990-01-01",
+					gender: null,
+					account_type: "individual",
+					company_name: null,
+					tax_number: null,
+					address: null,
+					city: null,
+				});
+				if (profileError) throw profileError;
+			}
+
 			if (editingClient) {
-				await supabase
+				const payload = pickUpdatableFields(formData);
+				const { error } = await supabase
 					.from("clients")
-					.update(formData)
-					.eq("id", editingClient.id);
+					.update(payload)
+                    .eq("id", editingClient.id);
+                if (error) throw error;
 				toast({
 					title: "تم التحديث",
 					description: "تم تحديث بيانات العميل بنجاح",
 				});
 			} else {
-				await supabase
-					.from("clients")
-					.insert({ ...formData, user_id: user.id });
+				const payload = pickUpdatableFields(formData);
+				const { error } = await supabase
+                    .from("clients")
+					.insert({ ...payload, user_id: user.id });
+                if (error) throw error;
 				toast({
 					title: "تم الإضافة",
 					description: "تمت إضافة العميل بنجاح",
 				});
 			}
 			setShowModal(false);
-			loadClients();
-		} catch (err) {
+            // Ensure the newest record appears by returning to first page then reloading
+            setPage(1);
+            await loadClients();
+		} catch (err: any) {
 			toast({
 				title: "خطأ",
-				description: "حدث خطأ أثناء الحفظ",
+				description: err?.message || "حدث خطأ أثناء الحفظ",
 				variant: "destructive",
 			});
+			console.error("Save client error:", err);
 		} finally {
 			setSaving(false);
 		}
 	};
 
 	// 🚀 Soft Delete Logic
-	const handleDeleteClient = async (id: string) => {
-		if (!confirm("هل تريد حذف هذا العميل؟")) return;
-		try {
-			await supabase
-				.from("clients")
-				.update({ deleted_at: new Date().toISOString() })
-				.eq("id", id);
-			toast({
-				title: "تم الحذف",
-				description: "تم حذف العميل (Soft Delete)",
-			});
-			loadClients();
-		} catch (err) {
-			toast({
-				title: "خطأ",
-				description: "فشل في حذف العميل",
-				variant: "destructive",
-			});
-		}
-	};
+    const handleDeleteClient = async (id: string) => {
+        try {
+            await supabase
+                .from("clients")
+                .update({ deleted_at: new Date().toISOString() })
+                .eq("id", id);
+            toast({
+                title: "تم الحذف",
+                description: "تم حذف العميل (Soft Delete)",
+            });
+            setDeleteCandidate(null);
+            loadClients();
+        } catch (err) {
+            toast({
+                title: "خطأ",
+                description: "فشل في حذف العميل",
+                variant: "destructive",
+            });
+        }
+    };
 
 	const restoreClient = async (id: string) => {
 		await supabase
@@ -313,7 +371,7 @@ export default function ClientsPage() {
 									>
 										<Edit size={16} />
 									</button>
-									{client.deleted_at ? (
+                                    {client.deleted_at ? (
 										<button
 											onClick={() =>
 												restoreClient(client.id)
@@ -324,9 +382,7 @@ export default function ClientsPage() {
 										</button>
 									) : (
 										<button
-											onClick={() =>
-												handleDeleteClient(client.id)
-											}
+                                            onClick={() => setDeleteCandidate(client)}
 											className="text-red-600 hover:text-red-800"
 										>
 											<Trash2 size={16} />
@@ -369,7 +425,7 @@ export default function ClientsPage() {
 				</div>
 			)}
 
-			{/* Modal */}
+            {/* Add/Edit Modal */}
 			{showModal && (
 				<div
 					className="fixed inset-0 bg-black/30 flex justify-center items-center p-4 z-50"
@@ -410,6 +466,20 @@ export default function ClientsPage() {
 								placeholder="اسم الشركة"
 								className="w-full border rounded-lg px-3 py-2"
 							/>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1 text-right">
+									الحالة
+								</label>
+								<select
+									name="status"
+									value={formData.status || "active"}
+									onChange={handleInputChange}
+									className="w-full border rounded-lg px-3 py-2"
+								>
+									<option value="active">نشط</option>
+									<option value="inactive">غير نشط</option>
+								</select>
+							</div>
 							<div className="flex justify-end gap-2 pt-4">
 								<button
 									type="button"
@@ -430,6 +500,35 @@ export default function ClientsPage() {
 					</div>
 				</div>
 			)}
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تأكيد الحذف</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-right text-gray-600">
+                        هل أنت متأكد من حذف العميل
+                        {" "}
+                        <span className="font-semibold">{deleteCandidate?.name}</span>
+                        ؟ سيتم حذف العميل بشكل مؤقت ويمكن استعادته لاحقاً.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteCandidate(null)}
+                        >
+                            إلغاء
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => deleteCandidate && handleDeleteClient(deleteCandidate.id)}
+                        >
+                            حذف
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 		</div>
 	);
 }

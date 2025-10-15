@@ -19,6 +19,9 @@ import {
 	Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/dialog";
+import { Button } from "@/components/dialogButton";
 import { supabase } from "@/lib/supabase";
 import {
 	Invoice,
@@ -57,6 +60,7 @@ const statusConfig = {
 };
 
 export default function InvoicesPage() {
+    const router = useRouter();
 	const [invoices, setInvoices] = useState<InvoiceWithClientAndItems[]>([]);
 	const [filteredInvoices, setFilteredInvoices] = useState<
 		InvoiceWithClientAndItems[]
@@ -75,7 +79,8 @@ export default function InvoicesPage() {
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 	const [editingInvoice, setEditingInvoice] =
 		useState<InvoiceWithClientAndItems | null>(null);
-	const [saving, setSaving] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [deleteCandidate, setDeleteCandidate] = useState<InvoiceWithClientAndItems | null>(null);
 
 	// Form state for add/edit
 	const [formData, setFormData] = useState({
@@ -308,24 +313,10 @@ export default function InvoicesPage() {
 		loadInvoices();
 	};
 
-	const handleEditInvoice = (invoice: InvoiceWithClientAndItems) => {
-		setFormData({
-			client_id: invoice.client_id,
-			order_id: invoice.order_id || "",
-			issue_date: invoice.issue_date,
-			due_date: invoice.due_date,
-			status: invoice.status,
-			tax_rate: invoice.tax_rate,
-			notes: invoice.notes || "",
-			items: invoice.items.map((item) => ({
-				description: item.description,
-				quantity: item.quantity,
-				unit_price: item.unit_price,
-			})),
-		});
-		setEditingInvoice(invoice);
-		setShowAddModal(true);
-	};
+    const handleEditInvoice = (invoice: InvoiceWithClientAndItems) => {
+        // Navigate to the invoice details page for view/download; editing can be added later
+        router.push(`/dashboard/invoices/${invoice.id}`);
+    };
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -498,9 +489,7 @@ export default function InvoicesPage() {
 		}
 	};
 
-	const handleDeleteInvoice = async (invoiceId: string) => {
-		if (!confirm("هل أنت متأكد من حذف هذه الفاتورة؟")) return;
-
+    const handleDeleteInvoice = async (invoiceId: string) => {
 		try {
 			setError(null);
 
@@ -515,7 +504,8 @@ export default function InvoicesPage() {
 				return;
 			}
 
-			setSuccess("تم حذف الفاتورة بنجاح");
+            setSuccess("تم حذف الفاتورة بنجاح");
+            setDeleteCandidate(null);
 			await loadInvoices();
 		} catch (err) {
 			console.error("Unexpected error:", err);
@@ -837,12 +827,13 @@ export default function InvoicesPage() {
 												>
 													<Edit size={16} />
 												</button>
-												<button
-													className="text-green-600 hover:text-green-900"
-													title="تحميل PDF"
-												>
-													<Download size={16} />
-												</button>
+                                                <button
+                                                    onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
+                                                    className="text-green-600 hover:text-green-900"
+                                                    title="تحميل PDF"
+                                                >
+                                                    <Download size={16} />
+                                                </button>
 												<button
 													onClick={() =>
 														handleStatusChange(
@@ -867,17 +858,13 @@ export default function InvoicesPage() {
 												>
 													<CheckCircle size={16} />
 												</button>
-												<button
-													onClick={() =>
-														handleDeleteInvoice(
-															invoice.id
-														)
-													}
-													className="text-red-600 hover:text-red-900"
-													title="حذف"
-												>
-													<Trash2 size={16} />
-												</button>
+                                                <button
+                                                    onClick={() => setDeleteCandidate(invoice)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                    title="حذف"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
 											</div>
 										</td>
 									</tr>
@@ -912,6 +899,25 @@ export default function InvoicesPage() {
 				onClose={closeInvoiceModal}
 				onSuccess={handleInvoiceSuccess}
 			/>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تأكيد حذف الفاتورة</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-right text-gray-600">
+                        هل أنت متأكد من حذف الفاتورة رقم
+                        {" "}
+                        <span className="font-semibold">{deleteCandidate?.invoice_number}</span>
+                        ؟ لا يمكن التراجع عن هذا الإجراء.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteCandidate(null)}>إلغاء</Button>
+                        <Button variant="destructive" onClick={() => deleteCandidate && handleDeleteInvoice(deleteCandidate.id)}>حذف</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 		</div>
 	);
 }

@@ -63,6 +63,19 @@ export interface OrderItem {
 	total: number; // Decimal as number
 }
 
+// New: Product catalog
+export interface Product {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string | null;
+    unit: string | null;
+    unit_price: number;
+    active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Invoice {
 	id: string; // UUID
 	user_id: string; // UUID, FK to profiles.id
