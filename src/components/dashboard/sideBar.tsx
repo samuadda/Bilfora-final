@@ -124,19 +124,11 @@ export default function Sidebar() {
 			>
 				{/* Logo & Collapse */}
 				<div className="p-4 border-b flex items-center justify-between">
-					{!isCollapsed ? (
+					{!isCollapsed && (
 						<Image
-							src="/logo-full.svg"
+							src="/logo-ar-navy.svg"
 							alt="Bilfora"
-							width={140}
-							height={40}
-							priority
-						/>
-					) : (
-						<Image
-							src="/logo-symbol.svg"
-							alt="Bilfora"
-							width={40}
+							width={120}
 							height={40}
 							priority
 						/>
