@@ -248,11 +248,11 @@ export default function LoginForm() {
 						<h1 className="text-lg sm:text-xl font-bold flex items-center justify-center gap-2">
 							<span>هلا بك مرة ثانية في</span>
 							<Image
-								src="/logo-ar-navy.svg"
-								alt="logo"
-								width={60}
-								height={60}
-								className="w-12 h-12 sm:w-16 sm:h-16"
+								src="/logo-symbol.svg"
+								alt="Bilfora"
+								width={40}
+								height={40}
+								className="w-10 h-10 sm:w-12 sm:h-12"
 								priority
 							/>
 						</h1>

@@ -16,10 +16,10 @@ const SimpleNavbar = () => {
 					{/* logo */}
 					<Link href="/">
 						<Image
-							src="logo-ar-navy.svg"
-							alt="logo"
-							width={70}
-							height={20}
+							src="/logo-full.svg"
+							alt="Bilfora"
+							width={140}
+							height={40}
 						/>
 					</Link>
 				</div>

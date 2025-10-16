@@ -337,10 +337,10 @@ export default function Home() {
 								<div className="space-y-4">
 									<Link href="/" className="inline-block">
 										<Image
-											src="/logo-ar-white.svg"
-											alt="بيلفورا"
+											src="/logo-full-white.svg"
+											alt="Bilfora"
 											width={140}
-											height={50}
+											height={40}
 											className="h-12 w-auto"
 										/>
 									</Link>

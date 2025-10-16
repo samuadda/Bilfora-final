@@ -228,7 +228,7 @@ export default function ProfilePage() {
 				<div className="flex items-center gap-4">
 					<div className="relative w-20 h-20 rounded-full overflow-hidden border">
 						<Image
-							src={profile?.avatar_url || "/logo-ar-navy.svg"}
+							src={profile?.avatar_url || "/logo-symbol.svg"}
 							alt="Avatar"
 							fill
 							className="object-contain bg-gray-50"
@@ -501,7 +501,7 @@ export default function ProfilePage() {
 								<Image
 									src={
 										profile?.avatar_url ||
-										"/logo-ar-navy.svg"
+										"/logo-symbol.svg"
 									}
 									alt="Avatar"
 									fill

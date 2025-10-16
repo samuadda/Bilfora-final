@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
 	AreaChart,
 	Area,
@@ -36,14 +37,21 @@ export default function AnalyticsPage() {
 	});
 	const [revenueByMonth, setRevenueByMonth] = useState<MonthlyData[]>([]);
 	const [channels, setChannels] = useState<OrderStatusData[]>([]);
-	const [cohorts, setCohorts] = useState<{ month: string; retention: number }[]>([]);
+	const [topClients, setTopClients] = useState<{ name: string; revenue: number; invoiceCount: number }[]>([]);
+	const [paymentTimes, setPaymentTimes] = useState<{ month: string; avgDays: number }[]>([]);
+	const [overdueData, setOverdueData] = useState<{ month: string; amount: number; count: number }[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Load analytics data on component mount
+	const searchParams = useSearchParams();
+	const fromParam = searchParams.get("from");
+	const toParam = searchParams.get("to");
+
+	// Load analytics data when date range changes
 	useEffect(() => {
 		loadAnalyticsData();
-	}, []);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [fromParam, toParam]);
 
 	const loadAnalyticsData = async () => {
 		try {
@@ -58,12 +66,18 @@ export default function AnalyticsPage() {
 				return;
 			}
 
+			// Resolve date range
+			const dateFrom = fromParam ? new Date(fromParam) : new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
+			const dateTo = toParam ? new Date(toParam) : new Date();
+
 			// Load all analytics data in parallel
 			await Promise.all([
 				loadStats(user.id),
-				loadRevenueData(user.id),
+				loadRevenueData(user.id, dateFrom, dateTo),
 				loadChannelData(user.id),
-				loadCohortData(user.id),
+				loadTopClients(user.id),
+				loadPaymentTimes(user.id, dateFrom, dateTo),
+				loadOverdueData(user.id, dateFrom, dateTo),
 			]);
 		} catch (err) {
 			console.error("Unexpected error:", err);
@@ -75,14 +89,14 @@ export default function AnalyticsPage() {
 
 	const loadStats = async (userId: string) => {
 		try {
-			// Get orders stats
-			const { data: ordersData, error: ordersError } = await supabase
-				.from("orders")
+			// Get invoices stats
+			const { data: invoicesData, error: invoicesError } = await supabase
+				.from("invoices")
 				.select("status, total_amount")
 				.eq("user_id", userId);
 
-			if (ordersError) {
-				console.error("Error loading orders stats:", ordersError);
+			if (invoicesError) {
+				console.error("Error loading invoices stats:", invoicesError);
 				return;
 			}
 
@@ -97,17 +111,17 @@ export default function AnalyticsPage() {
 				return;
 			}
 
-			const totalOrders = ordersData?.length || 0;
-			const pendingOrders =
-				ordersData?.filter((o) => o.status === "pending").length || 0;
+			const totalInvoices = invoicesData?.length || 0;
+			const pendingInvoices =
+				invoicesData?.filter((i) => i.status === "sent").length || 0;
 			const totalRevenue =
-				ordersData?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+				invoicesData?.reduce((sum, i) => sum + i.total_amount, 0) || 0;
 			const activeCustomers =
 				clientsData?.filter((c) => c.status === "active").length || 0;
 
 			setStats({
-				totalOrders,
-				pendingOrders,
+				totalOrders: totalInvoices,
+				pendingOrders: pendingInvoices,
 				totalRevenue,
 				activeCustomers,
 			});
@@ -116,18 +130,14 @@ export default function AnalyticsPage() {
 		}
 	};
 
-	const loadRevenueData = async (userId: string) => {
+	const loadRevenueData = async (userId: string, from: Date, to: Date) => {
 		try {
 			const { data, error } = await supabase
-				.from("orders")
+				.from("invoices")
 				.select("created_at, total_amount")
 				.eq("user_id", userId)
-				.gte(
-					"created_at",
-					new Date(
-						Date.now() - 6 * 30 * 24 * 60 * 60 * 1000
-					).toISOString()
-				)
+				.gte("created_at", from.toISOString())
+				.lte("created_at", to.toISOString())
 				.order("created_at");
 
 			if (error) {
@@ -138,11 +148,11 @@ export default function AnalyticsPage() {
 			// Group data by month
 			const monthlyMap = new Map<
 				string,
-				{ orders: number; revenue: number }
+				{ invoices: number; revenue: number }
 			>();
 
-			data?.forEach((order) => {
-				const date = new Date(order.created_at);
+			data?.forEach((invoice) => {
+				const date = new Date(invoice.created_at);
 				const monthKey = `${date.getFullYear()}-${String(
 					date.getMonth() + 1
 				).padStart(2, "0")}`;
@@ -151,12 +161,12 @@ export default function AnalyticsPage() {
 				});
 
 				if (!monthlyMap.has(monthKey)) {
-					monthlyMap.set(monthKey, { orders: 0, revenue: 0 });
+					monthlyMap.set(monthKey, { invoices: 0, revenue: 0 });
 				}
 
 				const monthData = monthlyMap.get(monthKey)!;
-				monthData.orders += 1;
-				monthData.revenue += order.total_amount;
+				monthData.invoices += 1;
+				monthData.revenue += invoice.total_amount;
 			});
 
 			// Convert to array format
@@ -168,7 +178,7 @@ export default function AnalyticsPage() {
 						name: date.toLocaleDateString("ar-SA", {
 							month: "long",
 						}),
-						orders: data.orders,
+						orders: data.invoices,
 						revenue: data.revenue,
 					};
 				})
@@ -201,7 +211,7 @@ export default function AnalyticsPage() {
 	const loadChannelData = async (userId: string) => {
 		try {
 			const { data, error } = await supabase
-				.from("orders")
+				.from("invoices")
 				.select("status")
 				.eq("user_id", userId);
 
@@ -210,33 +220,38 @@ export default function AnalyticsPage() {
 				return;
 			}
 
-			// Count orders by status for channel analysis
+			// Count invoices by status for channel analysis
 			const statusCounts =
-				data?.reduce((acc, order) => {
-					acc[order.status] = (acc[order.status] || 0) + 1;
+				data?.reduce((acc, invoice) => {
+					acc[invoice.status] = (acc[invoice.status] || 0) + 1;
 					return acc;
 				}, {} as Record<string, number>) || {};
 
 			const channelData = [
 				{
-					name: "مكتمل",
-					value: statusCounts.completed || 0,
+					name: "مدفوعة",
+					value: statusCounts.paid || 0,
 					color: "#8B5CF6",
 				},
 				{
-					name: "معلق",
-					value: statusCounts.pending || 0,
+					name: "مرسلة",
+					value: statusCounts.sent || 0,
 					color: "#EC4899",
 				},
 				{
-					name: "قيد المعالجة",
-					value: statusCounts.processing || 0,
+					name: "مسودة",
+					value: statusCounts.draft || 0,
 					color: "#60A5FA",
 				},
 				{
-					name: "ملغي",
+					name: "متأخرة",
+					value: statusCounts.overdue || 0,
+					color: "#F59E0B",
+				},
+				{
+					name: "ملغية",
 					value: statusCounts.cancelled || 0,
-					color: "#10B981",
+					color: "#EF4444",
 				},
 			].filter((item) => item.value > 0);
 
@@ -246,46 +261,147 @@ export default function AnalyticsPage() {
 		}
 	};
 
-	const loadCohortData = async (userId: string) => {
+	const loadTopClients = async (userId: string) => {
 		try {
-			// For now, we'll simulate retention data based on order patterns
-			// In a real app, you'd track user retention over time
 			const { data, error } = await supabase
-				.from("orders")
-				.select("created_at")
+				.from("invoices")
+				.select(`
+					client_id,
+					total_amount,
+					clients!inner(name)
+				`)
 				.eq("user_id", userId)
-				.gte(
-					"created_at",
-					new Date(
-						Date.now() - 6 * 30 * 24 * 60 * 60 * 1000
-					).toISOString()
-				)
-				.order("created_at");
+				.eq("status", "paid");
 
 			if (error) {
-				console.error("Error loading cohort data:", error);
+				console.error("Error loading top clients:", error);
 				return;
 			}
 
-			// Group by month and calculate simulated retention
-			const monthlyMap = new Map<string, number>();
-			data?.forEach((order) => {
-				const date = new Date(order.created_at);
-				const monthKey = date.toLocaleDateString("ar-SA", {
-					month: "long",
-				});
-				monthlyMap.set(monthKey, (monthlyMap.get(monthKey) || 0) + 1);
+			// Group by client and calculate totals
+			const clientMap = new Map<string, { name: string; revenue: number; invoiceCount: number }>();
+			
+			data?.forEach((invoice: any) => {
+				const clientId = invoice.client_id;
+				const clientName = invoice.clients?.name || "عميل غير معروف";
+				
+				if (!clientMap.has(clientId)) {
+					clientMap.set(clientId, { name: clientName, revenue: 0, invoiceCount: 0 });
+				}
+				
+				const client = clientMap.get(clientId)!;
+				client.revenue += invoice.total_amount;
+				client.invoiceCount += 1;
 			});
 
-			// Simulate retention percentages based on order volume
-			const cohortData = Array.from(monthlyMap.entries()).map(([month, orders]) => ({
+			// Convert to array and sort by revenue
+			const topClientsArray = Array.from(clientMap.values())
+				.sort((a, b) => b.revenue - a.revenue)
+				.slice(0, 5); // Top 5 clients
+
+			setTopClients(topClientsArray);
+		} catch (err) {
+			console.error("Error loading top clients:", err);
+		}
+	};
+
+	const loadPaymentTimes = async (userId: string, from: Date, to: Date) => {
+		try {
+			const { data, error } = await supabase
+				.from("invoices")
+				.select("created_at, updated_at, status")
+				.eq("user_id", userId)
+				.eq("status", "paid")
+				.gte("created_at", from.toISOString())
+				.lte("created_at", to.toISOString())
+				.order("created_at");
+
+			if (error) {
+				console.error("Error loading payment times:", error);
+				return;
+			}
+
+			// Group by month and calculate average payment time
+			const monthlyMap = new Map<string, number[]>();
+			
+			data?.forEach((invoice) => {
+				const createdDate = new Date(invoice.created_at);
+				const updatedDate = new Date(invoice.updated_at);
+				const paymentDays = Math.ceil((updatedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+				
+				const monthKey = createdDate.toLocaleDateString("ar-SA", {
+					month: "long",
+				});
+				
+				if (!monthlyMap.has(monthKey)) {
+					monthlyMap.set(monthKey, []);
+				}
+				
+				monthlyMap.get(monthKey)!.push(paymentDays);
+			});
+
+			// Calculate average payment time per month
+			const paymentTimesArray = Array.from(monthlyMap.entries()).map(([month, days]) => ({
 				month,
-				retention: Math.min(95, Math.max(50, 60 + (orders * 2))), // Simulate retention between 50-95%
+				avgDays: Math.round(days.reduce((sum, day) => sum + day, 0) / days.length),
 			}));
 
-			setCohorts(cohortData);
+			setPaymentTimes(paymentTimesArray);
 		} catch (err) {
-			console.error("Error loading cohort data:", err);
+			console.error("Error loading payment times:", err);
+		}
+	};
+
+	const loadOverdueData = async (userId: string, from: Date, to: Date) => {
+		try {
+			const { data, error } = await supabase
+				.from("invoices")
+				.select("created_at, total_amount, due_date, status")
+				.eq("user_id", userId)
+				.in("status", ["sent", "overdue"])
+				.gte("created_at", from.toISOString())
+				.lte("created_at", to.toISOString())
+				.order("created_at");
+
+			if (error) {
+				console.error("Error loading overdue data:", error);
+				return;
+			}
+
+			// Group by month and calculate overdue amounts
+			const monthlyMap = new Map<string, { amount: number; count: number }>();
+			const today = new Date();
+			
+			data?.forEach((invoice) => {
+				const dueDate = new Date(invoice.due_date);
+				const isOverdue = dueDate < today;
+				
+				if (isOverdue) {
+					const createdDate = new Date(invoice.created_at);
+					const monthKey = createdDate.toLocaleDateString("ar-SA", {
+						month: "long",
+					});
+					
+					if (!monthlyMap.has(monthKey)) {
+						monthlyMap.set(monthKey, { amount: 0, count: 0 });
+					}
+					
+					const monthData = monthlyMap.get(monthKey)!;
+					monthData.amount += invoice.total_amount;
+					monthData.count += 1;
+				}
+			});
+
+			// Convert to array
+			const overdueArray = Array.from(monthlyMap.entries()).map(([month, data]) => ({
+				month,
+				amount: data.amount,
+				count: data.count,
+			}));
+
+			setOverdueData(overdueArray);
+		} catch (err) {
+			console.error("Error loading overdue data:", err);
 		}
 	};
 
@@ -352,7 +468,7 @@ export default function AnalyticsPage() {
 				<div className="bg-white p-4 rounded-xl border border-gray-200">
 					<div className="flex items-center justify-between">
 						<div>
-							<p className="text-sm text-gray-600">عدد الطلبات</p>
+							<p className="text-sm text-gray-600">عدد الفواتير</p>
 							<p className="text-2xl font-bold text-blue-600">
 								{stats.totalOrders}
 							</p>
@@ -366,7 +482,7 @@ export default function AnalyticsPage() {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600">
-								متوسط قيمة الطلب
+								متوسط قيمة الفاتورة
 							</p>
 							<p className="text-2xl font-bold text-purple-600">
 								{formatSar(avgOrderValue)}
@@ -426,7 +542,7 @@ export default function AnalyticsPage() {
 				</div>
 				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
-						حالة الطلبات
+						حالة الفواتير
 					</h3>
 					<ResponsiveContainer width="100%" height={300}>
 						<PieChart>
@@ -447,11 +563,11 @@ export default function AnalyticsPage() {
 				</div>
 			</div>
 
-			{/* Orders and Retention */}
+			{/* Invoices and Payment Times */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
-						الطلبات شهرياً
+						الفواتير شهرياً
 					</h3>
 					<ResponsiveContainer width="100%" height={300}>
 						<BarChart data={revenueByMonth}>
@@ -465,22 +581,67 @@ export default function AnalyticsPage() {
 				</div>
 				<div className="bg-white p-6 rounded-xl border border-gray-200">
 					<h3 className="text-lg font-semibold mb-4 text-right">
-						الاحتفاظ بالعملاء
+						متوسط وقت الدفع (أيام)
 					</h3>
 					<ResponsiveContainer width="100%" height={300}>
-						<LineChart data={cohorts}>
+						<LineChart data={paymentTimes}>
 							<CartesianGrid strokeDasharray="3 3" />
 							<XAxis dataKey="month" />
 							<YAxis />
 							<Tooltip
-								formatter={(value) => [`${value}%`, "نسبة الاحتفاظ"]}
+								formatter={(value) => [`${value} يوم`, "متوسط وقت الدفع"]}
 							/>
 							<Line
 								type="monotone"
-								dataKey="retention"
+								dataKey="avgDays"
 								stroke="#10B981"
 							/>
 						</LineChart>
+					</ResponsiveContainer>
+				</div>
+			</div>
+
+			{/* Top Clients and Overdue Invoices */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+				<div className="bg-white p-6 rounded-xl border border-gray-200">
+					<h3 className="text-lg font-semibold mb-4 text-right">
+						أفضل العملاء
+					</h3>
+					<div className="space-y-3">
+						{topClients.length > 0 ? (
+							topClients.map((client, index) => (
+								<div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+									<div className="text-right">
+										<p className="font-medium text-gray-900">{client.name}</p>
+										<p className="text-sm text-gray-500">{client.invoiceCount} فاتورة</p>
+									</div>
+									<div className="text-left">
+										<p className="font-bold text-green-600">{formatSar(client.revenue)}</p>
+									</div>
+								</div>
+							))
+						) : (
+							<p className="text-center text-gray-500 py-8">لا توجد بيانات</p>
+						)}
+					</div>
+				</div>
+				<div className="bg-white p-6 rounded-xl border border-gray-200">
+					<h3 className="text-lg font-semibold mb-4 text-right">
+						الفواتير المتأخرة
+					</h3>
+					<ResponsiveContainer width="100%" height={300}>
+						<BarChart data={overdueData}>
+							<CartesianGrid strokeDasharray="3 3" />
+							<XAxis dataKey="month" />
+							<YAxis />
+							<Tooltip
+								formatter={(value, name) => [
+									name === "amount" ? formatSar(Number(value)) : value,
+									name === "amount" ? "المبلغ المتأخر" : "عدد الفواتير"
+								]}
+							/>
+							<Bar dataKey="amount" fill="#EF4444" />
+						</BarChart>
 					</ResponsiveContainer>
 				</div>
 			</div>
