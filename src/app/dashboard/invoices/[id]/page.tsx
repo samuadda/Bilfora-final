@@ -14,21 +14,181 @@ import {
 } from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
-	page: { padding: 24, fontSize: 12, fontFamily: "Helvetica" },
-	row: {
+	page: {
+		flexDirection: "column",
+		backgroundColor: "#FFFFFF",
+		padding: 30,
+		fontSize: 12,
+		fontFamily: "Helvetica",
+		lineHeight: 1.4,
+	},
+	header: {
 		flexDirection: "row",
 		justifyContent: "space-between",
-		marginBottom: 4,
+		marginBottom: 30,
+		paddingBottom: 20,
+		borderBottomWidth: 2,
+		borderBottomColor: "#8B5CF6",
 	},
-	title: { fontSize: 18, marginBottom: 12 },
-	section: { marginBottom: 10, borderBottom: 1, paddingBottom: 6 },
+	logoSection: {
+		flexDirection: "column",
+		alignItems: "flex-start",
+	},
+	companyName: {
+		fontSize: 20,
+		fontWeight: "bold",
+		color: "#8B5CF6",
+		marginBottom: 5,
+	},
+	companyInfo: {
+		fontSize: 10,
+		color: "#666666",
+		lineHeight: 1.3,
+	},
+	invoiceInfo: {
+		flexDirection: "column",
+		alignItems: "flex-end",
+	},
+	invoiceTitle: {
+		fontSize: 24,
+		fontWeight: "bold",
+		color: "#1F2937",
+		marginBottom: 10,
+	},
+	invoiceDetails: {
+		fontSize: 11,
+		color: "#374151",
+		lineHeight: 1.4,
+	},
+	section: {
+		marginBottom: 20,
+	},
+	sectionTitle: {
+		fontSize: 14,
+		fontWeight: "bold",
+		color: "#1F2937",
+		marginBottom: 10,
+		backgroundColor: "#F3F4F6",
+		padding: 8,
+		borderRadius: 4,
+	},
+	clientInfo: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		backgroundColor: "#F9FAFB",
+		padding: 15,
+		borderRadius: 8,
+		borderWidth: 1,
+		borderColor: "#E5E7EB",
+	},
+	clientDetails: {
+		flexDirection: "column",
+		alignItems: "flex-start",
+	},
+	table: {
+		width: "100%",
+		marginTop: 20,
+	},
 	tableHeader: {
 		flexDirection: "row",
-		fontWeight: "bold",
-		marginTop: 6,
-		marginBottom: 4,
+		backgroundColor: "#8B5CF6",
+		borderRadius: 6,
+		marginBottom: 5,
 	},
-	cell: { flex: 1 },
+	tableRow: {
+		flexDirection: "row",
+		borderBottomWidth: 1,
+		borderBottomColor: "#E5E7EB",
+		paddingVertical: 8,
+	},
+	tableHeaderCell: {
+		flex: 1,
+		padding: 10,
+		fontWeight: "bold",
+		color: "#FFFFFF",
+		textAlign: "center",
+		fontSize: 11,
+	},
+	tableCell: {
+		flex: 1,
+		padding: 10,
+		textAlign: "center",
+		fontSize: 11,
+		color: "#374151",
+	},
+	descriptionCell: {
+		flex: 2,
+		padding: 10,
+		textAlign: "right",
+		fontSize: 11,
+		color: "#374151",
+	},
+	totalsSection: {
+		marginTop: 20,
+		alignItems: "flex-end",
+	},
+	totalsTable: {
+		width: 300,
+	},
+	totalRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		paddingVertical: 6,
+		paddingHorizontal: 10,
+	},
+	totalLabel: {
+		fontSize: 11,
+		color: "#6B7280",
+	},
+	totalValue: {
+		fontSize: 11,
+		fontWeight: "bold",
+		color: "#374151",
+	},
+	finalTotal: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		paddingVertical: 10,
+		paddingHorizontal: 15,
+		backgroundColor: "#8B5CF6",
+		borderRadius: 6,
+		marginTop: 5,
+	},
+	finalTotalLabel: {
+		fontSize: 14,
+		fontWeight: "bold",
+		color: "#FFFFFF",
+	},
+	finalTotalValue: {
+		fontSize: 14,
+		fontWeight: "bold",
+		color: "#FFFFFF",
+	},
+	footer: {
+		marginTop: 40,
+		paddingTop: 20,
+		borderTopWidth: 1,
+		borderTopColor: "#E5E7EB",
+		alignItems: "center",
+	},
+	footerText: {
+		fontSize: 10,
+		color: "#9CA3AF",
+		textAlign: "center",
+	},
+	notes: {
+		marginTop: 20,
+		padding: 15,
+		backgroundColor: "#FEF3C7",
+		borderRadius: 6,
+		borderWidth: 1,
+		borderColor: "#F59E0B",
+	},
+	notesText: {
+		fontSize: 11,
+		color: "#92400E",
+		lineHeight: 1.4,
+	},
 });
 
 function InvoicePDF({ invoice, client, items }: any) {
@@ -39,60 +199,166 @@ function InvoicePDF({ invoice, client, items }: any) {
 	const vat = subtotal * ((invoice?.tax_rate || 0) / 100);
 	const total = subtotal + vat;
 
+	const formatCurrency = (amount: number) => {
+		return new Intl.NumberFormat("ar-SA", {
+			style: "currency",
+			currency: "SAR",
+		}).format(amount);
+	};
+
+	const formatDate = (dateString: string) => {
+		return new Date(dateString).toLocaleDateString("ar-SA");
+	};
+
 	return (
 		<Document>
 			<Page size="A4" style={styles.page}>
-				<Text style={styles.title}>
-					فاتورة رقم {invoice?.invoice_number || invoice?.id}
-				</Text>
+				{/* Header */}
+				<View style={styles.header}>
+					<View style={styles.logoSection}>
+						<Text style={styles.companyName}>شركة بيلفورا</Text>
+						<View style={styles.companyInfo}>
+							<Text>الرياض، المملكة العربية السعودية</Text>
+							<Text>البريد الإلكتروني: info@bilfora.com</Text>
+							<Text>الهاتف: +966 50 123 4567</Text>
+							<Text>الرقم الضريبي: 123456789012345</Text>
+						</View>
+					</View>
+					<View style={styles.invoiceInfo}>
+						<Text style={styles.invoiceTitle}>فاتورة</Text>
+						<View style={styles.invoiceDetails}>
+							<Text>
+								رقم الفاتورة:{" "}
+								{invoice?.invoice_number || invoice?.id}
+							</Text>
+							<Text>
+								تاريخ الإصدار: {formatDate(invoice?.issue_date)}
+							</Text>
+							<Text>
+								تاريخ الاستحقاق: {formatDate(invoice?.due_date)}
+							</Text>
+							<Text>
+								الحالة:{" "}
+								{invoice?.status === "draft"
+									? "مسودة"
+									: invoice?.status === "sent"
+									? "مرسلة"
+									: invoice?.status === "paid"
+									? "مدفوعة"
+									: "ملغية"}
+							</Text>
+						</View>
+					</View>
+				</View>
 
+				{/* Client Information */}
 				<View style={styles.section}>
-					<View style={styles.row}>
-						<Text>العميل: {client?.name}</Text>
-						<Text>
-							التاريخ: {invoice?.issue_date?.slice(0, 10)}
-						</Text>
-					</View>
-					<View style={styles.row}>
-						<Text>البريد: {client?.email || "-"}</Text>
-						<Text>الهاتف: {client?.phone || "-"}</Text>
+					<Text style={styles.sectionTitle}>معلومات العميل</Text>
+					<View style={styles.clientInfo}>
+						<View style={styles.clientDetails}>
+							<Text
+								style={{
+									fontWeight: "bold",
+									fontSize: 13,
+									marginBottom: 5,
+								}}
+							>
+								{client?.name}
+							</Text>
+							<Text>
+								البريد الإلكتروني: {client?.email || "-"}
+							</Text>
+							<Text>الهاتف: {client?.phone || "-"}</Text>
+							{client?.company_name && (
+								<Text>الشركة: {client.company_name}</Text>
+							)}
+						</View>
 					</View>
 				</View>
 
-				<View style={styles.tableHeader}>
-					<Text style={[styles.cell, { flex: 2 }]}>الوصف</Text>
-					<Text style={styles.cell}>الكمية</Text>
-					<Text style={styles.cell}>السعر</Text>
-					<Text style={styles.cell}>الإجمالي</Text>
+				{/* Items Table */}
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>تفاصيل الفاتورة</Text>
+					<View style={styles.table}>
+						<View style={styles.tableHeader}>
+							<Text style={[styles.tableHeaderCell, { flex: 2 }]}>
+								الوصف
+							</Text>
+							<Text style={styles.tableHeaderCell}>الكمية</Text>
+							<Text style={styles.tableHeaderCell}>السعر</Text>
+							<Text style={styles.tableHeaderCell}>الإجمالي</Text>
+						</View>
+						{items.map((it: any, i: number) => (
+							<View style={styles.tableRow} key={i}>
+								<Text style={styles.descriptionCell}>
+									{it.description}
+								</Text>
+								<Text style={styles.tableCell}>
+									{it.quantity}
+								</Text>
+								<Text style={styles.tableCell}>
+									{formatCurrency(Number(it.unit_price))}
+								</Text>
+								<Text style={styles.tableCell}>
+									{formatCurrency(
+										it.quantity * it.unit_price
+									)}
+								</Text>
+							</View>
+						))}
+					</View>
 				</View>
-				{items.map((it: any, i: number) => (
-					<View style={styles.row} key={i}>
-						<Text style={[styles.cell, { flex: 2 }]}>
-							{it.description}
-						</Text>
-						<Text style={styles.cell}>{it.quantity}</Text>
-						<Text style={styles.cell}>
-							{Number(it.unit_price).toFixed(2)}
-						</Text>
-						<Text style={styles.cell}>
-							{(it.quantity * it.unit_price).toFixed(2)}
-						</Text>
-					</View>
-				))}
 
-				<View style={{ marginTop: 12 }}>
-					<View style={styles.row}>
-						<Text>المجموع الفرعي</Text>
-						<Text>{subtotal.toFixed(2)}</Text>
+				{/* Totals */}
+				<View style={styles.totalsSection}>
+					<View style={styles.totalsTable}>
+						<View style={styles.totalRow}>
+							<Text style={styles.totalLabel}>
+								المجموع الفرعي:
+							</Text>
+							<Text style={styles.totalValue}>
+								{formatCurrency(subtotal)}
+							</Text>
+						</View>
+						<View style={styles.totalRow}>
+							<Text style={styles.totalLabel}>
+								الضريبة ({invoice?.tax_rate || 0}%):
+							</Text>
+							<Text style={styles.totalValue}>
+								{formatCurrency(vat)}
+							</Text>
+						</View>
+						<View style={styles.finalTotal}>
+							<Text style={styles.finalTotalLabel}>
+								الإجمالي:
+							</Text>
+							<Text style={styles.finalTotalValue}>
+								{formatCurrency(total)}
+							</Text>
+						</View>
 					</View>
-					<View style={styles.row}>
-						<Text>الضريبة ({invoice?.tax_rate || 0}%)</Text>
-						<Text>{vat.toFixed(2)}</Text>
+				</View>
+
+				{/* Notes */}
+				{invoice?.notes && (
+					<View style={styles.notes}>
+						<Text style={styles.notesText}>
+							<Text style={{ fontWeight: "bold" }}>
+								ملاحظات:{" "}
+							</Text>
+							{invoice.notes}
+						</Text>
 					</View>
-					<View style={styles.row}>
-						<Text>الإجمالي</Text>
-						<Text>{total.toFixed(2)}</Text>
-					</View>
+				)}
+
+				{/* Footer */}
+				<View style={styles.footer}>
+					<Text style={styles.footerText}>
+						شكراً لتعاملكم معنا • للاستفسارات يرجى التواصل معنا
+					</Text>
+					<Text style={styles.footerText}>
+						هذه الفاتورة تم إنشاؤها تلقائياً من نظام بيلفورا
+					</Text>
 				</View>
 			</Page>
 		</Document>
