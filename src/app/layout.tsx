@@ -14,6 +14,14 @@ const vazirmatn = Vazirmatn({
 export const metadata: Metadata = {
 	title: "بيلفورة",
 	description: "فواتير احترافية جذابة وسريعة.",
+	icons: {
+		icon: [
+			{ url: "/logo-symbol.svg", type: "image/svg+xml" },
+			{ url: "/favicon.ico", sizes: "any" },
+		],
+		shortcut: "/favicon.ico",
+		apple: "/logo-symbol.svg",
+	},
 };
 
 export default function RootLayout({

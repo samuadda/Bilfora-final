@@ -6,10 +6,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, AlertCircle, Trash2, Plus, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
-    Client,
-    CreateInvoiceInput,
-    CreateInvoiceItemInput,
-    Product,
+	Client,
+	CreateInvoiceInput,
+	CreateInvoiceItemInput,
+	Product,
 } from "@/types/database";
 
 interface InvoiceCreationModalProps {
@@ -42,7 +42,7 @@ export default function InvoiceCreationModal({
 	});
 	// Modal state
 	const [clients, setClients] = useState<Client[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
+	const [products, setProducts] = useState<Product[]>([]);
 	const [saving, setSaving] = useState(false);
 	const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
 	const [newCustomerData, setNewCustomerData] = useState({
@@ -70,13 +70,13 @@ export default function InvoiceCreationModal({
 		],
 	});
 	const [error, setError] = useState<string | null>(null);
-    const { toast } = useToast();
+	const { toast } = useToast();
 
-    const generateInvoiceNumber = () => {
-        const year = new Date().getFullYear();
-        const unique = Date.now().toString().slice(-6);
-        return `INV-${year}-${unique}`;
-    };
+	const generateInvoiceNumber = () => {
+		const year = new Date().getFullYear();
+		const unique = Date.now().toString().slice(-6);
+		return `INV-${year}-${unique}`;
+	};
 
 	// Totals helpers
 	const calcSubtotal = () =>
@@ -98,7 +98,7 @@ export default function InvoiceCreationModal({
 	useEffect(() => {
 		if (isOpen) {
 			loadClientsForInvoice();
-            loadProducts();
+			loadProducts();
 		}
 	}, [isOpen]);
 
@@ -146,28 +146,30 @@ export default function InvoiceCreationModal({
 		}
 	};
 
-    const loadProducts = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+	const loadProducts = async () => {
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			if (!user) return;
 
-            const { data, error } = await supabase
-                .from("products")
-                .select("*")
-                .eq("user_id", user.id)
-                .eq("active", true)
-                .order("name");
+			const { data, error } = await supabase
+				.from("products")
+				.select("*")
+				.eq("user_id", user.id)
+				.eq("active", true)
+				.order("name");
 
-            if (error) {
-                console.error("Error loading products:", error);
-                return;
-            }
+			if (error) {
+				console.error("Error loading products:", error);
+				return;
+			}
 
-            setProducts(data || []);
-        } catch (err) {
-            console.error("Error loading products:", err);
-        }
-    };
+			setProducts(data || []);
+		} catch (err) {
+			console.error("Error loading products:", err);
+		}
+	};
 
 	const handleInvoiceInputChange = (
 		e: React.ChangeEvent<
@@ -254,84 +256,111 @@ export default function InvoiceCreationModal({
 
 			const parsed = invoiceSchema.safeParse(invoiceFormData);
 			if (!parsed.success) {
-                const msg = parsed.error.issues[0]?.message || "البيانات غير صالحة";
-                toast({ title: "تحقق من المدخلات", description: msg, variant: "destructive" });
+				const msg =
+					parsed.error.issues[0]?.message || "البيانات غير صالحة";
+				toast({
+					title: "تحقق من المدخلات",
+					description: msg,
+					variant: "destructive",
+				});
 				return;
 			}
 
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
-            if (!user) {
-                toast({ title: "غير مسجل", description: "يجب تسجيل الدخول أولاً", variant: "destructive" });
+			if (!user) {
+				toast({
+					title: "غير مسجل",
+					description: "يجب تسجيل الدخول أولاً",
+					variant: "destructive",
+				});
 				return;
 			}
 
 			// Create invoice
-            const { data: invoiceData, error: invoiceError } = await supabase
+			const { data: invoiceData, error: invoiceError } = await supabase
 				.from("invoices")
 				.insert({
 					user_id: user.id,
 					client_id: invoiceFormData.client_id,
-                    order_id: null, // no orders usage
-                    issue_date: invoiceFormData.issue_date, // YYYY-MM-DD
-                    due_date: invoiceFormData.due_date, // YYYY-MM-DD
-                    status: invoiceFormData.status,
-                    tax_rate: Number(invoiceFormData.tax_rate) || 0,
-                    invoice_number: generateInvoiceNumber(),
+					order_id: null, // no orders usage
+					issue_date: invoiceFormData.issue_date, // YYYY-MM-DD
+					due_date: invoiceFormData.due_date, // YYYY-MM-DD
+					status: invoiceFormData.status,
+					tax_rate: Number(invoiceFormData.tax_rate) || 0,
+					invoice_number: generateInvoiceNumber(),
 					notes: invoiceFormData.notes,
 				})
-                .select("id")
+				.select("id")
 				.single();
 
 			if (invoiceError) {
-                console.error("Error creating invoice:", invoiceError);
-                // Show detailed DB message if available
-                // @ts-ignore
-                const msg = invoiceError?.message || invoiceError?.details || "فشل في إنشاء الفاتورة";
-                toast({ title: "خطأ", description: msg, variant: "destructive" });
+				console.error("Error creating invoice:", invoiceError);
+				// Show detailed DB message if available
+				const msg =
+					invoiceError?.message ||
+					invoiceError?.details ||
+					"فشل في إنشاء الفاتورة";
+				toast({
+					title: "خطأ",
+					description: msg,
+					variant: "destructive",
+				});
 				return;
 			}
 
-            // Create invoice items (total is required by schema)
-            const itemsToInsert = invoiceFormData.items.map((item) => {
-                const quantity = Number(item.quantity) || 0;
-                const unit_price = Number(item.unit_price) || 0;
-                const total = Number((quantity * unit_price).toFixed(2));
-                return {
-                    invoice_id: invoiceData.id,
-                    description: item.description,
-                    quantity,
-                    unit_price,
-                    total,
-                };
-            });
+			// Create invoice items (total is required by schema)
+			const itemsToInsert = invoiceFormData.items.map((item) => {
+				const quantity = Number(item.quantity) || 0;
+				const unit_price = Number(item.unit_price) || 0;
+				const total = Number((quantity * unit_price).toFixed(2));
+				return {
+					invoice_id: invoiceData.id,
+					description: item.description,
+					quantity,
+					unit_price,
+					total,
+				};
+			});
 
-            const { error: itemsError } = await supabase
+			const { error: itemsError } = await supabase
 				.from("invoice_items")
 				.insert(itemsToInsert);
 
-            if (itemsError) {
-                console.error("Error creating invoice items:", itemsError);
-                toast({ title: "خطأ", description: itemsError.message || "فشل في إنشاء عناصر الفاتورة", variant: "destructive" });
+			if (itemsError) {
+				console.error("Error creating invoice items:", itemsError);
+				toast({
+					title: "خطأ",
+					description:
+						itemsError.message || "فشل في إنشاء عناصر الفاتورة",
+					variant: "destructive",
+				});
 				return;
 			}
 
 			// Update totals (in case trigger latency)
-            try {
+			try {
 				await supabase.rpc("recalc_invoice_totals", {
 					inv_id: invoiceData.id,
 				});
 			} catch {}
 
-            toast({ title: "تم إنشاء الفاتورة", description: "تم إنشاء الفاتورة بنجاح" });
+			toast({
+				title: "تم إنشاء الفاتورة",
+				description: "تم إنشاء الفاتورة بنجاح",
+			});
 			closeModal();
 			if (onSuccess) {
 				onSuccess(invoiceData.id);
 			}
 		} catch (err) {
-            console.error("Unexpected error:", err);
-            toast({ title: "خطأ غير متوقع", description: "حدث خطأ غير متوقع", variant: "destructive" });
+			console.error("Unexpected error:", err);
+			toast({
+				title: "خطأ غير متوقع",
+				description: "حدث خطأ غير متوقع",
+				variant: "destructive",
+			});
 		} finally {
 			setSaving(false);
 		}
@@ -530,6 +559,7 @@ export default function InvoiceCreationModal({
 											value={newCustomerData.phone}
 											onChange={handleNewCustomerChange}
 											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+											placeholder="05xxxxxxxx"
 										/>
 									</div>
 									<div>
@@ -558,7 +588,7 @@ export default function InvoiceCreationModal({
 
 						{/* Invoice Details */}
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Removed order selection; replaced with products on item rows */}
+							{/* Removed order selection; replaced with products on item rows */}
 							<div>
 								<label className="block text-sm text-gray-600 mb-1 text-right">
 									تاريخ الإصدار *
@@ -695,28 +725,48 @@ export default function InvoiceCreationModal({
 											key={index}
 											className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
 										>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-xs text-gray-600 mb-1 text-right">
-                                                المنتج/الخدمة
-                                            </label>
-                                            <select
-                                                value={""}
-                                                onChange={(e) => {
-                                                    const p = products.find((pr) => pr.id === e.target.value);
-                                                    if (p) {
-                                                        handleInvoiceItemChange(index, "description", p.name);
-                                                        handleInvoiceItemChange(index, "unit_price", p.unit_price);
-                                                    }
-                                                }}
-                                                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 mb-2"
-                                            >
-                                                <option value="">— اختر من المنتجات —</option>
-                                                {products.map((p) => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.name} — {Number(p.unit_price).toFixed(2)}
-                                                    </option>
-                                                ))}
-                                            </select>
+											<div className="md:col-span-2">
+												<label className="block text-xs text-gray-600 mb-1 text-right">
+													المنتج/الخدمة
+												</label>
+												<select
+													value={""}
+													onChange={(e) => {
+														const p = products.find(
+															(pr) =>
+																pr.id ===
+																e.target.value
+														);
+														if (p) {
+															handleInvoiceItemChange(
+																index,
+																"description",
+																p.name
+															);
+															handleInvoiceItemChange(
+																index,
+																"unit_price",
+																p.unit_price
+															);
+														}
+													}}
+													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 mb-2"
+												>
+													<option value="">
+														— اختر من المنتجات —
+													</option>
+													{products.map((p) => (
+														<option
+															key={p.id}
+															value={p.id}
+														>
+															{p.name} —{" "}
+															{Number(
+																p.unit_price
+															).toFixed(2)}
+														</option>
+													))}
+												</select>
 												<label className="block text-xs text-gray-600 mb-1 text-right">
 													الوصف
 												</label>

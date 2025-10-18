@@ -82,13 +82,17 @@ export default function Sidebar() {
 	const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 	const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-    const DASHBOARD_NAV_ITEMS = [
-        { href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
-        { href: "/dashboard/products", label: "المنتجات / الخدمات", icon: ShoppingCart },
-        { href: "/dashboard/invoices", label: "الفواتير", icon: FileText },
-        { href: "/dashboard/clients", label: "العملاء", icon: Users },
-        { href: "/dashboard/analytics", label: "التحليلات", icon: BarChart3 },
-    ];
+	const DASHBOARD_NAV_ITEMS = [
+		{ href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
+		{
+			href: "/dashboard/products",
+			label: "المنتجات / الخدمات",
+			icon: ShoppingCart,
+		},
+		{ href: "/dashboard/invoices", label: "الفواتير", icon: FileText },
+		{ href: "/dashboard/clients", label: "العملاء", icon: Users },
+		{ href: "/dashboard/analytics", label: "التحليلات", icon: BarChart3 },
+	];
 
 	const bottomNavItems = [
 		{ href: "/dashboard/profile", label: "الملف الشخصي", icon: UserCircle },
@@ -124,9 +128,18 @@ export default function Sidebar() {
 			>
 				{/* Logo & Collapse */}
 				<div className="p-4 border-b flex items-center justify-between">
-					{!isCollapsed && (
+					{isCollapsed ? (
 						<Image
-							src="/logo-ar-navy.svg"
+							src="/logo-symbol.svg"
+							alt="Bilfora"
+							width={32}
+							height={32}
+							priority
+							className="mx-auto"
+						/>
+					) : (
+						<Image
+							src="/logo-full.svg"
 							alt="Bilfora"
 							width={120}
 							height={40}
