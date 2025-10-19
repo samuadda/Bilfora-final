@@ -11,7 +11,31 @@ import {
 	View,
 	Document,
 	StyleSheet,
+	Font,
 } from "@react-pdf/renderer";
+
+// Register Markazi Text and Noto Naskh Arabic from local public/ to avoid CDN CORS/403
+Font.register({
+	family: "Markazi Text",
+	fonts: [
+		{ src: "/fonts/markazi/MarkaziText-Regular.ttf", fontWeight: "normal" },
+		{ src: "/fonts/markazi/MarkaziText-Bold.ttf", fontWeight: "bold" },
+	],
+});
+
+Font.register({
+	family: "Noto Naskh Arabic",
+	fonts: [
+		{
+			src: "/fonts/noto-naskh-arabic/NotoNaskhArabic-Regular.ttf",
+			fontWeight: "normal",
+		},
+		{
+			src: "/fonts/noto-naskh-arabic/NotoNaskhArabic-Bold.ttf",
+			fontWeight: "bold",
+		},
+	],
+});
 
 const styles = StyleSheet.create({
 	page: {
@@ -19,8 +43,11 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 		padding: 30,
 		fontSize: 12,
-		fontFamily: "Helvetica",
+		fontFamily: "Markazi Text",
 		lineHeight: 1.4,
+		direction: "rtl",
+		// Prefer Markazi; fall back to Noto Naskh for coverage
+		fontFallback: ["Noto Naskh Arabic"],
 	},
 	header: {
 		flexDirection: "row",
