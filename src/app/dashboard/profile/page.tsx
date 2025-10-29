@@ -32,6 +32,8 @@ export default function ProfilePage() {
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [emailInput, setEmailInput] = useState("");
+    const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
 
 	// Form state
 	const [formData, setFormData] = useState({
@@ -51,7 +53,7 @@ export default function ProfilePage() {
 		loadProfile();
 	}, []);
 
-	const loadProfile = async () => {
+    const loadProfile = async () => {
 		try {
 			setLoading(true);
 			setError(null);
@@ -59,7 +61,7 @@ export default function ProfilePage() {
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
-			if (!user) {
+            if (!user) {
 				setError("يجب تسجيل الدخول أولاً");
 				return;
 			}
@@ -76,7 +78,7 @@ export default function ProfilePage() {
 				return;
 			}
 
-			if (data) {
+            if (data) {
 				setProfile(data);
 				setFormData({
 					full_name: data.full_name || "",
@@ -89,6 +91,7 @@ export default function ProfilePage() {
 					address: data.address || "",
 					city: data.city || "",
 				});
+                setEmailInput(user!.email || "");
 			}
 		} catch (err) {
 			console.error("Unexpected error:", err);
@@ -112,12 +115,45 @@ export default function ProfilePage() {
 		setSuccess(null);
 	};
 
-	const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
-		if (file) {
-			setAvatarFile(file);
-			// TODO: Implement avatar upload to Supabase Storage
-		}
+        if (!file) return;
+        setAvatarFile(file);
+
+        try {
+            setSaving(true);
+            setError(null);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("غير مسجل");
+
+            const fileExt = file.name.split(".").pop();
+            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from("avatars")
+                .upload(filePath, file, { upsert: true });
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage
+                .from("avatars")
+                .getPublicUrl(filePath);
+
+            const avatarUrl = publicUrlData.publicUrl;
+
+            const { error: updateError } = await supabase
+                .from("profiles")
+                .update({ avatar_url: avatarUrl })
+                .eq("id", user.id);
+            if (updateError) throw updateError;
+
+            await loadProfile();
+            setSuccess("تم تحديث الصورة الشخصية");
+        } catch (err: any) {
+            console.error("Avatar upload error:", err);
+            setError(err?.message || "فشل رفع الصورة");
+        } finally {
+            setSaving(false);
+        }
 	};
 
 	const handleSavePersonalInfo = async (e: React.FormEvent) => {
@@ -177,6 +213,70 @@ export default function ProfilePage() {
 		}
 	};
 
+    // Email update
+    const handleEmailUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setSaving(true);
+            setError(null);
+            const { error } = await supabase.auth.updateUser({ email: emailInput });
+            if (error) throw error;
+            setSuccess("تم إرسال رابط تأكيد إلى البريد الجديد. الرجاء التحقق.");
+        } catch (err: any) {
+            console.error("Email update error:", err);
+            setError(err?.message || "فشل تحديث البريد الإلكتروني");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Password change with current password verification
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setSaving(true);
+            setError(null);
+            setSuccess(null);
+            if (!passwords.newPass || passwords.newPass.length < 8) {
+                setError("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل");
+                return;
+            }
+            if (passwords.newPass !== passwords.confirm) {
+                setError("تأكيد كلمة المرور غير متطابق");
+                return;
+            }
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !user.email) throw new Error("غير مسجل");
+            // Verify current password
+            const signIn = await supabase.auth.signInWithPassword({ email: user.email, password: passwords.current });
+            if (signIn.error) {
+                setError("كلمة المرور الحالية غير صحيحة");
+                return;
+            }
+            const { error } = await supabase.auth.updateUser({ password: passwords.newPass });
+            if (error) throw error;
+            setSuccess("تم تغيير كلمة المرور بنجاح");
+            setPasswords({ current: "", newPass: "", confirm: "" });
+        } catch (err: any) {
+            console.error("Password change error:", err);
+            setError(err?.message || "فشل تغيير كلمة المرور");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Profile completion calculation
+    const completionPercent = (() => {
+        const fields = [formData.full_name, formData.phone, formData.dob, formData.gender, formData.account_type, formData.city, formData.address];
+        let total = fields.length;
+        let filled = fields.filter(Boolean).length;
+        if (formData.account_type === "business") {
+            total += 1;
+            if (formData.company_name) filled += 1;
+        }
+        return Math.round((filled / total) * 100);
+    })();
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
@@ -223,8 +323,8 @@ export default function ProfilePage() {
 				</div>
 			)}
 
-			{/* Header */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
+            {/* Header */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
 				<div className="flex items-center gap-4">
 					<div className="relative w-20 h-20 rounded-full overflow-hidden border">
 						<Image
@@ -233,7 +333,7 @@ export default function ProfilePage() {
 							fill
 							className="object-contain bg-gray-50"
 						/>
-						<label className="absolute bottom-0 left-0 m-1 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-600 text-white text-[11px] cursor-pointer hover:bg-purple-700">
+                        <label className="absolute bottom-0 left-0 m-1 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-600 text-white text-[11px] cursor-pointer hover:bg-purple-700">
 							<Camera size={12} />
 							<span>تغيير</span>
 							<input
@@ -251,6 +351,12 @@ export default function ProfilePage() {
 						<p className="text-gray-500 mt-1">
 							حدّث معلوماتك الشخصية وملفك العام
 						</p>
+                        <div className="mt-3">
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-purple-600" style={{ width: `${completionPercent}%` }} />
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">اكتمال الملف: {completionPercent}%</div>
+                        </div>
 					</div>
 				</div>
 			</div>
@@ -258,7 +364,7 @@ export default function ProfilePage() {
 			{/* Grid */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 				{/* Left column: profile forms */}
-				<div className="lg:col-span-2 space-y-4">
+                <div className="lg:col-span-2 space-y-4">
 					{/* Personal info */}
 					<form
 						onSubmit={handleSavePersonalInfo}
@@ -487,6 +593,52 @@ export default function ProfilePage() {
 							</button>
 						</div>
 					</form>
+
+                    {/* Email */}
+                    <form onSubmit={handleEmailUpdate} className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
+                        <h2 className="text-lg font-semibold mb-4">البريد الإلكتروني</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm text-gray-600 mb-1">البريد الإلكتروني</label>
+                                <div className="relative">
+                                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <input value={emailInput} onChange={(e) => setEmailInput(e.target.value)} className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" type="email" required />
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">سيتم إرسال رابط تأكيد إلى البريد الجديد لتفعيل التغيير.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 mt-4">
+                            <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                <Save size={16} />
+                                تحديث البريد
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* Password */}
+                    <form onSubmit={handlePasswordChange} className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
+                        <h2 className="text-lg font-semibold mb-4">تغيير كلمة المرور</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">كلمة المرور الحالية</label>
+                                <input type="password" value={passwords.current} onChange={(e) => setPasswords(p => ({ ...p, current: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">كلمة المرور الجديدة</label>
+                                <input type="password" value={passwords.newPass} onChange={(e) => setPasswords(p => ({ ...p, newPass: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">تأكيد كلمة المرور</label>
+                                <input type="password" value={passwords.confirm} onChange={(e) => setPasswords(p => ({ ...p, confirm: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" required />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 mt-4">
+                            <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                <Save size={16} />
+                                تغيير كلمة المرور
+                            </button>
+                        </div>
+                    </form>
 				</div>
 
 				{/* Right column: public profile preview */}
@@ -576,6 +728,26 @@ export default function ProfilePage() {
 							)}
 						</div>
 					</div>
+
+                    {/* Export data */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
+                        <h3 className="text-lg font-semibold mb-4">تصدير بياناتي</h3>
+                        <p className="text-sm text-gray-600 mb-3">نزّل نسخة من بيانات ملفك الشخصي (JSON).</p>
+                        <button
+                            onClick={() => {
+                                const blob = new Blob([JSON.stringify({ profile, formData }, null, 2)], { type: "application/json" });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = "my-profile-data.json";
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700"
+                        >
+                            تنزيل JSON
+                        </button>
+                    </div>
 				</div>
 			</div>
 		</div>
