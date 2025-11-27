@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import MainButton from "@/components/MainButton";
@@ -8,80 +10,72 @@ import { motion } from "framer-motion";
 import { NavigationMenu } from "@/components/landing-page/MobileMenu";
 
 const NavItems = [
-	{ name: "الرئيسية", href: "#home" },
-	{ name: "المزايا", href: "#features" },
-	{ name: "كيف أبلفرها", href: "#how-to" },
-	{ name: "الأسئلة الشائعة", href: "/faq" },
-	{ name: "تواصل معنا", href: "/contact" },
+	{ name: "الرئيسية", href: "/#home" },
+	{ name: "المميزات", href: "/#features" },
+	{ name: "كيف يعمل", href: "/#how-to" },
+	{ name: "الأسعار", href: "/#pricing" },
+	{ name: "الأسئلة الشائعة", href: "/#faq" },
 ];
 
 const Navbar = () => {
+	// Note: usePathname won't detect hash changes, but we use it for other logic if needed.
+	// For a landing page with hash links, active state is usually handled by scroll observers (not implemented here for simplicity, or we can add it later).
 	const pathname = usePathname();
 
 	return (
 		<>
 			<motion.nav
-				initial={{ opacity: 0, y: -50 }}
+				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
-				className="fixed top-0 navbar bg-white/10 backdrop-blur-md  border-b border-white/20 px-7 z-50"
+				transition={{ duration: 0.5 }}
+				className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-lg border-b border-gray-100 transition-all"
 			>
-				<div className="navbar-start">
+				<div className="navbar-start flex items-center">
 					{/* logo */}
 					<Link href="/">
 						<Image
-							src="/logo-full.svg"
+							src="/logoPNG.png"
 							alt="Bilfora"
-							width={140}
+							width={120}
 							height={40}
+							className="h-8 w-auto hover:opacity-80 transition-opacity"
 						/>
 					</Link>
 				</div>
 
-				<div className="navbar-center hidden md:flex">
-					<ul className="menu menu-horizontal px-1 text-gray-800">
-						{NavItems.map((item) => {
-							const isActive = pathname === item.href;
-							return (
-								<li
-									key={item.name}
-									className={cn(
-										"font-bold px-3",
-										isActive
-											? "bg-gray-100 rounded-4xl border"
-											: "text-gray-800 hover:text-gray-500"
-									)}
+				<div className="navbar-center hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+					<ul className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-full border border-gray-200/50">
+						{NavItems.map((item) => (
+							<li key={item.name}>
+								<Link
+									href={item.href}
+									className="block px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm rounded-full transition-all duration-200"
 								>
-									<Link href={item.href}>{item.name}</Link>
-								</li>
-							);
-						})}
+									{item.name}
+								</Link>
+							</li>
+						))}
 					</ul>
 				</div>
-				<div className="navbar-end flex items-center gap-2">
+				<div className="navbar-end flex items-center gap-4">
 					<Link
-						href="/dashboard"
-						className="hidden items-center gap-0.5 group lg:flex"
+						href="/login"
+						className="hidden items-center gap-1 text-sm font-medium text-gray-600 hover:text-[#7f2dfb] transition-colors lg:flex"
 					>
-						<button className="text-[#7f2dfb] font-bold cursor-pointer group-hover:text-[#012d46] transition-all duration-100">
-							الدخول
-						</button>
-						<ChevronLeft
-							size={20}
-							strokeWidth={1.75}
-							className="text-[#7f2dfb] transition-all duration-200 group-hover:-translate-x-1 group-hover:text-[#012d46]"
-						/>
+						<span>تسجيل الدخول</span>
+						<ChevronLeft size={16} />
 					</Link>
 					<Link href="/register">
 						<MainButton
 							text="جرب مجاناً"
 							bgColor="bg-[#7f2dfb]"
 							textColor="text-white"
-							className="hidden md:flex"
+							className="hidden md:flex px-6 py-2 h-auto text-sm shadow-purple-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
 						/>
 					</Link>
 				</div>
 			</motion.nav>
-			<NavigationMenu NavItems={NavItems} MainButtonText="جرب مجانأ" />
+			<NavigationMenu NavItems={NavItems} MainButtonText="جرب مجاناً" />
 		</>
 	);
 };

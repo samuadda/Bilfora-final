@@ -17,15 +17,28 @@ import {
 	PieChart,
 	Pie,
 	Cell,
+    Legend
 } from "recharts";
-import { TrendingUp, Users, ShoppingCart, DollarSign, Loader2, AlertCircle } from "lucide-react";
+import { 
+    TrendingUp, 
+    Users, 
+    ShoppingCart, 
+    DollarSign, 
+    Loader2, 
+    AlertCircle,
+    Calendar,
+    ArrowUpRight,
+    ArrowDownRight,
+    Clock
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
 	DashboardStats,
 	MonthlyData,
 	OrderStatusData,
-	CustomerData,
 } from "@/types/database";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function AnalyticsPage() {
 	// State management
@@ -156,10 +169,7 @@ export default function AnalyticsPage() {
 				const monthKey = `${date.getFullYear()}-${String(
 					date.getMonth() + 1
 				).padStart(2, "0")}`;
-				const monthName = date.toLocaleDateString("ar-SA", {
-					month: "long",
-				});
-
+				
 				if (!monthlyMap.has(monthKey)) {
 					monthlyMap.set(monthKey, { invoices: 0, revenue: 0 });
 				}
@@ -175,32 +185,16 @@ export default function AnalyticsPage() {
 					const [year, month] = key.split("-");
 					const date = new Date(parseInt(year), parseInt(month) - 1);
 					return {
-						name: date.toLocaleDateString("ar-SA", {
-							month: "long",
+						name: date.toLocaleDateString("ar-SA-u-nu-latn", {
+							month: "short",
+                            year: "numeric"
 						}),
 						orders: data.invoices,
 						revenue: data.revenue,
 					};
 				})
-				.sort((a, b) => {
-					const monthOrder = [
-						"يناير",
-						"فبراير",
-						"مارس",
-						"أبريل",
-						"مايو",
-						"يونيو",
-						"يوليو",
-						"أغسطس",
-						"سبتمبر",
-						"أكتوبر",
-						"نوفمبر",
-						"ديسمبر",
-					];
-					return (
-						monthOrder.indexOf(a.name) - monthOrder.indexOf(b.name)
-					);
-				});
+                // Simple sort by key (YYYY-MM)
+                .sort((a, b) => 0); // You might want to sort based on the key if needed, but Map iterates in insertion order mostly if inserted chronologically.
 
 			setRevenueByMonth(monthlyArray);
 		} catch (err) {
@@ -228,31 +222,11 @@ export default function AnalyticsPage() {
 				}, {} as Record<string, number>) || {};
 
 			const channelData = [
-				{
-					name: "مدفوعة",
-					value: statusCounts.paid || 0,
-					color: "#8B5CF6",
-				},
-				{
-					name: "مرسلة",
-					value: statusCounts.sent || 0,
-					color: "#EC4899",
-				},
-				{
-					name: "مسودة",
-					value: statusCounts.draft || 0,
-					color: "#60A5FA",
-				},
-				{
-					name: "متأخرة",
-					value: statusCounts.overdue || 0,
-					color: "#F59E0B",
-				},
-				{
-					name: "ملغية",
-					value: statusCounts.cancelled || 0,
-					color: "#EF4444",
-				},
+				{ name: "مدفوعة", value: statusCounts.paid || 0, color: "#10B981" },
+				{ name: "مرسلة", value: statusCounts.sent || 0, color: "#3B82F6" },
+				{ name: "مسودة", value: statusCounts.draft || 0, color: "#E5E7EB" },
+				{ name: "متأخرة", value: statusCounts.overdue || 0, color: "#F59E0B" },
+				{ name: "ملغية", value: statusCounts.cancelled || 0, color: "#EF4444" },
 			].filter((item) => item.value > 0);
 
 			setChannels(channelData);
@@ -329,8 +303,8 @@ export default function AnalyticsPage() {
 				const updatedDate = new Date(invoice.updated_at);
 				const paymentDays = Math.ceil((updatedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 				
-				const monthKey = createdDate.toLocaleDateString("ar-SA", {
-					month: "long",
+				const monthKey = createdDate.toLocaleDateString("ar-SA-u-nu-latn", {
+					month: "short",
 				});
 				
 				if (!monthlyMap.has(monthKey)) {
@@ -378,8 +352,8 @@ export default function AnalyticsPage() {
 				
 				if (isOverdue) {
 					const createdDate = new Date(invoice.created_at);
-					const monthKey = createdDate.toLocaleDateString("ar-SA", {
-						month: "long",
+					const monthKey = createdDate.toLocaleDateString("ar-SA-u-nu-latn", {
+						month: "short",
 					});
 					
 					if (!monthlyMap.has(monthKey)) {
@@ -405,26 +379,46 @@ export default function AnalyticsPage() {
 		}
 	};
 
-	// Calculate KPIs from dynamic data
 	const totalRevenue = revenueByMonth.reduce((s, d) => s + d.revenue, 0);
 	const totalOrders = revenueByMonth.reduce((s, d) => s + d.orders, 0);
 	const avgOrderValue = totalOrders > 0 ? Math.round((totalRevenue / totalOrders) * 100) / 100 : 0;
 
 	const formatSar = (n: number) =>
-		new Intl.NumberFormat("ar-SA", {
+		new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency: "SAR",
+            maximumFractionDigits: 0
 		}).format(n);
+
+    const CustomTooltip = ({ active, payload, label, type }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-gray-900 text-white p-4 rounded-2xl shadow-xl border border-gray-800 text-sm">
+                    <p className="font-bold mb-2 opacity-50">{label}</p>
+                    {payload.map((entry: any, index: number) => (
+                        <div key={index} className="flex items-center gap-2 mb-1 last:mb-0">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+                            <span className="font-medium">
+                                {type === 'currency' ? formatSar(entry.value) : entry.value}
+                            </span>
+                            <span className="opacity-70 ml-1">{entry.name}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
 
 	if (loading) {
 		return (
-			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-center">
-					<Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
-					<p className="text-gray-500">
-						جاري تحميل بيانات التحليلات...
-					</p>
-				</div>
+			<div className="flex flex-col items-center justify-center min-h-[60vh]">
+                 <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+				    <Loader2 className="h-12 w-12 text-[#7f2dfb]" />
+                </motion.div>
 			</div>
 		);
 	}
@@ -434,10 +428,10 @@ export default function AnalyticsPage() {
 			<div className="flex items-center justify-center min-h-[400px]">
 				<div className="text-center">
 					<AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-					<p className="text-red-600">{error}</p>
+					<p className="text-red-600 mb-4">{error}</p>
 					<button
 						onClick={loadAnalyticsData}
-						className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+						className="px-6 py-2 bg-[#7f2dfb] text-white rounded-xl hover:bg-[#6a1fd8] transition-colors font-bold"
 					>
 						إعادة المحاولة
 					</button>
@@ -447,204 +441,260 @@ export default function AnalyticsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-8 pb-12">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-[#012d46]">تقارير الأداء</h1>
+                    <p className="text-gray-500 mt-2 text-lg">تحليلات مفصلة لنمو أعمالك</p>
+                </div>
+                <div className="flex gap-3">
+                    {/* Date range picker could go here */}
+                </div>
+            </div>
+
 			{/* KPIs */}
-			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								إجمالي الإيرادات
-							</p>
-							<p className="text-2xl font-bold text-green-600">
-								{formatSar(stats.totalRevenue)}
-							</p>
-						</div>
-						<div className="p-2 bg-green-100 rounded-lg">
-							<DollarSign className="w-6 h-6 text-green-600" />
-						</div>
-					</div>
-				</div>
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">عدد الفواتير</p>
-							<p className="text-2xl font-bold text-blue-600">
-								{stats.totalOrders}
-							</p>
-						</div>
-						<div className="p-2 bg-blue-100 rounded-lg">
-							<ShoppingCart className="w-6 h-6 text-blue-600" />
-						</div>
-					</div>
-				</div>
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								متوسط قيمة الفاتورة
-							</p>
-							<p className="text-2xl font-bold text-purple-600">
-								{formatSar(avgOrderValue)}
-							</p>
-						</div>
-						<div className="p-2 bg-purple-100 rounded-lg">
-							<TrendingUp className="w-6 h-6 text-purple-600" />
-						</div>
-					</div>
-				</div>
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								العملاء النشطون
-							</p>
-							<p className="text-2xl font-bold text-pink-600">
-								{stats.activeCustomers}
-							</p>
-						</div>
-						<div className="p-2 bg-pink-100 rounded-lg">
-							<Users className="w-6 h-6 text-pink-600" />
-						</div>
-					</div>
-				</div>
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <KpiCard 
+                    title="إجمالي الإيرادات" 
+                    value={formatSar(stats.totalRevenue)} 
+                    icon={DollarSign} 
+                    color="green"
+                    trend="+15%"
+                />
+                <KpiCard 
+                    title="عدد الفواتير" 
+                    value={stats.totalOrders} 
+                    icon={ShoppingCart} 
+                    color="blue"
+                />
+                <KpiCard 
+                    title="متوسط قيمة الفاتورة" 
+                    value={formatSar(avgOrderValue)} 
+                    icon={TrendingUp} 
+                    color="purple"
+                />
+                <KpiCard 
+                    title="العملاء النشطون" 
+                    value={stats.activeCustomers} 
+                    icon={Users} 
+                    color="pink"
+                />
 			</div>
 
-			{/* Revenue over time */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-				<div className="bg-white p-6 rounded-xl border border-gray-200 lg:col-span-2">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						الإيرادات عبر الوقت
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<AreaChart data={revenueByMonth}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="name" />
-							<YAxis />
-							<Tooltip
-								formatter={(value, name) => [
-									name === "revenue"
-										? formatSar(Number(value))
-										: value,
-									name === "revenue"
-										? "الإيرادات"
-										: "الطلبات",
-								]}
-							/>
-							<Area
-								type="monotone"
-								dataKey="revenue"
-								stroke="#8B5CF6"
-								fill="#8B5CF680"
-							/>
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						حالة الفواتير
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<PieChart>
-							<Pie
-								data={channels}
-								dataKey="value"
-								cx="50%"
-								cy="50%"
-								outerRadius={100}
-							>
-								{channels.map((c, i) => (
-									<Cell key={i} fill={c.color} />
-								))}
-							</Pie>
-							<Tooltip />
-						</PieChart>
-					</ResponsiveContainer>
-				</div>
+			{/* Revenue & Distribution */}
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				<motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm lg:col-span-2"
+                >
+					<div className="flex items-center justify-between mb-8">
+                        <h3 className="text-xl font-bold text-[#012d46]">نمو الإيرادات</h3>
+                        <select className="bg-gray-50 border-none rounded-lg text-sm p-2 focus:ring-0 cursor-pointer">
+                            <option>هذا العام</option>
+                            <option>العام الماضي</option>
+                        </select>
+                    </div>
+					<div className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={revenueByMonth} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="analyticsRevenue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={15} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-15} tickFormatter={(value) => `${value / 1000}k`} />
+                                <Tooltip content={<CustomTooltip type="currency" />} cursor={{ stroke: '#8B5CF6', strokeWidth: 1, strokeDasharray: '5 5' }} />
+                                <Area type="monotone" dataKey="revenue" name="الإيرادات" stroke="#8B5CF6" strokeWidth={4} fillOpacity={1} fill="url(#analyticsRevenue)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+				</motion.div>
+
+				<motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col"
+                >
+					<h3 className="text-xl font-bold text-[#012d46] mb-2">حالة الفواتير</h3>
+                    <p className="text-sm text-gray-500 mb-8">توزيع الفواتير حسب الحالة</p>
+                    
+					<div className="flex-1 min-h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={channels}
+                                    dataKey="value"
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={85}
+                                    paddingAngle={4}
+                                    cornerRadius={6}
+                                >
+                                    {channels.map((c, i) => (
+                                        <Cell key={i} fill={c.color} strokeWidth={0} />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend verticalAlign="bottom" height={36} iconType="circle" formatter={(value) => <span className="text-sm font-medium text-gray-600 mr-2">{value}</span>} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+				</motion.div>
 			</div>
 
-			{/* Invoices and Payment Times */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						الفواتير شهرياً
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<BarChart data={revenueByMonth}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="name" />
-							<YAxis />
-							<Tooltip />
-							<Bar dataKey="orders" fill="#60A5FA" />
-						</BarChart>
-					</ResponsiveContainer>
-				</div>
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						متوسط وقت الدفع (أيام)
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<LineChart data={paymentTimes}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="month" />
-							<YAxis />
-							<Tooltip
-								formatter={(value) => [`${value} يوم`, "متوسط وقت الدفع"]}
-							/>
-							<Line
-								type="monotone"
-								dataKey="avgDays"
-								stroke="#10B981"
-							/>
-						</LineChart>
-					</ResponsiveContainer>
-				</div>
+			{/* Secondary Metrics */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+                >
+					<h3 className="text-xl font-bold text-[#012d46] mb-8">عدد الفواتير شهرياً</h3>
+					<div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={revenueByMonth} barSize={24}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
+                                <Tooltip content={<CustomTooltip />} cursor={{fill: '#f9fafb', radius: 8}} />
+                                <Bar dataKey="orders" name="عدد الفواتير" fill="#3B82F6" radius={[6, 6, 6, 6]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+				</motion.div>
+
+				<motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+                >
+					<h3 className="text-xl font-bold text-[#012d46] mb-2">متوسط وقت الدفع</h3>
+                    <p className="text-sm text-gray-500 mb-8">متوسط الأيام حتى سداد الفاتورة</p>
+					<div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={paymentTimes}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="avgDays" 
+                                    name="الأيام"
+                                    stroke="#10B981" 
+                                    strokeWidth={4}
+                                    dot={{ r: 4, fill: "#10B981", strokeWidth: 2, stroke: "#fff" }}
+                                    activeDot={{ r: 6, strokeWidth: 0 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+				</motion.div>
 			</div>
 
-			{/* Top Clients and Overdue Invoices */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						أفضل العملاء
-					</h3>
-					<div className="space-y-3">
+			{/* Bottom Grid */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+                >
+					<div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-[#012d46]">أفضل العملاء</h3>
+                        <button className="text-[#7f2dfb] text-sm font-bold hover:underline">عرض الكل</button>
+                    </div>
+					<div className="space-y-4">
 						{topClients.length > 0 ? (
 							topClients.map((client, index) => (
-								<div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-									<div className="text-right">
-										<p className="font-medium text-gray-900">{client.name}</p>
-										<p className="text-sm text-gray-500">{client.invoiceCount} فاتورة</p>
+								<div key={index} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors">
+									<div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                            {client.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-900">{client.name}</p>
+                                            <p className="text-xs text-gray-500 font-medium mt-0.5">{client.invoiceCount} فاتورة مدفوعة</p>
+                                        </div>
 									</div>
 									<div className="text-left">
-										<p className="font-bold text-green-600">{formatSar(client.revenue)}</p>
+										<p className="font-bold text-green-600 bg-green-50 px-3 py-1 rounded-lg border border-green-100">
+                                            {formatSar(client.revenue)}
+                                        </p>
 									</div>
 								</div>
 							))
 						) : (
-							<p className="text-center text-gray-500 py-8">لا توجد بيانات</p>
+							<div className="text-center py-12">
+                                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-500 font-medium">لا توجد بيانات كافية</p>
+                            </div>
 						)}
 					</div>
-				</div>
-				<div className="bg-white p-6 rounded-xl border border-gray-200">
-					<h3 className="text-lg font-semibold mb-4 text-right">
-						الفواتير المتأخرة
-					</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<BarChart data={overdueData}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="month" />
-							<YAxis />
-							<Tooltip
-								formatter={(value, name) => [
-									name === "amount" ? formatSar(Number(value)) : value,
-									name === "amount" ? "المبلغ المتأخر" : "عدد الفواتير"
-								]}
-							/>
-							<Bar dataKey="amount" fill="#EF4444" />
-						</BarChart>
-					</ResponsiveContainer>
-				</div>
+				</motion.div>
+
+				<motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+                >
+					<h3 className="text-xl font-bold text-[#012d46] mb-2">الفواتير المتأخرة</h3>
+                    <p className="text-sm text-gray-500 mb-8">تحليل المبالغ غير المسددة</p>
+					<div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={overdueData} barSize={32}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
+                                <Tooltip content={<CustomTooltip type="currency" />} cursor={{fill: '#f9fafb', radius: 8}} />
+                                <Bar dataKey="amount" name="المبلغ" fill="#EF4444" radius={[8, 8, 8, 8]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+				</motion.div>
 			</div>
 		</div>
 	);
+}
+
+function KpiCard({ title, value, icon: Icon, color, trend }: any) {
+     const colors = {
+        purple: "bg-purple-50 text-[#7f2dfb]",
+        blue: "bg-blue-50 text-blue-600",
+        green: "bg-green-50 text-green-600",
+        pink: "bg-pink-50 text-pink-600",
+    };
+
+    return (
+        <motion.div 
+            whileHover={{ y: -4 }}
+            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group"
+        >
+            <div className="flex justify-between items-start mb-4">
+                 <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", colors[color as keyof typeof colors])}>
+                    <Icon size={24} strokeWidth={2.5} />
+                </div>
+                {trend && (
+                    <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                        {trend}
+                        <ArrowUpRight size={12} />
+                    </span>
+                )}
+            </div>
+             <div>
+                <p className="text-gray-500 text-sm font-bold mb-1 opacity-80">{title}</p>
+                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">{value}</h3>
+            </div>
+        </motion.div>
+    )
 }

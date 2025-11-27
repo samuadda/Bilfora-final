@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
 	Dialog,
 	DialogContent,
@@ -15,6 +16,7 @@ import {
 	DialogTitle,
 	DialogDescription,
 } from "@/components/dialog";
+import { Eye, EyeClosed, ArrowLeft, Check, Smartphone, Laptop } from "lucide-react";
 
 const Form = () => {
 	const [formData, setFormData] = useState({
@@ -174,274 +176,332 @@ const Form = () => {
 	const passwordStrength = getPasswordStrength(formData.password);
 
 	return (
-		<div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff] p-4 sm:p-6 lg:p-8">
-			<DotPattern
-				width={16}
-				height={16}
-				glow={true}
-				className={cn(
-					"[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]"
-				)}
-			/>
-			<form
-				onSubmit={handleSubmit}
-				className="relative w-full max-w-md mx-auto px-4 py-6 sm:px-6 sm:py-8 shadow-lg rounded-2xl sm:rounded-3xl bg-white"
-			>
-				<div className="w-full">
-					<h1 className="text-lg sm:text-xl font-bold flex items-center justify-center gap-2 mb-4">
-						<Image
-							src="/logo-symbol.svg"
-							alt="Bilfora"
-							width={40}
-							height={40}
-							className="w-10 h-10 sm:w-12 sm:h-12"
-							priority
-						/>
-					</h1>
+		<div className="w-full lg:grid lg:grid-cols-2 min-h-screen">
+			{/* Right Side - Form */}
+			<div className="flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24 bg-white relative">
+				<Link
+					href="/"
+					className="absolute top-8 right-8 flex items-center gap-2 text-gray-500 hover:text-[#7f2dfb] transition-colors"
+				>
+					<ArrowLeft size={16} />
+					<span>العودة للرئيسية</span>
+				</Link>
 
-					{/* General Error */}
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className="mx-auto w-full max-w-sm lg:w-96"
+				>
+					<div className="flex flex-col items-start gap-2 mb-8">
+						<Image
+							src="/logoPNG.png"
+							alt="Bilfora"
+							width={140}
+							height={40}
+							className="h-10 w-auto mb-6"
+						/>
+						<h2 className="text-3xl font-bold tracking-tight text-[#012d46]">
+							انضم إلى بيلفورا 🚀
+						</h2>
+						<p className="text-sm text-gray-600">
+							أنشئ حسابك الجديد في دقائق وابدأ في تنظيم فواتيرك
+						</p>
+					</div>
+
 					{generalError && (
-						<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-							<p className="text-red-600 text-xs sm:text-sm text-center">
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+						>
+							<p className="text-red-600 text-sm font-medium">
 								{generalError}
 							</p>
-						</div>
+						</motion.div>
 					)}
 
-					<div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-						<div className="sm:col-span-2 sm:col-start-1">
-							<label
-								htmlFor="fullname"
-								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
-							>
-								الاسم الكامل
-							</label>
-							<input
-								type="text"
-								id="fullname"
-								name="fullname"
-								value={formData.fullname}
-								onChange={handleChange}
-								className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-								disabled={isLoading}
-							/>
-							<p className="text-red-500 text-xs mt-1 h-4">
-								{errors.fullname || "\u00A0"}
-							</p>
-						</div>
-
-						<div>
-							<label
-								htmlFor="email"
-								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
-							>
-								البريد الإلكتروني
-							</label>
-							<input
-								type="email"
-								name="email"
-								id="email"
-								value={formData.email}
-								onChange={handleChange}
-								className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-								disabled={isLoading}
-							/>
-							<p className="text-red-500 text-xs mt-1 h-4">
-								{errors.email || "\u00A0"}
-							</p>
-						</div>
-
-						<div>
-							<label
-								htmlFor="phone"
-								className="font-semibold text-xs sm:text-sm pb-1 block text-gray-600"
-							>
-								رقم الجوال
-							</label>
-							<input
-								type="tel"
-								name="phone"
-								id="phone"
-								value={formData.phone}
-								onChange={handleChange}
-								className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-								placeholder="05xxxxxxxx"
-								disabled={isLoading}
-							/>
-							<p className="text-red-500 text-xs mt-1 h-4">
-								{errors.phone || "\u00A0"}
-							</p>
-						</div>
-
-						<div className="sm:col-span-2">
-							<label
-								htmlFor="password"
-								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
-							>
-								كلمة المرور
-							</label>
-							<div className="relative">
-								<input
-									type={showPassword ? "text" : "password"}
-									name="password"
-									id="password"
-									value={formData.password}
-									onChange={handleChange}
-									className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300 pr-10"
-									disabled={isLoading}
-								/>
-								<button
-									type="button"
-									onClick={() => setShowPassword((s) => !s)}
-									className="absolute inset-y-0 right-2 flex items-center text-xs sm:text-sm text-gray-500 hover:text-gray-700"
-									disabled={isLoading}
+					<form onSubmit={handleSubmit} className="space-y-5">
+						<div className="grid grid-cols-1 gap-5">
+							<div>
+								<label
+									htmlFor="fullname"
+									className="block text-sm font-medium leading-6 text-gray-900 mb-1"
 								>
-									{showPassword ? "إخفاء" : "إظهار"}
-								</button>
+									الاسم الكامل
+								</label>
+								<input
+									type="text"
+									id="fullname"
+									name="fullname"
+									value={formData.fullname}
+									onChange={handleChange}
+									className={cn(
+										"block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all",
+										errors.fullname && "ring-red-300 focus:ring-red-500"
+									)}
+								/>
+								{errors.fullname && (
+									<p className="mt-1 text-xs text-red-600">{errors.fullname}</p>
+								)}
 							</div>
 
-							{/* Password Strength */}
-							{formData.password && (
-								<div className="mt-2">
-									<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-										<div className="flex gap-1 justify-center sm:justify-start">
+							<div>
+								<label
+									htmlFor="email"
+									className="block text-sm font-medium leading-6 text-gray-900 mb-1"
+								>
+									البريد الإلكتروني
+								</label>
+								<input
+									type="email"
+									name="email"
+									id="email"
+									value={formData.email}
+									onChange={handleChange}
+									className={cn(
+										"block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all",
+										errors.email && "ring-red-300 focus:ring-red-500"
+									)}
+								/>
+								{errors.email && (
+									<p className="mt-1 text-xs text-red-600">{errors.email}</p>
+								)}
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<div>
+									<label
+										htmlFor="phone"
+										className="block text-sm font-medium leading-6 text-gray-900 mb-1"
+									>
+										رقم الجوال
+									</label>
+									<input
+										type="tel"
+										name="phone"
+										id="phone"
+										value={formData.phone}
+										onChange={handleChange}
+										placeholder="05xxxxxxxx"
+										className={cn(
+											"block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all",
+											errors.phone && "ring-red-300 focus:ring-red-500"
+										)}
+									/>
+									{errors.phone && (
+										<p className="mt-1 text-xs text-red-600">{errors.phone}</p>
+									)}
+								</div>
+								<div>
+									<label
+										htmlFor="dob"
+										className="block text-sm font-medium leading-6 text-gray-900 mb-1"
+									>
+										تاريخ الميلاد
+									</label>
+									<input
+										type="date"
+										name="dob"
+										id="dob"
+										value={formData.dob}
+										onChange={handleChange}
+										className={cn(
+											"block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all",
+											errors.dob && "ring-red-300 focus:ring-red-500"
+										)}
+									/>
+									{errors.dob && (
+										<p className="mt-1 text-xs text-red-600">{errors.dob}</p>
+									)}
+								</div>
+							</div>
+
+							<div>
+								<label
+									htmlFor="password"
+									className="block text-sm font-medium leading-6 text-gray-900 mb-1"
+								>
+									كلمة المرور
+								</label>
+								<div className="relative">
+									<input
+										type={showPassword ? "text" : "password"}
+										name="password"
+										id="password"
+										value={formData.password}
+										onChange={handleChange}
+										className={cn(
+											"block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all",
+											errors.password && "ring-red-300 focus:ring-red-500"
+										)}
+									/>
+									<button
+										type="button"
+										onClick={() => setShowPassword((s) => !s)}
+										className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 hover:text-gray-600"
+									>
+										{showPassword ? (
+											<EyeClosed size={18} />
+										) : (
+											<Eye size={18} />
+										)}
+									</button>
+								</div>
+								
+								{formData.password && (
+									<div className="mt-2 flex items-center gap-2">
+										<div className="flex gap-1 flex-1">
 											{[1, 2, 3, 4].map((level) => (
 												<div
 													key={level}
-													className={`h-1 w-6 sm:w-8 rounded-full ${
-														level <=
-														passwordStrength.strength
+													className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+														level <= passwordStrength.strength
 															? passwordStrength.color
 															: "bg-gray-200"
 													}`}
 												/>
 											))}
 										</div>
-										<span
-											className={`text-xs font-medium text-center sm:text-right ${
-												passwordStrength.strength <= 1
-													? "text-red-600"
-													: passwordStrength.strength ===
-													  2
-													? "text-yellow-600"
-													: passwordStrength.strength ===
-													  3
-													? "text-blue-600"
-													: "text-green-600"
-											}`}
-										>
+										<span className="text-xs text-gray-500 font-medium">
 											{passwordStrength.text}
 										</span>
 									</div>
-								</div>
-							)}
-							<p className="text-red-500 text-xs mt-1 h-4">
-								{errors.password || "\u00A0"}
-							</p>
-						</div>
-					</div>
+								)}
+								{errors.password && (
+									<p className="mt-1 text-xs text-red-600">{errors.password}</p>
+								)}
+							</div>
 
-					<div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-						<div>
-							<label
-								htmlFor="dob"
-								className="font-semibold text-xs sm:text-sm pb-1 text-gray-600 block"
-							>
-								تاريخ الميلاد
-							</label>
-							<input
-								type="date"
-								name="dob"
-								id="dob"
-								value={formData.dob}
-								onChange={handleChange}
-								className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-								disabled={isLoading}
-							/>
-							<p className="text-red-500 text-xs mt-1 h-4">
-								{errors.dob || "\u00A0"}
-							</p>
+							<div>
+								<label
+									htmlFor="gender"
+									className="block text-sm font-medium leading-6 text-gray-900 mb-1"
+								>
+									نوع الحساب
+								</label>
+								<select
+									name="gender"
+									id="gender"
+									value={formData.gender}
+									onChange={handleChange}
+									className="block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6"
+								>
+									<option value="male">فرد (ذكر)</option>
+									<option value="female">فرد (أنثى)</option>
+									<option value="institute">منشأة / شركة</option>
+								</select>
+							</div>
 						</div>
 
-						<div>
-							<label
-								htmlFor="gender"
-								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
-							>
-								الجنس/نوع الحساب
-							</label>
-							<select
-								name="gender"
-								id="gender"
-								value={formData.gender}
-								onChange={handleChange}
-								className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-								disabled={isLoading}
-							>
-								<option value="male">ذكَر</option>
-								<option value="female">أنثى</option>
-								<option value="institute">
-									مؤسسة (حساب تجاري)
-								</option>
-							</select>
-						</div>
-					</div>
-
-					<div className="flex justify-center items-center mt-4">
-						<div className="flex flex-col gap-3 w-full">
+						<div className="pt-2">
 							<button
 								type="submit"
 								disabled={isLoading}
-								className={`w-full text-white rounded-lg px-3 py-2.5 text-xs sm:text-sm font-semibold transition duration-100 flex items-center justify-center gap-2 ${
-									isLoading
-										? "bg-gray-400 cursor-not-allowed"
-										: "bg-[#7f2dfb] hover:bg-violet-400"
-								}`}
+								className="flex w-full justify-center rounded-xl bg-[#012d46] px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-[#023b5c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#012d46] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 							>
 								{isLoading ? (
-									<>
-										<div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-										<span className="text-xs sm:text-sm">
-											جاري التسجيل...
-										</span>
-									</>
+									<div className="flex items-center gap-2">
+										<div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+										<span>جاري إنشاء الحساب...</span>
+									</div>
 								) : (
-									"سجل حسابك"
+									"إنشاء حساب جديد"
 								)}
 							</button>
 						</div>
-					</div>
+					</form>
 
-					<div className="text-center text-xs sm:text-sm text-muted-foreground mt-3">
-						عندك حساب؟{" "}
-						<Link href="/login" className="underline font-medium">
+					<p className="mt-8 text-center text-sm text-gray-500">
+						لديك حساب بالفعل؟{" "}
+						<Link
+							href="/login"
+							className="font-semibold leading-6 text-[#7f2dfb] hover:text-[#6a1fd8]"
+						>
 							سجل الدخول
 						</Link>
+					</p>
+				</motion.div>
+			</div>
+
+			{/* Left Side - Visuals */}
+			<div className="hidden lg:flex relative flex-1 flex-col justify-center items-center bg-[#012d46] overflow-hidden">
+				<div className="absolute inset-0 bg-gradient-to-br from-[#7f2dfb]/20 to-[#012d46]/90 z-0" />
+				<DotPattern
+					width={32}
+					height={32}
+					glow={true}
+					className="[mask-image:linear-gradient(to_bottom,white,transparent)] opacity-20"
+				/>
+
+				<div className="relative z-10 w-full max-w-lg">
+					<div className="grid grid-cols-2 gap-4 mb-8">
+						<motion.div 
+							initial={{ opacity: 0, x: -20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ delay: 0.2 }}
+							className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10"
+						>
+							<div className="w-10 h-10 bg-[#7f2dfb] rounded-lg flex items-center justify-center mb-4">
+								<Smartphone className="text-white w-6 h-6" />
+							</div>
+							<h3 className="text-white font-bold mb-1">تطبيق جوال</h3>
+							<p className="text-white/60 text-sm">أدر فواتيرك من أي مكان وفي أي وقت.</p>
+						</motion.div>
+						<motion.div 
+							initial={{ opacity: 0, x: 20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ delay: 0.3 }}
+							className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 translate-y-8"
+						>
+							<div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mb-4">
+								<Laptop className="text-white w-6 h-6" />
+							</div>
+							<h3 className="text-white font-bold mb-1">لوحة تحكم</h3>
+							<p className="text-white/60 text-sm">تقارير وتحليلات متقدمة لنمو أعمالك.</p>
+						</motion.div>
 					</div>
+					
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ delay: 0.5 }}
+						className="text-center"
+					>
+						<h2 className="text-3xl font-bold text-white mb-4">
+							انضم لأكثر من 2000+ شركة ومستقل
+						</h2>
+						<p className="text-white/70">
+							ابدأ رحلتك المالية الرقمية اليوم مع بيلفورا.
+						</p>
+					</motion.div>
 				</div>
-			</form>
+			</div>
 
 			<Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-				<DialogContent className="sm:max-w-md rounded-xl text-center p-4 sm:p-6">
-					<DialogHeader className="flex flex-col items-center gap-2">
-						<DialogTitle className="text-lg sm:text-xl font-bold text-green-600">
-							🎉 تم إنشاء الحساب
+				<DialogContent className="sm:max-w-md rounded-2xl text-center p-8">
+					<DialogHeader className="flex flex-col items-center gap-4">
+						<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+							<Check className="w-8 h-8 text-green-600" />
+						</div>
+						<DialogTitle className="text-2xl font-bold text-[#012d46]">
+							تم إنشاء الحساب بنجاح! 🎉
 						</DialogTitle>
-						<DialogDescription className="text-gray-600 text-sm sm:text-base">
-							تم إرسال رابط التفعيل إلى بريدك الإلكتروني.
+						<DialogDescription className="text-gray-600 text-base">
+							لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني.
 							<br />
-							بعد التفعيل، يمكنك تسجيل الدخول.
+							يرجى التحقق من صندوق الوارد لتفعيل حسابك والبدء.
 						</DialogDescription>
 					</DialogHeader>
-					<DialogFooter className="mt-4 sm:mt-6">
+					<DialogFooter className="mt-6 sm:justify-center">
 						<button
 							onClick={() => {
 								setShowConfirmModal(false);
 								router.push("/login");
 							}}
-							className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 sm:py-2.5 rounded-md text-sm sm:text-base"
+							className="w-full bg-[#7f2dfb] hover:bg-[#6a1fd8] text-white font-bold py-3 px-6 rounded-xl transition-colors"
 						>
-							الذهاب لتسجيل الدخول
+							الذهاب لصفحة الدخول
 						</button>
 					</DialogFooter>
 				</DialogContent>

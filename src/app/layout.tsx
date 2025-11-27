@@ -16,11 +16,11 @@ export const metadata: Metadata = {
 	description: "فواتير احترافية جذابة وسريعة.",
 	icons: {
 		icon: [
-			{ url: "/logo-symbol.svg", type: "image/svg+xml" },
+			{ url: "/symbol-shadowNoBg.png", type: "image/png" },
 			{ url: "/favicon.ico", sizes: "any" },
 		],
 		shortcut: "/favicon.ico",
-		apple: "/logo-symbol.svg",
+		apple: "/symbol-shadowNoBg.png",
 	},
 };
 

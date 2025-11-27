@@ -17,6 +17,9 @@ import {
 	Search,
 	Trash2,
 	Loader2,
+    MoreHorizontal,
+    ArrowUpRight,
+    Calendar
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,37 +27,37 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/dialogButton";
 import { supabase } from "@/lib/supabase";
 import {
-	Invoice,
 	InvoiceWithClientAndItems,
-	UpdateInvoiceInput,
 	InvoiceStatus,
 } from "@/types/database";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const statusConfig = {
 	draft: {
 		label: "مسودة",
-		color: "bg-gray-100 text-gray-800",
+		color: "bg-gray-100 text-gray-600 border-gray-200",
 		icon: FileText,
 	},
 	sent: {
 		label: "مرسلة",
-		color: "bg-blue-100 text-blue-800",
+		color: "bg-blue-50 text-blue-600 border-blue-100",
 		icon: Send,
 	},
 	paid: {
 		label: "مدفوعة",
-		color: "bg-green-100 text-green-800",
+		color: "bg-green-50 text-green-600 border-green-100",
 		icon: CheckCircle,
 	},
 	overdue: {
 		label: "متأخرة",
-		color: "bg-red-100 text-red-800",
+		color: "bg-orange-50 text-orange-600 border-orange-100",
 		icon: AlertCircle,
 	},
 	cancelled: {
 		label: "ملغية",
-		color: "bg-gray-100 text-gray-800",
+		color: "bg-red-50 text-red-600 border-red-100",
 		icon: XCircle,
 	},
 };
@@ -62,71 +65,37 @@ const statusConfig = {
 export default function InvoicesPage() {
     const router = useRouter();
 	const [invoices, setInvoices] = useState<InvoiceWithClientAndItems[]>([]);
-	const [filteredInvoices, setFilteredInvoices] = useState<
-		InvoiceWithClientAndItems[]
-	>([]);
-	const [clients, setClients] = useState<Client[]>([]);
-	const [orders, setOrders] = useState<Order[]>([]);
+	const [filteredInvoices, setFilteredInvoices] = useState<InvoiceWithClientAndItems[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(
-		"all"
-	);
+	const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
 	const [dateFilter, setDateFilter] = useState("all");
 	const [showFilters, setShowFilters] = useState(false);
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-	const [editingInvoice, setEditingInvoice] =
-		useState<InvoiceWithClientAndItems | null>(null);
-    const [saving, setSaving] = useState(false);
     const [deleteCandidate, setDeleteCandidate] = useState<InvoiceWithClientAndItems | null>(null);
 
-	// Form state for add/edit
-	const [formData, setFormData] = useState({
-		client_id: "",
-		order_id: "",
-		issue_date: "",
-		due_date: "",
-		status: "draft" as InvoiceStatus,
-		tax_rate: 15,
-		notes: "",
-		items: [{ description: "", quantity: 1, unit_price: 0 }],
-	});
-
-	// Load invoices, clients, and orders on component mount
 	useEffect(() => {
 		loadInvoices();
-		loadClients();
-		loadOrders();
 	}, []);
 
-	// Filter invoices when filters change
 	useEffect(() => {
 		let filtered = [...invoices];
 
-		// Filter by status
 		if (statusFilter !== "all") {
 			filtered = filtered.filter((i) => i.status === statusFilter);
 		}
 
-		// Filter by search term
 		if (searchTerm) {
 			filtered = filtered.filter(
 				(i) =>
-					i.invoice_number
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase()) ||
-					i.client.name
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase()) ||
-					i.client.email
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase())
+					i.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+					i.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+					i.client.email?.toLowerCase().includes(searchTerm.toLowerCase())
 			);
 		}
 
-		// Filter by date
 		if (dateFilter !== "all") {
 			const now = new Date();
 			const filterDate = new Date();
@@ -156,371 +125,76 @@ export default function InvoicesPage() {
 			setLoading(true);
 			setError(null);
 
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
+			const { data: { user } } = await supabase.auth.getUser();
 			if (!user) {
-				setError("يجب تسجيل الدخول أولاً");
+                router.push('/login');
 				return;
 			}
 
 			const { data, error } = await supabase
 				.from("invoices")
-				.select(
-					`
+				.select(`
 					*,
 					client:clients(*),
-					order:orders(*),
 					items:invoice_items(*)
-				`
-				)
+				`)
 				.eq("user_id", user.id)
 				.order("created_at", { ascending: false });
 
-			if (error) {
-				console.error("Error loading invoices:", error);
-				setError("فشل في تحميل قائمة الفواتير");
-				return;
-			}
+			if (error) throw error;
 
 			setInvoices(data || []);
 		} catch (err) {
 			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
+			setError("حدث خطأ أثناء تحميل البيانات");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const loadClients = async () => {
-		try {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) return;
-
-			const { data, error } = await supabase
-				.from("clients")
-				.select("*")
-				.eq("user_id", user.id)
-				.eq("status", "active")
-				.order("name");
-
-			if (error) {
-				console.error("Error loading clients:", error);
-				return;
-			}
-
-			setClients(data || []);
-		} catch (err) {
-			console.error("Unexpected error loading clients:", err);
-		}
-	};
-
-	const loadOrders = async () => {
-		try {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) return;
-
-			const { data, error } = await supabase
-				.from("orders")
-				.select("*")
-				.eq("user_id", user.id)
-				.eq("status", "completed")
-				.order("created_at", { ascending: false });
-
-			if (error) {
-				console.error("Error loading orders:", error);
-				return;
-			}
-
-			setOrders(data || []);
-		} catch (err) {
-			console.error("Unexpected error loading orders:", err);
-		}
-	};
-
-	const handleInputChange = (
-		e: React.ChangeEvent<
-			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-		>
-	) => {
-		const { name, value } = e.target;
-		setFormData((prev) => ({
-			...prev,
-			[name]: value,
-		}));
-	};
-
-	const handleItemChange = (
-		index: number,
-		field: string,
-		value: string | number
-	) => {
-		setFormData((prev) => ({
-			...prev,
-			items: prev.items.map((item, i) =>
-				i === index ? { ...item, [field]: value } : item
-			),
-		}));
-	};
-
-	const addItem = () => {
-		setFormData((prev) => ({
-			...prev,
-			items: [
-				...prev.items,
-				{ description: "", quantity: 1, unit_price: 0 },
-			],
-		}));
-	};
-
-	const removeItem = (index: number) => {
-		setFormData((prev) => ({
-			...prev,
-			items: prev.items.filter((_, i) => i !== index),
-		}));
-	};
-
-	const resetForm = () => {
-		setFormData({
-			client_id: "",
-			order_id: "",
-			issue_date: "",
-			due_date: "",
-			status: "draft",
-			tax_rate: 15,
-			notes: "",
-			items: [{ description: "", quantity: 1, unit_price: 0 }],
-		});
-		setEditingInvoice(null);
-		setError(null);
-		setSuccess(null);
-	};
-
-	const handleAddInvoice = () => {
-		setShowInvoiceModal(true);
-	};
-
-	const closeInvoiceModal = () => {
-		setShowInvoiceModal(false);
-	};
-
 	const handleInvoiceSuccess = () => {
-		// Reload invoices to show the new one
 		loadInvoices();
 	};
 
-    const handleEditInvoice = (invoice: InvoiceWithClientAndItems) => {
-        // Navigate to the invoice details page for view/download; editing can be added later
-        router.push(`/dashboard/invoices/${invoice.id}`);
-    };
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-
+    const handleStatusChange = async (invoiceId: string, newStatus: InvoiceStatus) => {
 		try {
-			setSaving(true);
-			setError(null);
-
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) {
-				setError("يجب تسجيل الدخول أولاً");
-				return;
-			}
-
-			// Calculate totals
-			const subtotal = formData.items.reduce(
-				(sum, item) => sum + item.quantity * item.unit_price,
-				0
-			);
-			const taxAmount = subtotal * (formData.tax_rate / 100);
-			const totalAmount = subtotal + taxAmount;
-
-			if (editingInvoice) {
-				// Update existing invoice
-				const { error: invoiceError } = await supabase
-					.from("invoices")
-					.update({
-						client_id: formData.client_id,
-						order_id: formData.order_id || null,
-						issue_date: formData.issue_date,
-						due_date: formData.due_date,
-						status: formData.status,
-						tax_rate: formData.tax_rate,
-						subtotal: subtotal,
-						tax_amount: taxAmount,
-						total_amount: totalAmount,
-						notes: formData.notes || null,
-					})
-					.eq("id", editingInvoice.id);
-
-				if (invoiceError) {
-					console.error("Error updating invoice:", invoiceError);
-					setError("فشل في تحديث الفاتورة");
-					return;
-				}
-
-				// Delete existing items and insert new ones
-				const { error: deleteError } = await supabase
-					.from("invoice_items")
-					.delete()
-					.eq("invoice_id", editingInvoice.id);
-
-				if (deleteError) {
-					console.error("Error deleting invoice items:", deleteError);
-					setError("فشل في تحديث عناصر الفاتورة");
-					return;
-				}
-
-				const { error: insertError } = await supabase
-					.from("invoice_items")
-					.insert(
-						formData.items.map((item) => ({
-							invoice_id: editingInvoice.id,
-							description: item.description,
-							quantity: item.quantity,
-							unit_price: item.unit_price,
-							total: item.quantity * item.unit_price,
-						}))
-					);
-
-				if (insertError) {
-					console.error(
-						"Error inserting invoice items:",
-						insertError
-					);
-					setError("فشل في تحديث عناصر الفاتورة");
-					return;
-				}
-
-				setSuccess("تم تحديث الفاتورة بنجاح");
-			} else {
-				// Create new invoice
-				const { data: invoiceData, error: invoiceError } =
-					await supabase
-						.from("invoices")
-						.insert({
-							user_id: user.id,
-							client_id: formData.client_id,
-							order_id: formData.order_id || null,
-							issue_date: formData.issue_date,
-							due_date: formData.due_date,
-							status: formData.status,
-							tax_rate: formData.tax_rate,
-							subtotal: subtotal,
-							tax_amount: taxAmount,
-							total_amount: totalAmount,
-							notes: formData.notes || null,
-						})
-						.select()
-						.single();
-
-				if (invoiceError) {
-					console.error("Error creating invoice:", invoiceError);
-					setError("فشل في إضافة الفاتورة");
-					return;
-				}
-
-				// Insert invoice items
-				const { error: insertError } = await supabase
-					.from("invoice_items")
-					.insert(
-						formData.items.map((item) => ({
-							invoice_id: invoiceData.id,
-							description: item.description,
-							quantity: item.quantity,
-							unit_price: item.unit_price,
-							total: item.quantity * item.unit_price,
-						}))
-					);
-
-				if (insertError) {
-					console.error(
-						"Error inserting invoice items:",
-						insertError
-					);
-					setError("فشل في إضافة عناصر الفاتورة");
-					return;
-				}
-
-				setSuccess("تم إضافة الفاتورة بنجاح");
-			}
-
-			// Reload invoices and close modal
-			await loadInvoices();
-			setShowAddModal(false);
-			resetForm();
-		} catch (err) {
-			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
-		} finally {
-			setSaving(false);
-		}
-	};
-
-	const handleStatusChange = async (
-		invoiceId: string,
-		newStatus: InvoiceStatus
-	) => {
-		try {
-			setError(null);
-
 			const { error } = await supabase
 				.from("invoices")
 				.update({ status: newStatus })
 				.eq("id", invoiceId);
 
-			if (error) {
-				console.error("Error updating invoice status:", error);
-				setError("فشل في تحديث حالة الفاتورة");
-				return;
-			}
-
-			setSuccess("تم تحديث حالة الفاتورة بنجاح");
+			if (error) throw error;
 			await loadInvoices();
 		} catch (err) {
-			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
+			console.error("Error:", err);
+            // Consider adding toast notification here
 		}
 	};
 
     const handleDeleteInvoice = async (invoiceId: string) => {
 		try {
-			setError(null);
-
 			const { error } = await supabase
 				.from("invoices")
 				.delete()
 				.eq("id", invoiceId);
 
-			if (error) {
-				console.error("Error deleting invoice:", error);
-				setError("فشل في حذف الفاتورة");
-				return;
-			}
-
-            setSuccess("تم حذف الفاتورة بنجاح");
+			if (error) throw error;
             setDeleteCandidate(null);
 			await loadInvoices();
 		} catch (err) {
-			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
+			console.error("Error:", err);
 		}
 	};
 
 	const formatCurrency = (amount: number) =>
-		new Intl.NumberFormat("ar-SA", {
+		new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency: "SAR",
+            maximumFractionDigits: 0
 		}).format(amount);
 
 	const formatDate = (dateString: string) =>
-		new Date(dateString).toLocaleDateString("ar-SA");
+		new Date(dateString).toLocaleDateString("en-GB");
 
 	const isOverdue = (dueDate: string, status: InvoiceStatus) => {
 		return new Date(dueDate) < new Date() && status !== "paid";
@@ -528,346 +202,185 @@ export default function InvoicesPage() {
 
 	if (loading) {
 		return (
-			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-center">
-					<Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
-					<p className="text-gray-500">جاري تحميل الفواتير...</p>
-				</div>
+			<div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+				    <Loader2 className="h-12 w-12 text-[#7f2dfb]" />
+                </motion.div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			{/* Success/Error Messages */}
-			{success && (
-				<div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
-					<CheckCircle className="h-5 w-5 text-green-600" />
-					<p className="text-green-800">{success}</p>
-				</div>
-			)}
-			{error && (
-				<div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
-					<AlertCircle className="h-5 w-5 text-red-600" />
-					<p className="text-red-800">{error}</p>
-				</div>
-			)}
+		<div className="space-y-8 pb-10">
+			{/* Header */}
+            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-[#012d46]">الفواتير</h1>
+                    <p className="text-gray-500 mt-2 text-lg">إدارة ومتابعة فواتير العملاء</p>
+                </div>
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowInvoiceModal(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#7f2dfb] text-white px-6 py-3 text-base font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
+                >
+                    <Plus size={20} strokeWidth={2.5} />
+                    <span>إنشاء فاتورة جديدة</span>
+                </motion.button>
+            </div>
 
 			{/* Stats Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								إجمالي الفواتير
-							</p>
-							<p className="text-2xl font-bold text-gray-900">
-								{invoices.length}
-							</p>
-						</div>
-						<div className="p-2 bg-blue-100 rounded-lg">
-							<FileText className="w-6 h-6 text-blue-600" />
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								فواتير متأخرة
-							</p>
-							<p className="text-2xl font-bold text-red-600">
-								{
-									invoices.filter((i) =>
-										isOverdue(i.due_date, i.status)
-									).length
-								}
-							</p>
-						</div>
-						<div className="p-2 bg-red-100 rounded-lg">
-							<AlertCircle className="w-6 h-6 text-red-600" />
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								المبلغ المستحق
-							</p>
-							<p className="text-2xl font-bold text-orange-600">
-								{formatCurrency(
-									invoices
-										.filter(
-											(i) =>
-												i.status !== "paid" &&
-												i.status !== "cancelled"
-										)
-										.reduce(
-											(sum, invoice) =>
-												sum + invoice.total_amount,
-											0
-										)
-								)}
-							</p>
-						</div>
-						<div className="p-2 bg-orange-100 rounded-lg">
-							<Clock className="w-6 h-6 text-orange-600" />
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white p-4 rounded-xl border border-gray-200">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-gray-600">
-								المبلغ المحصل
-							</p>
-							<p className="text-2xl font-bold text-green-600">
-								{formatCurrency(
-									invoices
-										.filter((i) => i.status === "paid")
-										.reduce(
-											(sum, invoice) =>
-												sum + invoice.total_amount,
-											0
-										)
-								)}
-							</p>
-						</div>
-						<div className="p-2 bg-green-100 rounded-lg">
-							<CheckCircle className="w-6 h-6 text-green-600" />
-						</div>
-					</div>
-				</div>
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <StatsCard 
+                    title="إجمالي الفواتير"
+                    value={invoices.length}
+                    icon={FileText}
+                    color="blue"
+                />
+                <StatsCard 
+                    title="فواتير متأخرة"
+                    value={invoices.filter(i => isOverdue(i.due_date, i.status)).length}
+                    icon={AlertCircle}
+                    color="orange"
+                    isWarning={true}
+                />
+                <StatsCard 
+                    title="المبلغ المستحق"
+                    value={formatCurrency(invoices.filter(i => i.status !== "paid" && i.status !== "cancelled").reduce((sum, i) => sum + i.total_amount, 0))}
+                    icon={Clock}
+                    color="purple"
+                />
+                <StatsCard 
+                    title="المبلغ المحصل"
+                    value={formatCurrency(invoices.filter(i => i.status === "paid").reduce((sum, i) => sum + i.total_amount, 0))}
+                    icon={CheckCircle}
+                    color="green"
+                />
 			</div>
 
-			{/* Header with Add Button */}
-			<div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold text-gray-900">
-						الفواتير
-					</h1>
-					<p className="text-gray-500 mt-1">إدارة فواتير العملاء</p>
-				</div>
-				<button
-					onClick={handleAddInvoice}
-					className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:translate-y-[1px]"
-				>
-					<Plus size={16} />
-					إنشاء فاتورة جديدة
-				</button>
-			</div>
-
-			{/* Filters */}
-			<div className="bg-white p-4 rounded-xl border border-gray-200">
-				<div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-					<div className="flex flex-wrap gap-3">
-						<div className="relative">
-							<Search
-								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
-							/>
-							<input
-								type="text"
-								placeholder="البحث في الفواتير..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								className="pl-3 pr-9 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 w-64"
-							/>
-						</div>
-						<button
-							onClick={() => setShowFilters(!showFilters)}
-							className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-						>
-							<Filter size={16} />
-							<span>تصفية</span>
-							<ChevronDown size={16} />
-						</button>
-
-						{showFilters && (
-							<>
-								<select
-									value={statusFilter}
-									onChange={(e) =>
-										setStatusFilter(
-											e.target.value as
-												| InvoiceStatus
-												| "all"
-										)
-									}
-									className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-								>
-									<option value="all">جميع الحالات</option>
-									<option value="draft">مسودة</option>
-									<option value="sent">مرسلة</option>
-									<option value="paid">مدفوعة</option>
-									<option value="overdue">متأخرة</option>
-									<option value="cancelled">ملغية</option>
-								</select>
-
-								<select
-									value={dateFilter}
-									onChange={(e) =>
-										setDateFilter(e.target.value)
-									}
-									className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-								>
-									<option value="all">جميع التواريخ</option>
-									<option value="today">اليوم</option>
-									<option value="week">آخر أسبوع</option>
-									<option value="month">آخر شهر</option>
-								</select>
-							</>
-						)}
-					</div>
-
-					<div className="text-sm text-gray-600">
-						عرض {filteredInvoices.length} من {invoices.length}{" "}
-						فاتورة
-					</div>
-				</div>
+			{/* Filters & Search */}
+			<div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="البحث برقم الفاتورة، اسم العميل..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pr-12 pl-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb] transition-all"
+                    />
+                </div>
+                
+                <div className="flex gap-3 w-full md:w-auto">
+                     <div className="relative flex-1 md:flex-none">
+                         <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as any)}
+                            className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
+                         >
+                            <option value="all">جميع الحالات</option>
+                            <option value="draft">مسودة</option>
+                            <option value="sent">مرسلة</option>
+                            <option value="paid">مدفوعة</option>
+                            <option value="overdue">متأخرة</option>
+                         </select>
+                         <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                     </div>
+                     <div className="relative flex-1 md:flex-none">
+                         <select
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                            className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
+                         >
+                            <option value="all">كل الوقت</option>
+                            <option value="today">اليوم</option>
+                            <option value="week">هذا الأسبوع</option>
+                            <option value="month">هذا الشهر</option>
+                         </select>
+                         <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                     </div>
+                </div>
 			</div>
 
 			{/* Invoices Table */}
-			<div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+			<div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
 				<div className="overflow-x-auto">
 					<table className="w-full">
-						<thead className="bg-gray-50 border-b border-gray-200">
+						<thead className="bg-gray-50/50 border-b border-gray-100">
 							<tr>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									رقم الفاتورة
-								</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									العميل
-								</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									المبلغ الإجمالي
-								</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									الضريبة
-								</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									الحالة
-								</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									تاريخ الاستحقاق
-								</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									الإجراءات
-								</th>
+								<th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">رقم الفاتورة</th>
+								<th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">العميل</th>
+								<th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">المبلغ</th>
+								<th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">الحالة</th>
+								<th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">التاريخ</th>
+								<th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">الإجراءات</th>
 							</tr>
 						</thead>
-						<tbody className="bg-white divide-y divide-gray-200">
-							{filteredInvoices.map((invoice) => {
+						<tbody className="divide-y divide-gray-50">
+							{filteredInvoices.map((invoice, i) => {
 								const statusInfo = statusConfig[invoice.status];
 								const StatusIcon = statusInfo.icon;
-								const isOverdueInvoice = isOverdue(
-									invoice.due_date,
-									invoice.status
-								);
+								const isOverdueInvoice = isOverdue(invoice.due_date, invoice.status);
 
 								return (
-									<tr
+									<motion.tr
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.05 }}
 										key={invoice.id}
-										className="hover:bg-gray-50"
+										className="group hover:bg-gray-50/50 transition-colors"
 									>
 										<td className="px-6 py-4 whitespace-nowrap">
-											<div className="text-sm font-medium text-gray-900">
-												{invoice.invoice_number}
+											<span className="font-bold text-[#012d46]">{invoice.invoice_number}</span>
+										</td>
+										<td className="px-6 py-4 whitespace-nowrap">
+											<div className="flex flex-col">
+												<span className="font-medium text-gray-900">{invoice.client.name}</span>
+												<span className="text-xs text-gray-500">{invoice.client.email || '-'}</span>
 											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
-											<div>
-												<div className="text-sm font-medium text-gray-900">
-													{invoice.client.name}
-												</div>
-												<div className="text-sm text-gray-500">
-													{invoice.client.email}
-												</div>
-											</div>
-										</td>
-										<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-											{formatCurrency(
-												invoice.total_amount
-											)}
-										</td>
-										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-											{formatCurrency(invoice.tax_amount)}
+											<span className="font-bold text-gray-900">{formatCurrency(invoice.total_amount)}</span>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
-											<span
-												className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-													isOverdueInvoice
-														? "bg-red-100 text-red-800"
-														: statusInfo.color
-												}`}
-											>
-												<StatusIcon size={12} />
-												{isOverdueInvoice
-													? "متأخرة"
-													: statusInfo.label}
+											<span className={cn(
+                                                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
+                                                isOverdueInvoice ? statusConfig.overdue.color : statusInfo.color
+                                            )}>
+                                                {isOverdueInvoice ? <AlertCircle size={12}/> : <StatusIcon size={12} />}
+												{isOverdueInvoice ? "متأخرة" : statusInfo.label}
 											</span>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											{formatDate(invoice.due_date)}
+											<div className="flex items-center gap-1">
+                                                <Calendar size={14} className="text-gray-400"/>
+                                                {formatDate(invoice.issue_date)}
+                                            </div>
 										</td>
-										<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-											<div className="flex items-center gap-2">
-												<button
-													onClick={() =>
-														handleEditInvoice(
-															invoice
-														)
-													}
-													className="text-gray-600 hover:text-gray-900"
-													title="تعديل"
-												>
-													<Edit size={16} />
-												</button>
-                                                <button
-                                                    onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)}
-                                                    className="text-green-600 hover:text-green-900"
-                                                    title="تحميل PDF"
-                                                >
-                                                    <Download size={16} />
+										<td className="px-6 py-4 whitespace-nowrap">
+											<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)} className="p-2 text-gray-400 hover:text-[#7f2dfb] hover:bg-purple-50 rounded-lg transition-colors" title="عرض التفاصيل">
+                                                    <Eye size={18} />
                                                 </button>
-												<button
-													onClick={() =>
-														handleStatusChange(
-															invoice.id,
-															"sent"
-														)
-													}
-													className="text-blue-600 hover:text-blue-900"
-													title="إرسال الفاتورة"
-												>
-													<Send size={16} />
-												</button>
-												<button
-													onClick={() =>
-														handleStatusChange(
-															invoice.id,
-															"paid"
-														)
-													}
-													className="text-green-600 hover:text-green-900"
-													title="تمييز كمدفوعة"
-												>
-													<CheckCircle size={16} />
-												</button>
-                                                <button
-                                                    onClick={() => setDeleteCandidate(invoice)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                    title="حذف"
-                                                >
-                                                    <Trash2 size={16} />
+                                                {invoice.status === 'draft' && (
+                                                    <button onClick={() => handleStatusChange(invoice.id, "sent")} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="إرسال">
+                                                        <Send size={18} />
+                                                    </button>
+                                                )}
+                                                {invoice.status !== 'paid' && (
+                                                     <button onClick={() => handleStatusChange(invoice.id, "paid")} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="تحديد كمدفوعة">
+                                                        <CheckCircle size={18} />
+                                                    </button>
+                                                )}
+                                                <button onClick={() => setDeleteCandidate(invoice)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="حذف">
+                                                    <Trash2 size={18} />
                                                 </button>
 											</div>
 										</td>
-									</tr>
+									</motion.tr>
 								);
 							})}
 						</tbody>
@@ -875,49 +388,71 @@ export default function InvoicesPage() {
 				</div>
 
 				{filteredInvoices.length === 0 && (
-					<div className="text-center py-12">
-						<div className="text-gray-500 text-lg">
-							لا توجد فواتير
-						</div>
-						<p className="text-gray-400 mt-2">
-							لم يتم العثور على فواتير تطابق المعايير المحددة
-						</p>
+					<div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+						    <FileText className="w-10 h-10 text-gray-300" />
+                        </div>
+						<h3 className="text-lg font-bold text-gray-900">لا توجد فواتير</h3>
+						<p className="text-gray-500 mt-1 mb-6 max-w-xs mx-auto">لم نجد أي فواتير تطابق بحثك. ابدأ بإنشاء فاتورة جديدة.</p>
 						<button
-							onClick={handleAddInvoice}
-							className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+							onClick={() => setShowInvoiceModal(true)}
+							className="inline-flex items-center gap-2 px-6 py-3 bg-[#7f2dfb] text-white rounded-xl hover:bg-[#6a1fd8] transition-colors font-medium"
 						>
-							<FileText size={16} />
-							إنشاء فاتورة جديدة
+							<Plus size={18} />
+							إنشاء فاتورة
 						</button>
 					</div>
 				)}
 			</div>
 
-			{/* Invoice Creation Modal */}
 			<InvoiceCreationModal
 				isOpen={showInvoiceModal}
-				onClose={closeInvoiceModal}
+				onClose={() => setShowInvoiceModal(false)}
 				onSuccess={handleInvoiceSuccess}
 			/>
 
-            {/* Delete Confirmation Dialog */}
             <Dialog open={!!deleteCandidate} onOpenChange={(open) => !open && setDeleteCandidate(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>تأكيد حذف الفاتورة</DialogTitle>
+                <DialogContent className="rounded-3xl p-8">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="text-2xl font-bold text-center text-[#012d46]">حذف الفاتورة؟</DialogTitle>
                     </DialogHeader>
-                    <p className="text-right text-gray-600">
-                        هل أنت متأكد من حذف الفاتورة رقم
-                        {" "}
-                        <span className="font-semibold">{deleteCandidate?.invoice_number}</span>
-                        ؟ لا يمكن التراجع عن هذا الإجراء.
+                    <p className="text-center text-gray-600 mb-8">
+                        هل أنت متأكد من أنك تريد حذف الفاتورة رقم <span className="font-bold text-gray-900">{deleteCandidate?.invoice_number}</span>؟
+                        <br/>
+                        لا يمكن التراجع عن هذا الإجراء.
                     </p>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteCandidate(null)}>إلغاء</Button>
-                        <Button variant="destructive" onClick={() => deleteCandidate && handleDeleteInvoice(deleteCandidate.id)}>حذف</Button>
+                    <DialogFooter className="flex gap-3 sm:justify-center">
+                        <button onClick={() => setDeleteCandidate(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors">إلغاء</button>
+                        <button onClick={() => deleteCandidate && handleDeleteInvoice(deleteCandidate.id)} className="flex-1 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors">نعم، حذف</button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 		</div>
 	);
+}
+
+function StatsCard({ title, value, icon: Icon, color, isWarning }: any) {
+    const colors = {
+        purple: "bg-purple-50 text-[#7f2dfb]",
+        blue: "bg-blue-50 text-blue-600",
+        green: "bg-green-50 text-green-600",
+        orange: "bg-orange-50 text-orange-600",
+    };
+
+    return (
+        <div className={cn(
+            "bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow",
+            isWarning && "bg-orange-50/30 border-orange-100"
+        )}>
+            <div className="flex justify-between items-start mb-4">
+                <div className={cn("p-3 rounded-2xl", colors[color as keyof typeof colors])}>
+                    <Icon size={24} strokeWidth={2.5} />
+                </div>
+            </div>
+            <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
+                <h3 className="text-2xl font-bold text-gray-900 tracking-tight">{value}</h3>
+            </div>
+        </div>
+    );
 }

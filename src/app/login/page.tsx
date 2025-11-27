@@ -3,12 +3,13 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DotPattern } from "@/components/landing-page/dot-pattern";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Eye, EyeClosed } from "lucide-react";
+import { Eye, EyeClosed, Check, ArrowLeft } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { DotPattern } from "@/components/landing-page/dot-pattern";
 
 export default function LoginForm() {
 	const [email, setEmail] = useState("");
@@ -99,20 +100,12 @@ export default function LoginForm() {
 
 			// Set session persistence based on remember me checkbox
 			if (!error && rememberMe) {
-				// For "remember me", we can set a longer session duration
-				// This is handled by Supabase's default session management
-				// The session will persist until explicitly signed out
-				console.log("Remember me enabled - session will persist");
-
-				// Store user preference for future sessions
 				localStorage.setItem("rememberMe", "true");
 			} else if (!error && !rememberMe) {
-				// Clear remember me preference if unchecked
 				localStorage.removeItem("rememberMe");
 			}
 
 			if (error) {
-				// Translate common error messages to Arabic
 				let errorMessage = error.message;
 				if (error.message.includes("Invalid login credentials")) {
 					errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
@@ -121,31 +114,18 @@ export default function LoginForm() {
 						"البريد الإلكتروني غير مفعل. يرجى التحقق من بريدك الإلكتروني";
 				} else if (error.message.includes("Too many requests")) {
 					errorMessage = "تم إرسال طلبات كثيرة. يرجى المحاولة لاحقاً";
-				} else if (error.message.includes("User not found")) {
-					errorMessage = "المستخدم غير موجود";
-				} else if (error.message.includes("Invalid email")) {
-					errorMessage = "البريد الإلكتروني غير صالح";
-				} else if (error.message.includes("Invalid password")) {
-					errorMessage = "كلمة المرور غير صحيحة";
 				}
-				setGeneralError("فشل تسجيل الدخول: " + errorMessage);
+				setGeneralError(errorMessage);
 				return;
 			}
 
-			// Login successful - show success message
+			// Login successful
 			setGeneralError("");
-			if (rememberMe) {
-				setSuccessMessage(
-					"تم تسجيل الدخول بنجاح! سيتم تذكرك في المرات القادمة."
-				);
-			} else {
-				setSuccessMessage("تم تسجيل الدخول بنجاح!");
-			}
+			setSuccessMessage("تم تسجيل الدخول بنجاح!");
 
-			// Redirect to dashboard
 			setTimeout(() => {
 				router.push("/dashboard");
-			}, 1500);
+			}, 1000);
 		} catch (error) {
 			console.error("Login Error:", error);
 			setGeneralError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
@@ -158,7 +138,6 @@ export default function LoginForm() {
 	const handleForgotPassword = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// Validate email
 		if (!resetEmail.trim()) {
 			setResetEmailError("البريد الإلكتروني مطلوب");
 			return;
@@ -182,23 +161,7 @@ export default function LoginForm() {
 			);
 
 			if (error) {
-				// Translate common error messages to Arabic
-				let errorMessage = error.message;
-				if (error.message.includes("User not found")) {
-					errorMessage = "المستخدم غير موجود";
-				} else if (error.message.includes("Invalid email")) {
-					errorMessage = "البريد الإلكتروني غير صالح";
-				} else if (error.message.includes("Email not confirmed")) {
-					errorMessage = "البريد الإلكتروني غير مفعل";
-				} else if (error.message.includes("Too many requests")) {
-					errorMessage = "تم إرسال طلبات كثيرة. يرجى المحاولة لاحقاً";
-				} else if (
-					error.message.includes("Email rate limit exceeded")
-				) {
-					errorMessage =
-						"تم تجاوز الحد المسموح من طلبات البريد الإلكتروني";
-				}
-				setResetEmailError("حدث خطأ: " + errorMessage);
+				setResetEmailError("حدث خطأ: " + error.message);
 			} else {
 				setResetSuccess(true);
 			}
@@ -210,7 +173,6 @@ export default function LoginForm() {
 		}
 	};
 
-	// =============  تحديث الحقول =============
 	const handleInputChange = (field: string, value: string) => {
 		if (field === "email") {
 			setEmail(value);
@@ -225,97 +187,117 @@ export default function LoginForm() {
 		setGeneralError("");
 	};
 
-	// =============  واجهة الصفحة =============
 	return (
-		<div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-t from-[#cc15ff3d] to-[#fff] p-4 sm:p-6 lg:p-8">
-			<DotPattern
-				width={16}
-				height={16}
-				glow={true}
-				className={cn(
-					"[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]"
-				)}
-			/>
-			<div
-				className={`relative w-full max-w-md mx-auto px-4 py-6 sm:px-6 sm:py-8 shadow-lg rounded-2xl sm:rounded-3xl bg-white z-10 transition-opacity duration-300 ${
-					showForgotPassword
-						? "opacity-0 pointer-events-none"
-						: "opacity-100"
-				}`}
-			>
-				<div className="w-full">
-					<div className="text-center mb-6">
-						<h1 className="text-lg sm:text-xl font-bold flex items-center justify-center gap-2">
-							<span>هلا بك مرة ثانية في</span>
-							<Image
-								src="/logo-symbol.svg"
-								alt="Bilfora"
-								width={40}
-								height={40}
-								className="w-10 h-10 sm:w-12 sm:h-12"
-								priority
-							/>
-						</h1>
+		<div className="w-full lg:grid lg:grid-cols-2 min-h-screen">
+			{/* Right Side - Form */}
+			<div className="flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24 bg-white relative">
+				<Link
+					href="/"
+					className="absolute top-8 right-8 flex items-center gap-2 text-gray-500 hover:text-[#7f2dfb] transition-colors"
+				>
+					<ArrowLeft size={16} />
+					<span>العودة للرئيسية</span>
+				</Link>
+
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className="mx-auto w-full max-w-sm lg:w-96"
+				>
+					<div className="flex flex-col items-start gap-2 mb-10">
+						<Image
+							src="/logoPNG.png"
+							alt="Bilfora"
+							width={140}
+							height={40}
+							className="h-10 w-auto mb-6"
+						/>
+						<h2 className="text-3xl font-bold tracking-tight text-[#012d46]">
+							مرحباً بعودتك 👋
+						</h2>
+						<p className="text-sm text-gray-600">
+							أدخل بياناتك للدخول إلى لوحة التحكم
+						</p>
 					</div>
 
-					{/* Success Message */}
 					{successMessage && (
-						<div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-							<p className="text-green-600 text-xs sm:text-sm text-center">
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
+						>
+							<div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+								<Check className="h-4 w-4 text-green-600" />
+							</div>
+							<p className="text-green-700 text-sm font-medium">
 								{successMessage}
 							</p>
-						</div>
+						</motion.div>
 					)}
 
-					{/* Error عام */}
 					{generalError && (
-						<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-							<p className="text-red-600 text-xs sm:text-sm text-center">
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+						>
+							<p className="text-red-600 text-sm font-medium">
 								{generalError}
 							</p>
-						</div>
+						</motion.div>
 					)}
 
-					<form onSubmit={handleSubmit} className="space-y-4">
-						{/* البريد */}
+					<form onSubmit={handleSubmit} className="space-y-6">
 						<div>
 							<label
 								htmlFor="email"
-								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
+								className="block text-sm font-medium leading-6 text-gray-900 mb-2"
 							>
 								البريد الإلكتروني
 							</label>
-							<input
-								className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-								type="email"
-								id="email"
-								value={email}
-								onChange={(e) =>
-									handleInputChange("email", e.target.value)
-								}
-								disabled={isLoading}
-								placeholder="أدخل بريدك الإلكتروني"
-							/>
+							<div className="relative">
+								<input
+									id="email"
+									name="email"
+									type="email"
+									autoComplete="email"
+									required
+									value={email}
+									onChange={(e) =>
+										handleInputChange(
+											"email",
+											e.target.value
+										)
+									}
+									className={cn(
+										"block w-full rounded-xl border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all",
+										emailError &&
+											"ring-red-300 focus:ring-red-500"
+									)}
+								/>
+							</div>
 							{emailError && (
-								<p className="text-red-500 text-xs mt-1">
+								<p className="mt-2 text-sm text-red-600">
 									{emailError}
 								</p>
 							)}
 						</div>
 
-						{/* كلمة المرور */}
 						<div>
 							<label
 								htmlFor="password"
-								className="font-semibold text-xs sm:text-sm text-gray-600 pb-1 block"
+								className="block text-sm font-medium leading-6 text-gray-900 mb-2"
 							>
 								كلمة المرور
 							</label>
 							<div className="relative">
 								<input
-									className="border rounded-lg px-3 py-2 mt-1 text-xs sm:text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300 pr-10"
-									type={showPassword ? "text" : "password"}
 									id="password"
+									name="password"
+									type={showPassword ? "text" : "password"}
+									autoComplete="current-password"
+									required
 									value={password}
 									onChange={(e) =>
 										handleInputChange(
@@ -323,129 +305,153 @@ export default function LoginForm() {
 											e.target.value
 										)
 									}
-									disabled={isLoading}
-									placeholder="أدخل كلمة المرور"
+									className="block w-full rounded-xl border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6 transition-all"
 								/>
 								<button
 									type="button"
 									onClick={() =>
 										setShowPassword(!showPassword)
 									}
-									className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700"
-									disabled={isLoading}
+									className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 hover:text-gray-600"
 								>
 									{showPassword ? (
-										<EyeClosed
-											size={16}
-											strokeWidth={1.75}
-										/>
+										<EyeClosed size={18} />
 									) : (
-										<Eye size={16} strokeWidth={1.75} />
+										<Eye size={18} />
 									)}
 								</button>
 							</div>
 							{passwordError && (
-								<p className="text-red-500 text-xs mt-1">
+								<p className="mt-2 text-sm text-red-600">
 									{passwordError}
 								</p>
 							)}
 						</div>
 
-						{/* تذكرني ونسيت كلمة المرور */}
 						<div className="flex items-center justify-between">
-							<label className="flex items-center space-x-2 rtl:space-x-reverse">
+							<div className="flex items-center">
 								<input
+									id="remember-me"
+									name="remember-me"
 									type="checkbox"
-									className="accent-purple-500"
 									checked={rememberMe}
 									onChange={handleRememberMeChange}
-									disabled={isLoading}
+									className="h-4 w-4 rounded border-gray-300 text-[#7f2dfb] focus:ring-[#7f2dfb]"
 								/>
-								<span className="text-xs sm:text-sm text-gray-600 mr-1.5">
+								<label
+									htmlFor="remember-me"
+									className="mr-2 block text-sm leading-6 text-gray-900"
+								>
 									تذكرني
-								</span>
-							</label>
+								</label>
+							</div>
+
+							<div className="text-sm leading-6">
+								<button
+									type="button"
+									onClick={() => setShowForgotPassword(true)}
+									className="font-semibold text-[#7f2dfb] hover:text-[#6a1fd8]"
+								>
+									نسيت كلمة المرور؟
+								</button>
+							</div>
+						</div>
+
+						<div>
 							<button
-								type="button"
-								onClick={() => setShowForgotPassword(true)}
-								className="text-xs sm:text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer hover:underline"
+								type="submit"
 								disabled={isLoading}
+								className="flex w-full justify-center rounded-xl bg-[#012d46] px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-[#023b5c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#012d46] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 							>
-								نسيت كلمة المرور ؟
+								{isLoading ? (
+									<div className="flex items-center gap-2">
+										<div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+										<span>جاري الدخول...</span>
+									</div>
+								) : (
+									"تسجيل الدخول"
+								)}
 							</button>
 						</div>
-
-						{/* زر الدخول */}
-						<button
-							type="submit"
-							disabled={isLoading}
-							className={`w-full text-white rounded-lg px-3 py-2.5 text-xs sm:text-sm font-semibold transition duration-100 flex items-center justify-center gap-2 ${
-								isLoading
-									? "bg-gray-400 cursor-not-allowed"
-									: "bg-[#7f2dfb] hover:bg-violet-400"
-							}`}
-						>
-							{isLoading ? (
-								<>
-									<div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-									<span className="text-xs sm:text-sm">
-										جاري الدخول...
-									</span>
-								</>
-							) : (
-								"دخول"
-							)}
-						</button>
-
-						{/* فاصل */}
-
-						{/* رابط إنشاء حساب */}
-						<div className="text-center text-xs sm:text-sm text-muted-foreground pt-2">
-							ليس لديك حساب؟{" "}
-							<Link
-								href="/register"
-								className="underline font-semibold text-black hover:text-purple-600 transition-colors"
-							>
-								أنشئ حساب جديد
-							</Link>
-						</div>
 					</form>
+
+					<p className="mt-10 text-center text-sm text-gray-500">
+						ليس لديك حساب؟{" "}
+						<Link
+							href="/register"
+							className="font-semibold leading-6 text-[#7f2dfb] hover:text-[#6a1fd8]"
+						>
+							ابدأ تجربتك المجانية
+						</Link>
+					</p>
+				</motion.div>
+			</div>
+
+			{/* Left Side - Visuals */}
+			<div className="hidden lg:flex relative flex-1 flex-col justify-center items-center bg-[#0f172a] overflow-hidden">
+				<div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
+				<DotPattern
+					width={32}
+					height={32}
+					glow={true}
+					className="[mask-image:linear-gradient(to_bottom,white,transparent)] opacity-30"
+				/>
+
+				<div className="relative z-10 w-full max-w-xl px-10">
+					<motion.div
+						initial={{ opacity: 0, y: 40 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.8, delay: 0.2 }}
+					>
+						<blockquote className="text-2xl font-medium leading-relaxed text-white text-center">
+							&quot;بيلفورا غيّر طريقة تعاملي مع الفواتير تماماً.
+							كنت أقضي ساعات كل شهر في إعدادها، الآن تأخذ مني
+							دقائق معدودة.&quot;
+						</blockquote>
+						<div className="mt-8 flex flex-col items-center gap-4">
+							<img
+								className="h-16 w-16 rounded-full border-2 border-white/20 object-cover"
+								src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+								alt="Abdullah Al-Otaibi"
+							/>
+							<div className="text-center">
+								<div className="text-base font-semibold text-white">
+									عبدالله العتيبي
+								</div>
+								<div className="text-sm text-gray-400">
+									مصمم جرافيك مستقل
+								</div>
+							</div>
+						</div>
+					</motion.div>
 				</div>
 			</div>
 
 			{/* Forgot Password Modal */}
 			{showForgotPassword && (
-				<div className="fixed inset-0 bg-gradient-to-t from-[#cc15ff3d] to-[#fff] bg-opacity-90 flex items-center justify-center p-4 z-50">
-					<DotPattern
-						width={16}
-						height={16}
-						glow={true}
-						className={cn(
-							"absolute inset-0 [mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]"
-						)}
-					/>
-					<div className="bg-white rounded-2xl p-6 w-full max-w-md relative z-10 shadow-2xl">
+				<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+					<motion.div
+						initial={{ opacity: 0, scale: 0.95 }}
+						animate={{ opacity: 1, scale: 1 }}
+						className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl relative"
+					>
 						{!resetSuccess ? (
 							<>
-								<h2 className="text-xl font-bold text-center mb-4">
-									إعادة تعيين كلمة المرور
+								<h2 className="text-2xl font-bold text-gray-900 mb-2">
+									استعادة كلمة المرور
 								</h2>
-								<p className="text-sm text-gray-600 text-center mb-6">
-									أدخل بريدك الإلكتروني وسنرسل لك رابط لإعادة
-									تعيين كلمة المرور
+								<p className="text-gray-500 mb-6">
+									أدخل بريدك الإلكتروني وسنرسل لك تعليمات
+									استعادة كلمة المرور.
 								</p>
 
 								<form onSubmit={handleForgotPassword}>
-									<div className="mb-4">
-										<label
-											htmlFor="resetEmail"
-											className="font-semibold text-sm text-gray-600 pb-1 block"
-										>
+									<div className="mb-6">
+										<label className="block text-sm font-medium text-gray-700 mb-2">
 											البريد الإلكتروني
 										</label>
 										<input
 											type="email"
-											id="resetEmail"
 											value={resetEmail}
 											onChange={(e) =>
 												handleInputChange(
@@ -453,12 +459,12 @@ export default function LoginForm() {
 													e.target.value
 												)
 											}
-											className="border rounded-lg px-3 py-2 mt-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
-											placeholder="أدخل بريدك الإلكتروني"
+											className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] sm:text-sm py-3 px-4"
+											placeholder="name@example.com"
 											disabled={isResetting}
 										/>
 										{resetEmailError && (
-											<p className="text-red-500 text-xs mt-1">
+											<p className="mt-2 text-sm text-red-600">
 												{resetEmailError}
 											</p>
 										)}
@@ -470,21 +476,15 @@ export default function LoginForm() {
 											onClick={() => {
 												setShowForgotPassword(false);
 												setResetEmail("");
-												setResetEmailError("");
 											}}
-											className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-											disabled={isResetting}
+											className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
 										>
 											إلغاء
 										</button>
 										<button
 											type="submit"
 											disabled={isResetting}
-											className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white ${
-												isResetting
-													? "bg-gray-400 cursor-not-allowed"
-													: "bg-purple-600 hover:bg-purple-700"
-											}`}
+											className="flex-1 px-4 py-3 bg-[#7f2dfb] text-white rounded-xl text-sm font-medium hover:bg-[#6a1fd8] transition-colors disabled:opacity-70"
 										>
 											{isResetting
 												? "جاري الإرسال..."
@@ -494,44 +494,30 @@ export default function LoginForm() {
 								</form>
 							</>
 						) : (
-							<div className="text-center">
+							<div className="text-center py-4">
 								<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-									<svg
-										className="w-8 h-8 text-green-600"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M5 13l4 4L19 7"
-										/>
-									</svg>
+									<Check className="w-8 h-8 text-green-600" />
 								</div>
-								<h2 className="text-xl font-bold text-green-600 mb-2">
+								<h2 className="text-xl font-bold text-gray-900 mb-2">
 									تم إرسال الرابط!
 								</h2>
-								<p className="text-sm text-gray-600 mb-6">
-									تم إرسال رابط إعادة تعيين كلمة المرور إلى
-									بريدك الإلكتروني. تحقق من صندوق الوارد أو
-									مجلد الرسائل المهملة.
+								<p className="text-gray-500 mb-8">
+									تفقد بريدك الإلكتروني للحصول على رابط
+									استعادة كلمة المرور.
 								</p>
 								<button
 									onClick={() => {
 										setShowForgotPassword(false);
-										setResetEmail("");
-										setResetEmailError("");
 										setResetSuccess(false);
+										setResetEmail("");
 									}}
-									className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
+									className="w-full px-4 py-3 bg-[#7f2dfb] text-white rounded-xl text-sm font-medium hover:bg-[#6a1fd8] transition-colors"
 								>
-									حسناً
+									حسناً، فهمت
 								</button>
 							</div>
 						)}
-					</div>
+					</motion.div>
 				</div>
 			)}
 		</div>

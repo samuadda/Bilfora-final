@@ -5,7 +5,6 @@ import {
 	useContext,
 	createContext,
 	useEffect,
-	ReactNode,
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -27,7 +26,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 // Sidebar Context
 interface SidebarContextType {
@@ -111,7 +111,7 @@ export default function Sidebar() {
 			{/* Mobile Toggle Button */}
 			<button
 				onClick={toggleMobileMenu}
-				className="fixed top-4 right-4 z-50 md:hidden bg-white p-2 rounded-lg shadow-lg"
+				className="fixed top-4 right-4 z-50 md:hidden bg-white/80 backdrop-blur-md p-2.5 rounded-xl shadow-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
 			>
 				<Menu size={24} />
 			</button>
@@ -119,48 +119,68 @@ export default function Sidebar() {
 			<motion.aside
 				initial={{ x: 0 }}
 				animate={{
-					width: isCollapsed ? 64 : 256,
-					transition: { duration: 0.25, ease: "easeInOut" },
+					width: isCollapsed ? 80 : 280,
+					transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
 				}}
-				className={`fixed top-0 right-0 h-screen bg-white border-l shadow-lg flex flex-col z-40
-					${isMobileMenuOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"}
-					transition-all duration-300 ease-in-out`}
+				className={cn(
+					"fixed top-0 right-0 h-screen bg-white/90 backdrop-blur-xl border-l border-gray-200/50 shadow-2xl flex flex-col z-40",
+					isMobileMenuOpen ? "translate-x-0" : "translate-x-full md:translate-x-0",
+					"transition-transform duration-300 ease-in-out"
+				)}
 			>
 				{/* Logo & Collapse */}
-				<div className="p-4 border-b flex items-center justify-between">
-					{isCollapsed ? (
-						<Image
-							src="/logo-symbol.svg"
-							alt="Bilfora"
-							width={32}
-							height={32}
-							priority
-							className="mx-auto"
-						/>
-					) : (
-						<Image
-							src="/logo-full.svg"
-							alt="Bilfora"
-							width={120}
-							height={40}
-							priority
-						/>
-					)}
-					<button
-						onClick={toggleSidebar}
-						className="p-1 rounded-lg hover:bg-gray-100 hidden md:block"
-						title={isCollapsed ? "توسيع" : "تصغير"}
-					>
+				<div className={cn("p-6 border-b border-gray-100 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+					<div className={cn("transition-all duration-300 flex justify-center", isCollapsed ? "w-full" : "w-auto")}>
 						{isCollapsed ? (
-							<ChevronLeft size={20} />
+                            <button 
+                                onClick={toggleSidebar}
+                                className="flex flex-col items-center gap-1 group w-full"
+                                title="توسيع القائمة"
+                            >
+                                <Image
+                                    src="/symbol-shadowNoBg.png"
+                                    alt="Bilfora"
+                                    width={40}
+                                    height={40}
+                                    priority
+                                    className="w-10 h-10 object-contain drop-shadow-md"
+                                />
+                                <ChevronLeft size={14} className="text-gray-400 group-hover:text-[#7f2dfb] transition-colors animate-pulse" />
+                            </button>
 						) : (
-							<ChevronRight size={20} />
+                            <Link href="/dashboard">
+                                <Image
+                                    src="/logoPNG.png"
+                                    alt="Bilfora"
+                                    width={140}
+                                    height={45}
+                                    priority
+                                    className="w-32 h-auto object-contain"
+                                />
+                            </Link>
 						)}
-					</button>
+					</div>
+					{!isCollapsed && (
+						<button
+							onClick={toggleSidebar}
+							className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-[#7f2dfb] transition-all duration-200 hidden md:block"
+                            title="تصغير القائمة"
+						>
+							<ChevronRight size={20} />
+						</button>
+					)}
 				</div>
 
 				{/* Main Navigation */}
-				<nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+				<nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto scrollbar-hide">
+					{/* Mobile collapse button removed as standard pattern is overlay for mobile */}
+					
+                    {!isCollapsed && (
+                        <div className="px-4 mb-2 mt-2">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">القائمة الرئيسية</p>
+                        </div>
+                    )}
+
 					{DASHBOARD_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
 						const active =
 							pathname === href ||
@@ -170,30 +190,51 @@ export default function Sidebar() {
 							<Link
 								key={href}
 								href={href}
-								onClick={() => setIsMobileMenuOpen(false)} // ✅ auto close on mobile
-								className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+								onClick={() => setIsMobileMenuOpen(false)}
+								className={cn(
+									"group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
 									active
-										? "bg-purple-100 text-purple-700 font-semibold"
-										: "text-gray-700 hover:bg-gray-100"
-								}`}
+										? "bg-gradient-to-l from-[#7f2dfb]/10 to-transparent text-[#7f2dfb]"
+										: "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+								)}
 							>
-								<div className="relative group">
-									<Icon size={18} />
-									{isCollapsed && (
-										<span className="absolute right-9 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs rounded-md px-2 py-1 opacity-0 group-hover:opacity-100 whitespace-nowrap">
-											{label}
-										</span>
-									)}
+								{active && (
+									<motion.div
+										layoutId="activeTab"
+										className="absolute right-0 top-0 bottom-0 w-1 bg-[#7f2dfb] rounded-l-full"
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										exit={{ opacity: 0 }}
+									/>
+								)}
+								<div className={cn("relative z-10 transition-transform duration-200", active ? "scale-110" : "group-hover:scale-110")}>
+									<Icon size={isCollapsed ? 24 : 20} strokeWidth={active ? 2.5 : 2} />
 								</div>
-								{!isCollapsed && <span>{label}</span>}
+								
+								{!isCollapsed && (
+									<span className="z-10">{label}</span>
+								)}
+
+								{/* Tooltip for collapsed state */}
+								{isCollapsed && (
+									<div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs font-medium py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl z-50">
+										{label}
+										<div className="absolute -right-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900" />
+									</div>
+								)}
 							</Link>
 						);
 					})}
-				</nav>
 
-				{/* Bottom Navigation */}
-				<div className="border-t px-2 py-4 space-y-1">
-					{bottomNavItems.map(({ href, label, icon: Icon }) => {
+                    <div className={cn("my-4 border-t border-gray-100", isCollapsed ? "mx-2" : "mx-4")} />
+
+                    {!isCollapsed && (
+                        <div className="px-4 mb-2">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">الإعدادات والدعم</p>
+                        </div>
+                    )}
+
+                    {bottomNavItems.map(({ href, label, icon: Icon }) => {
 						const active =
 							pathname === href ||
 							pathname.startsWith(href + "/");
@@ -201,88 +242,134 @@ export default function Sidebar() {
 							<Link
 								key={href}
 								href={href}
-								onClick={() => setIsMobileMenuOpen(false)} // ✅ auto close on mobile
-								className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+								onClick={() => setIsMobileMenuOpen(false)}
+								className={cn(
+									"group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
 									active
-										? "bg-gray-100 text-gray-900 font-semibold"
-										: "text-gray-700 hover:bg-gray-50"
-								}`}
+										? "bg-gradient-to-l from-[#7f2dfb]/10 to-transparent text-[#7f2dfb]"
+										: "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+								)}
 							>
-								<div className="relative group">
-									<Icon size={18} />
-									{isCollapsed && (
-										<span className="absolute right-9 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs rounded-md px-2 py-1 opacity-0 group-hover:opacity-100 whitespace-nowrap">
-											{label}
-										</span>
-									)}
+                                {active && (
+									<motion.div
+										layoutId="activeTabBottom"
+										className="absolute right-0 top-0 bottom-0 w-1 bg-[#7f2dfb] rounded-l-full"
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										exit={{ opacity: 0 }}
+									/>
+								)}
+								<div className={cn("relative z-10 transition-transform duration-200", active ? "scale-110" : "group-hover:scale-110")}>
+									<Icon size={isCollapsed ? 22 : 18} strokeWidth={active ? 2.5 : 2} />
 								</div>
-								{!isCollapsed && <span>{label}</span>}
+								
+								{!isCollapsed && (
+									<span className="z-10">{label}</span>
+								)}
+
+								{/* Tooltip */}
+								{isCollapsed && (
+									<div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs font-medium py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl z-50">
+										{label}
+										<div className="absolute -right-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900" />
+									</div>
+								)}
 							</Link>
 						);
 					})}
+				</nav>
 
+				{/* Footer Actions */}
+				<div className="border-t border-gray-100 px-4 py-4 bg-gray-50/30 mt-auto">
 					{/* Logout */}
 					<button
 						onClick={() => setIsLogoutOpen(true)}
-						className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors mt-2"
-						title={isCollapsed ? "تسجيل الخروج" : ""}
+						className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200"
 					>
-						<LogOut size={18} />
+						<div className="relative z-10 group-hover:scale-110 transition-transform duration-200">
+							<LogOut size={isCollapsed ? 22 : 18} />
+						</div>
 						{!isCollapsed && <span>تسجيل الخروج</span>}
+						
+						{isCollapsed && (
+							<div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-red-900 text-white text-xs font-medium py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl z-50">
+								تسجيل الخروج
+								<div className="absolute -right-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-l-red-900" />
+							</div>
+						)}
 					</button>
 				</div>
 			</motion.aside>
 
 			{/* Mobile Overlay */}
-			{isMobileMenuOpen && (
-				<div
-					className="fixed inset-0 backdrop-blur-md bg-black/20 z-30 md:hidden"
-					onClick={toggleMobileMenu}
-				/>
-			)}
+			<AnimatePresence>
+				{isMobileMenuOpen && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 backdrop-blur-sm bg-black/40 z-30 md:hidden"
+						onClick={toggleMobileMenu}
+					/>
+				)}
+			</AnimatePresence>
 
 			{/* Logout Modal */}
-			<div
-				className={`fixed inset-0 z-50 flex items-center justify-center ${
-					isLogoutOpen ? "" : "pointer-events-none"
-				}`}
-			>
-				<div
-					className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-200 ${
-						isLogoutOpen ? "opacity-100" : "opacity-0"
-					}`}
-					onClick={() => setIsLogoutOpen(false)}
-				/>
-				<div
-					className={`relative bg-white w-[90%] max-w-sm rounded-2xl shadow-xl border p-5 transform transition-all duration-200 ease-out ${
-						isLogoutOpen
-							? "opacity-100 scale-100 translate-y-0"
-							: "opacity-0 scale-95 translate-y-2"
-					}`}
-				>
-					<h3 className="text-lg font-semibold text-gray-900 mb-1">
-						تأكيد تسجيل الخروج
-					</h3>
-					<p className="text-sm text-gray-600 mb-4">
-						هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟
-					</p>
-					<div className="flex items-center justify-end gap-2">
-						<button
+			<AnimatePresence>
+				{isLogoutOpen && (
+					<div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className="absolute inset-0 bg-black/40 backdrop-blur-sm"
 							onClick={() => setIsLogoutOpen(false)}
-							className="px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
+						/>
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95, y: 10 }}
+							animate={{ opacity: 1, scale: 1, y: 0 }}
+							exit={{ opacity: 0, scale: 0.95, y: 10 }}
+							className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 overflow-hidden"
 						>
-							إلغاء
-						</button>
-						<button
-							onClick={confirmLogout}
-							disabled={isLoggingOut}
-							className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-60"
-						>
-							{isLoggingOut ? "جاري الخروج…" : "تسجيل الخروج"}
-						</button>
+							<div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-red-500 to-orange-500" />
+							
+							<div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6 mx-auto">
+								<LogOut className="text-red-500 w-8 h-8 ml-1" />
+							</div>
+
+							<h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+								هل تود المغادرة؟
+							</h3>
+							<p className="text-gray-500 text-center mb-8 leading-relaxed">
+								سيتم تسجيل خروجك من حسابك في بيلفورا. يمكنك دائمًا العودة لاحقًا.
+							</p>
+
+							<div className="flex items-center gap-3">
+								<button
+									onClick={() => setIsLogoutOpen(false)}
+									className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all"
+								>
+									البقاء
+								</button>
+								<button
+									onClick={confirmLogout}
+									disabled={isLoggingOut}
+									className="flex-1 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 shadow-lg shadow-red-200 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+								>
+									{isLoggingOut ? (
+										<div className="flex items-center justify-center gap-2">
+											<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+											<span>جاري الخروج...</span>
+										</div>
+									) : (
+										"تسجيل الخروج"
+									)}
+								</button>
+							</div>
+						</motion.div>
 					</div>
-				</div>
-			</div>
+				)}
+			</AnimatePresence>
 		</>
 	);
 }
