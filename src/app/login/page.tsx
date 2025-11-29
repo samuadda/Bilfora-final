@@ -93,10 +93,20 @@ export default function LoginForm() {
 		setGeneralError("");
 
 		try {
-			const { error } = await supabase.auth.signInWithPassword({
+			// Add timeout wrapper for login request
+			const loginPromise = supabase.auth.signInWithPassword({
 				email,
 				password,
 			});
+			
+			const timeoutPromise = new Promise((_, reject) =>
+				setTimeout(() => reject(new Error("Connection timeout")), 15000)
+			);
+
+			const { data, error } = await Promise.race([
+				loginPromise,
+				timeoutPromise,
+			]) as any;
 
 			// Set session persistence based on remember me checkbox
 			if (!error && rememberMe) {
@@ -107,7 +117,13 @@ export default function LoginForm() {
 
 			if (error) {
 				let errorMessage = error.message;
-				if (error.message.includes("Invalid login credentials")) {
+				
+				// Handle network errors
+				if (error.message.includes("Failed to fetch") || 
+					error.message.includes("NetworkError") ||
+					error.message.includes("fetch failed")) {
+					errorMessage = "فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+				} else if (error.message.includes("Invalid login credentials")) {
 					errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
 				} else if (error.message.includes("Email not confirmed")) {
 					errorMessage =
@@ -126,9 +142,26 @@ export default function LoginForm() {
 			setTimeout(() => {
 				router.push("/dashboard");
 			}, 1000);
-		} catch (error) {
+		} catch (error: any) {
 			console.error("Login Error:", error);
-			setGeneralError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
+			
+			// Handle network/fetch errors in catch block
+			let errorMessage = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
+			
+			if (
+				error?.message?.includes("Failed to fetch") || 
+				error?.message?.includes("NetworkError") ||
+				error?.message?.includes("fetch failed") ||
+				error?.message?.includes("timeout") ||
+				error?.message?.includes("Connection timeout") ||
+				error?.message?.includes("ERR_CONNECTION_TIMED_OUT") ||
+				error?.name === "TypeError" ||
+				error?.name === "ConnectionTimeout"
+			) {
+				errorMessage = "فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+			}
+			
+			setGeneralError(errorMessage);
 		} finally {
 			setIsLoading(false);
 		}

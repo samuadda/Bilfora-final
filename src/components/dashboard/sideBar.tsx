@@ -28,6 +28,7 @@ import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 
 // Sidebar Context
 interface SidebarContextType {
@@ -53,6 +54,8 @@ export default function Sidebar() {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [hoveredItem, setHoveredItem] = useState<{ label: string; top: number } | null>(null);
+    const [mounted, setMounted] = useState(false);
 	const pathname = usePathname();
 	const router = useRouter();
 
@@ -60,10 +63,12 @@ export default function Sidebar() {
 	useEffect(() => {
 		const saved = localStorage.getItem("sidebar-collapsed");
 		if (saved) setIsCollapsed(saved === "true");
+        setMounted(true);
 	}, []);
 
 	useEffect(() => {
 		localStorage.setItem("sidebar-collapsed", String(isCollapsed));
+        if (!isCollapsed) setHoveredItem(null);
 	}, [isCollapsed]);
 
 	// 🔒 Logout
@@ -81,6 +86,17 @@ export default function Sidebar() {
 
 	const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 	const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+    const handleHover = (e: React.MouseEvent<HTMLElement>, label: string) => {
+		if (isCollapsed) {
+			const rect = e.currentTarget.getBoundingClientRect();
+			setHoveredItem({ label, top: rect.top + rect.height / 2 });
+		}
+	};
+
+	const handleLeave = () => {
+		setHoveredItem(null);
+	};
 
 	const DASHBOARD_NAV_ITEMS = [
 		{ href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -173,8 +189,6 @@ export default function Sidebar() {
 
 				{/* Main Navigation */}
 				<nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto scrollbar-hide">
-					{/* Mobile collapse button removed as standard pattern is overlay for mobile */}
-					
                     {!isCollapsed && (
                         <div className="px-4 mb-2 mt-2">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">القائمة الرئيسية</p>
@@ -191,6 +205,8 @@ export default function Sidebar() {
 								key={href}
 								href={href}
 								onClick={() => setIsMobileMenuOpen(false)}
+                                onMouseEnter={(e) => handleHover(e, label)}
+                                onMouseLeave={handleLeave}
 								className={cn(
 									"group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
 									active
@@ -214,14 +230,6 @@ export default function Sidebar() {
 								{!isCollapsed && (
 									<span className="z-10">{label}</span>
 								)}
-
-								{/* Tooltip for collapsed state */}
-								{isCollapsed && (
-									<div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs font-medium py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl z-50">
-										{label}
-										<div className="absolute -right-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900" />
-									</div>
-								)}
 							</Link>
 						);
 					})}
@@ -243,6 +251,8 @@ export default function Sidebar() {
 								key={href}
 								href={href}
 								onClick={() => setIsMobileMenuOpen(false)}
+                                onMouseEnter={(e) => handleHover(e, label)}
+                                onMouseLeave={handleLeave}
 								className={cn(
 									"group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
 									active
@@ -266,14 +276,6 @@ export default function Sidebar() {
 								{!isCollapsed && (
 									<span className="z-10">{label}</span>
 								)}
-
-								{/* Tooltip */}
-								{isCollapsed && (
-									<div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs font-medium py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl z-50">
-										{label}
-										<div className="absolute -right-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900" />
-									</div>
-								)}
 							</Link>
 						);
 					})}
@@ -284,19 +286,14 @@ export default function Sidebar() {
 					{/* Logout */}
 					<button
 						onClick={() => setIsLogoutOpen(true)}
+                        onMouseEnter={(e) => handleHover(e, "تسجيل الخروج")}
+                        onMouseLeave={handleLeave}
 						className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200"
 					>
 						<div className="relative z-10 group-hover:scale-110 transition-transform duration-200">
 							<LogOut size={isCollapsed ? 22 : 18} />
 						</div>
 						{!isCollapsed && <span>تسجيل الخروج</span>}
-						
-						{isCollapsed && (
-							<div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-red-900 text-white text-xs font-medium py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl z-50">
-								تسجيل الخروج
-								<div className="absolute -right-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-l-red-900" />
-							</div>
-						)}
 					</button>
 				</div>
 			</motion.aside>
@@ -313,6 +310,35 @@ export default function Sidebar() {
 					/>
 				)}
 			</AnimatePresence>
+
+            {/* Floating Tooltip Portal */}
+            {mounted && createPortal(
+                <AnimatePresence>
+                    {isCollapsed && hoveredItem && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 10, scale: 0.9 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: 5, scale: 0.9 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            style={{
+                                top: hoveredItem.top,
+                                position: "fixed",
+                                right: "96px", // Sidebar (80) + Gap (16)
+                                transform: "translateY(-50%)",
+                                zIndex: 9999,
+                            }}
+                            className="pointer-events-none flex items-center"
+                        >
+                            <div className="bg-gray-900/95 backdrop-blur-sm text-white text-sm font-medium px-3 py-2 rounded-lg shadow-xl whitespace-nowrap relative">
+                                {hoveredItem.label}
+                                {/* Right pointing triangle (points to sidebar) */}
+                                <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900/95"></div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
 
 			{/* Logout Modal */}
 			<AnimatePresence>

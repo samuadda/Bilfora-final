@@ -68,9 +68,9 @@ export default function InvoicesLayout({
 					</div>
 					<button
 						onClick={openInvoiceModal}
-						className="inline-flex items-center gap-2 rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
+						className="inline-flex items-center gap-2 rounded-xl bg-[#7f2dfb] text-white px-4 py-2 text-sm font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
 					>
-						<Plus size={16} />
+						<Plus size={16} strokeWidth={2.5} />
 						<span>فاتورة جديدة</span>
 					</button>
 				</div>

@@ -16,7 +16,7 @@ import {
 	DialogTitle,
 	DialogDescription,
 } from "@/components/dialog";
-import { Eye, EyeClosed, ArrowLeft, Check, Smartphone, Laptop } from "lucide-react";
+import { Eye, EyeClosed, ArrowLeft, Check, Smartphone, Laptop, ChevronDown } from "lucide-react";
 
 const Form = () => {
 	const [formData, setFormData] = useState({
@@ -380,17 +380,20 @@ const Form = () => {
 								>
 									نوع الحساب
 								</label>
-								<select
-									name="gender"
-									id="gender"
-									value={formData.gender}
-									onChange={handleChange}
-									className="block w-full rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6"
-								>
-									<option value="male">فرد (ذكر)</option>
-									<option value="female">فرد (أنثى)</option>
-									<option value="institute">منشأة / شركة</option>
-								</select>
+								<div className="relative">
+									<select
+										name="gender"
+										id="gender"
+										value={formData.gender}
+										onChange={handleChange}
+										className="block w-full appearance-none rounded-xl border-0 py-2.5 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-[#7f2dfb] sm:text-sm sm:leading-6"
+									>
+										<option value="male">فرد (ذكر)</option>
+										<option value="female">فرد (أنثى)</option>
+										<option value="institute">منشأة / شركة</option>
+									</select>
+									<ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+								</div>
 							</div>
 						</div>
 

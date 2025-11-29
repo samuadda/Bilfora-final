@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, AlertCircle, Trash2, Plus, X } from "lucide-react";
+import { Loader2, AlertCircle, Trash2, Plus, X, Calendar, User, FileText, Percent, Info, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
 	Client,
@@ -11,6 +11,8 @@ import {
 	CreateInvoiceItemInput,
 	Product,
 } from "@/types/database";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface InvoiceCreationModalProps {
 	isOpen: boolean;
@@ -40,6 +42,7 @@ export default function InvoiceCreationModal({
 		notes: z.string().optional(),
 		items: z.array(itemSchema).min(1, "يجب إضافة عنصر واحد على الأقل"),
 	});
+
 	// Modal state
 	const [clients, setClients] = useState<Client[]>([]);
 	const [products, setProducts] = useState<Product[]>([]);
@@ -284,9 +287,9 @@ export default function InvoiceCreationModal({
 				.insert({
 					user_id: user.id,
 					client_id: invoiceFormData.client_id,
-					order_id: null, // no orders usage
-					issue_date: invoiceFormData.issue_date, // YYYY-MM-DD
-					due_date: invoiceFormData.due_date, // YYYY-MM-DD
+					order_id: null,
+					issue_date: invoiceFormData.issue_date,
+					due_date: invoiceFormData.due_date,
 					status: invoiceFormData.status,
 					tax_rate: Number(invoiceFormData.tax_rate) || 0,
 					invoice_number: generateInvoiceNumber(),
@@ -297,7 +300,6 @@ export default function InvoiceCreationModal({
 
 			if (invoiceError) {
 				console.error("Error creating invoice:", invoiceError);
-				// Show detailed DB message if available
 				const msg =
 					invoiceError?.message ||
 					invoiceError?.details ||
@@ -310,7 +312,6 @@ export default function InvoiceCreationModal({
 				return;
 			}
 
-			// Create invoice items (total is required by schema)
 			const itemsToInsert = invoiceFormData.items.map((item) => {
 				const quantity = Number(item.quantity) || 0;
 				const unit_price = Number(item.unit_price) || 0;
@@ -339,7 +340,6 @@ export default function InvoiceCreationModal({
 				return;
 			}
 
-			// Update totals (in case trigger latency)
 			try {
 				await supabase.rpc("recalc_invoice_totals", {
 					inv_id: invoiceData.id,
@@ -366,11 +366,9 @@ export default function InvoiceCreationModal({
 		}
 	};
 
-	// New customer functions
 	const toggleNewCustomerForm = () => {
 		setShowNewCustomerForm(!showNewCustomerForm);
 		if (showNewCustomerForm) {
-			// Reset new customer form when hiding
 			setNewCustomerData({
 				name: "",
 				email: "",
@@ -397,13 +395,11 @@ export default function InvoiceCreationModal({
 			} = await supabase.auth.getUser();
 			if (!user) return;
 
-			// Validate required fields
 			if (!newCustomerData.name || !newCustomerData.email) {
 				setError("الاسم والبريد الإلكتروني مطلوبان");
 				return;
 			}
 
-			// Create new customer
 			const { data: customerData, error: customerError } = await supabase
 				.from("clients")
 				.insert({
@@ -423,14 +419,12 @@ export default function InvoiceCreationModal({
 				return;
 			}
 
-			// Add new customer to clients list and select it
 			setClients((prev) => [...prev, customerData]);
 			setInvoiceFormData((prev) => ({
 				...prev,
 				client_id: customerData.id,
 			}));
 
-			// Hide new customer form and reset
 			setShowNewCustomerForm(false);
 			setNewCustomerData({
 				name: "",
@@ -444,481 +438,402 @@ export default function InvoiceCreationModal({
 		}
 	};
 
-	// closeModal moved above and memoized
-
 	const formatCurrency = (amount: number) =>
-		new Intl.NumberFormat("ar-SA", {
+		new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency: "SAR",
+            maximumFractionDigits: 2,
 		}).format(amount);
 
-	if (!isOpen) return null;
-
 	return (
-		<div
-			className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center p-4 z-50"
-			onClick={(e) => {
-				if (e.target === e.currentTarget) {
-					closeModal();
-				}
-			}}
-		>
-			<div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl">
-				{/* Fixed Header */}
-				<div className="flex items-center justify-between p-6 border-b border-gray-200">
-					<h2 className="text-xl font-bold text-right">
-						إنشاء فاتورة جديدة
-					</h2>
-					<button
-						onClick={closeModal}
-						className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-					>
-						<X size={20} />
-					</button>
-				</div>
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                        onClick={closeModal}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl z-10 overflow-hidden"
+                    >
+                        {/* Fixed Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">إنشاء فاتورة جديدة</h2>
+                                <p className="text-gray-500 text-sm mt-1">قم بتعبئة التفاصيل أدناه لإنشاء فاتورة جديدة</p>
+                            </div>
+                            <button
+                                onClick={closeModal}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
 
-				{/* Error Display */}
-				{error && (
-					<div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-						<AlertCircle size={16} className="text-red-600" />
-						<span className="text-red-700 text-sm">{error}</span>
-					</div>
-				)}
+                        {/* Error Display */}
+                        {error && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="mx-6 mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3"
+                            >
+                                <AlertCircle size={20} className="text-red-600" />
+                                <span className="text-red-700 font-medium">{error}</span>
+                            </motion.div>
+                        )}
 
-				{/* Scrollable Body */}
-				<div className="flex-1 overflow-y-auto p-6">
-					<form onSubmit={handleInvoiceSubmit} className="space-y-6">
-						{/* Customer Selection */}
-						<div className="space-y-4">
-							<div className="flex items-center justify-between">
-								<label className="block text-sm font-medium text-gray-700 text-right">
-									العميل *
-								</label>
-								<button
-									type="button"
-									onClick={toggleNewCustomerForm}
-									className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-								>
-									{showNewCustomerForm
-										? "اختيار عميل موجود"
-										: "إضافة عميل جديد"}
-								</button>
-							</div>
+                        {/* Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+                            <form onSubmit={handleInvoiceSubmit} className="space-y-8">
+                                {/* Customer Selection Section */}
+                                <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                                            <User size={20} className="text-[#7f2dfb]" />
+                                            <h3>بيانات العميل</h3>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={toggleNewCustomerForm}
+                                            className="text-[#7f2dfb] hover:text-[#6a25d1] text-sm font-medium transition-colors"
+                                        >
+                                            {showNewCustomerForm ? "اختيار عميل موجود" : "+ عميل جديد"}
+                                        </button>
+                                    </div>
 
-							{!showNewCustomerForm ? (
-								<select
-									name="client_id"
-									value={invoiceFormData.client_id}
-									onChange={handleInvoiceInputChange}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									required
-								>
-									<option value="">اختر العميل</option>
-									{clients.map((client) => (
-										<option
-											key={client.id}
-											value={client.id}
-										>
-											{client.name} - {client.email}
-										</option>
-									))}
-								</select>
-							) : (
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl">
-									<div>
-										<label className="block text-sm text-gray-600 mb-1 text-right">
-											اسم العميل *
-										</label>
-										<input
-											name="name"
-											value={newCustomerData.name}
-											onChange={handleNewCustomerChange}
-											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-											required
-										/>
-									</div>
-									<div>
-										<label className="block text-sm text-gray-600 mb-1 text-right">
-											البريد الإلكتروني *
-										</label>
-										<input
-											name="email"
-											type="email"
-											value={newCustomerData.email}
-											onChange={handleNewCustomerChange}
-											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-											required
-										/>
-									</div>
-									<div>
-										<label className="block text-sm text-gray-600 mb-1 text-right">
-											رقم الهاتف
-										</label>
-										<input
-											name="phone"
-											value={newCustomerData.phone}
-											onChange={handleNewCustomerChange}
-											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-											placeholder="05xxxxxxxx"
-										/>
-									</div>
-									<div>
-										<label className="block text-sm text-gray-600 mb-1 text-right">
-											اسم الشركة
-										</label>
-										<input
-											name="company_name"
-											value={newCustomerData.company_name}
-											onChange={handleNewCustomerChange}
-											className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-										/>
-									</div>
-									<div className="md:col-span-2 flex justify-end">
-										<button
-											type="button"
-											onClick={handleCreateNewCustomer}
-											className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700"
-										>
-											إنشاء العميل
-										</button>
-									</div>
-								</div>
-							)}
-						</div>
+                                    {!showNewCustomerForm ? (
+                                        <div className="relative">
+                                            <select
+                                                name="client_id"
+                                                value={invoiceFormData.client_id}
+                                                onChange={handleInvoiceInputChange}
+                                                className="w-full appearance-none rounded-xl border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all bg-white"
+                                                required
+                                            >
+                                                <option value="">اختر العميل</option>
+                                                {clients.map((client) => (
+                                                    <option key={client.id} value={client.id}>
+                                                        {client.name} {client.company_name ? `(${client.company_name})` : ""}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                        </div>
+                                    ) : (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm"
+                                        >
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-medium text-gray-500">اسم العميل *</label>
+                                                <input
+                                                    name="name"
+                                                    value={newCustomerData.name}
+                                                    onChange={handleNewCustomerChange}
+                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                    placeholder="الاسم الكامل"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-medium text-gray-500">البريد الإلكتروني *</label>
+                                                <input
+                                                    name="email"
+                                                    type="email"
+                                                    value={newCustomerData.email}
+                                                    onChange={handleNewCustomerChange}
+                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                    placeholder="example@domain.com"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-medium text-gray-500">رقم الهاتف</label>
+                                                <input
+                                                    name="phone"
+                                                    value={newCustomerData.phone}
+                                                    onChange={handleNewCustomerChange}
+                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                    placeholder="05xxxxxxxx"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-medium text-gray-500">اسم الشركة</label>
+                                                <input
+                                                    name="company_name"
+                                                    value={newCustomerData.company_name}
+                                                    onChange={handleNewCustomerChange}
+                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                    placeholder="اسم الشركة (اختياري)"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2 flex justify-end pt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCreateNewCustomer}
+                                                    className="px-6 py-2 bg-[#7f2dfb] text-white text-sm font-medium rounded-xl hover:bg-[#6a25d1] shadow-lg shadow-purple-200 transition-all"
+                                                >
+                                                    حفظ العميل
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
 
-						{/* Invoice Details */}
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-							{/* Removed order selection; replaced with products on item rows */}
-							<div>
-								<label className="block text-sm text-gray-600 mb-1 text-right">
-									تاريخ الإصدار *
-								</label>
-								<input
-									name="issue_date"
-									type="date"
-									value={invoiceFormData.issue_date}
-									onChange={handleInvoiceInputChange}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									required
-								/>
-							</div>
-							<div>
-								<label className="block text-sm text-gray-600 mb-1 text-right">
-									تاريخ الاستحقاق *
-								</label>
-								<input
-									name="due_date"
-									type="date"
-									value={invoiceFormData.due_date}
-									onChange={handleInvoiceInputChange}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									required
-								/>
-							</div>
-							<div>
-								<label className="block text-sm text-gray-600 mb-1 text-right">
-									الحالة
-								</label>
-								<select
-									name="status"
-									value={invoiceFormData.status}
-									onChange={handleInvoiceInputChange}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-								>
-									<option value="draft">مسودة</option>
-									<option value="sent">مرسلة</option>
-									<option value="paid">مدفوعة</option>
-									<option value="cancelled">ملغية</option>
-								</select>
-							</div>
-							<div>
-								<label className="block text-sm text-gray-600 mb-1 text-right">
-									معدل الضريبة (%)
-								</label>
-								<input
-									name="tax_rate"
-									type="number"
-									min="0"
-									max="100"
-									step="0.01"
-									value={invoiceFormData.tax_rate ?? 0}
-									onChange={handleInvoiceInputChange}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-								/>
-							</div>
-							<div>
-								<label className="block text-sm text-gray-600 mb-1 text-right">
-									ملاحظات
-								</label>
-								<textarea
-									name="notes"
-									value={invoiceFormData.notes ?? ""}
-									onChange={handleInvoiceInputChange}
-									rows={2}
-									className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-									placeholder="ملاحظات إضافية"
-								/>
-							</div>
-						</div>
+                                {/* Invoice Details Section */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <Calendar size={16} className="text-gray-400" />
+                                            تاريخ الإصدار *
+                                        </label>
+                                        <input
+                                            name="issue_date"
+                                            type="date"
+                                            value={invoiceFormData.issue_date}
+                                            onChange={handleInvoiceInputChange}
+                                            className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <Calendar size={16} className="text-gray-400" />
+                                            تاريخ الاستحقاق *
+                                        </label>
+                                        <input
+                                            name="due_date"
+                                            type="date"
+                                            value={invoiceFormData.due_date}
+                                            onChange={handleInvoiceInputChange}
+                                            className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <FileText size={16} className="text-gray-400" />
+                                            الحالة
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="status"
+                                                value={invoiceFormData.status}
+                                                onChange={handleInvoiceInputChange}
+                                                className="w-full appearance-none rounded-xl border-gray-200 px-3 py-2 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm bg-white"
+                                            >
+                                                <option value="draft">مسودة</option>
+                                                <option value="sent">مرسلة</option>
+                                                <option value="paid">مدفوعة</option>
+                                                <option value="cancelled">ملغية</option>
+                                            </select>
+                                            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <Percent size={16} className="text-gray-400" />
+                                            معدل الضريبة (%)
+                                        </label>
+                                        <input
+                                            name="tax_rate"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            value={invoiceFormData.tax_rate ?? 0}
+                                            onChange={handleInvoiceInputChange}
+                                            className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2 space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <Info size={16} className="text-gray-400" />
+                                            ملاحظات
+                                        </label>
+                                        <input
+                                            name="notes"
+                                            value={invoiceFormData.notes ?? ""}
+                                            onChange={handleInvoiceInputChange}
+                                            className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                            placeholder="أي ملاحظات إضافية للفاتورة..."
+                                        />
+                                    </div>
+                                </div>
 
-						{/* Invoice Items */}
-						<div>
-							<div className="flex items-center justify-between mb-4">
-								<label className="block text-sm font-medium text-gray-700 text-right">
-									عناصر الفاتورة *
-								</label>
-								<button
-									type="button"
-									onClick={addInvoiceItem}
-									className="text-purple-600 hover:text-purple-700 text-sm flex items-center gap-1"
-								>
-									<Plus size={16} />
-									إضافة عنصر
-								</button>
-							</div>
+                                {/* Items Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-bold text-gray-900">عناصر الفاتورة</h3>
+                                        <button
+                                            type="button"
+                                            onClick={addInvoiceItem}
+                                            className="flex items-center gap-2 text-[#7f2dfb] hover:bg-purple-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                                        >
+                                            <Plus size={16} />
+                                            إضافة عنصر
+                                        </button>
+                                    </div>
 
-							{/* Totals */}
-							<div className="border-t border-gray-200 pt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-								{(() => {
-									const subtotal = calcSubtotal();
-									const vat = calcVat(subtotal);
-									const total = calcTotal(subtotal, vat);
-									return (
-										<>
-											<div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-												<span className="text-gray-600">
-													المجموع الفرعي
-												</span>
-												<span className="font-semibold">
-													{formatCurrency(subtotal)}
-												</span>
-											</div>
-											<div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-												<span className="text-gray-600">
-													الضريبة (
-													{invoiceFormData.tax_rate ||
-														0}
-													%)
-												</span>
-												<span className="font-semibold">
-													{formatCurrency(vat)}
-												</span>
-											</div>
-											<div className="flex items-center justify-between bg-purple-50 rounded-xl p-3">
-												<span className="text-gray-700 font-medium">
-													الإجمالي
-												</span>
-												<span className="font-bold text-purple-700">
-													{formatCurrency(total)}
-												</span>
-											</div>
-										</>
-									);
-								})()}
-							</div>
+                                    <div className="space-y-3">
+                                        {invoiceFormData.items.map((item, index) => (
+                                            <motion.div
+                                                key={index}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="grid grid-cols-12 gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 group relative"
+                                            >
+                                                {/* Delete Button (Absolute for better layout on mobile) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeInvoiceItem(index)}
+                                                    className="absolute -left-2 -top-2 bg-white text-red-500 p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity border border-gray-100"
+                                                    disabled={invoiceFormData.items.length === 1}
+                                                    title="حذف العنصر"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
 
-							<div className="space-y-3">
-								{invoiceFormData.items
-									.slice(0, 4)
-									.map((item, index) => (
-										<div
-											key={index}
-											className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
-										>
-											<div className="md:col-span-2">
-												<label className="block text-xs text-gray-600 mb-1 text-right">
-													المنتج/الخدمة
-												</label>
-												<select
-													value={""}
-													onChange={(e) => {
-														const p = products.find(
-															(pr) =>
-																pr.id ===
-																e.target.value
-														);
-														if (p) {
-															handleInvoiceItemChange(
-																index,
-																"description",
-																p.name
-															);
-															handleInvoiceItemChange(
-																index,
-																"unit_price",
-																p.unit_price
-															);
-														}
-													}}
-													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 mb-2"
-												>
-													<option value="">
-														— اختر من المنتجات —
-													</option>
-													{products.map((p) => (
-														<option
-															key={p.id}
-															value={p.id}
-														>
-															{p.name} —{" "}
-															{Number(
-																p.unit_price
-															).toFixed(2)}
-														</option>
-													))}
-												</select>
-												<label className="block text-xs text-gray-600 mb-1 text-right">
-													الوصف
-												</label>
-												<input
-													value={item.description}
-													onChange={(e) =>
-														handleInvoiceItemChange(
-															index,
-															"description",
-															e.target.value
-														)
-													}
-													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-													required
-												/>
-											</div>
-											<div>
-												<label className="block text-xs text-gray-600 mb-1 text-right">
-													الكمية
-												</label>
-												<input
-													type="number"
-													min="1"
-													value={item.quantity}
-													onChange={(e) =>
-														handleInvoiceItemChange(
-															index,
-															"quantity",
-															parseInt(
-																e.target.value
-															) || 1
-														)
-													}
-													className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-													required
-												/>
-											</div>
-											<div className="flex items-end gap-2">
-												<div className="flex-1">
-													<label className="block text-xs text-gray-600 mb-1 text-right">
-														السعر
-													</label>
-													<input
-														type="number"
-														min="0"
-														step="0.01"
-														value={item.unit_price}
-														onChange={(e) =>
-															handleInvoiceItemChange(
-																index,
-																"unit_price",
-																parseFloat(
-																	e.target
-																		.value
-																) || 0
-															)
-														}
-														className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-														required
-													/>
-												</div>
-												<button
-													type="button"
-													onClick={() =>
-														removeInvoiceItem(index)
-													}
-													className="text-red-600 hover:text-red-700 p-2"
-													disabled={
-														invoiceFormData.items
-															.length === 1
-													}
-												>
-													<Trash2 size={16} />
-												</button>
-											</div>
-										</div>
-									))}
-							</div>
+                                                <div className="col-span-12 md:col-span-5 space-y-1">
+                                                    <label className="text-xs font-medium text-gray-500">المنتج / الوصف</label>
+                                                    <div className="space-y-2">
+                                                        <div className="relative">
+                                                            <select
+                                                                onChange={(e) => {
+                                                                    const p = products.find(pr => pr.id === e.target.value);
+                                                                    if (p) {
+                                                                        handleInvoiceItemChange(index, "description", p.name);
+                                                                        handleInvoiceItemChange(index, "unit_price", p.unit_price);
+                                                                    }
+                                                                }}
+                                                                className="w-full appearance-none rounded-lg border-gray-200 text-xs py-2 px-3 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] bg-white"
+                                                            >
+                                                                <option value="">اختر منتجاً (اختياري)</option>
+                                                                {products.map((p) => (
+                                                                    <option key={p.id} value={p.id}>
+                                                                        {p.name} ({p.unit_price} ريال)
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                                        </div>
+                                                        <input
+                                                            value={item.description}
+                                                            onChange={(e) => handleInvoiceItemChange(index, "description", e.target.value)}
+                                                            className="w-full rounded-lg border-gray-200 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] px-3 py-2"
+                                                            placeholder="وصف العنصر"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
 
-							{invoiceFormData.items.length > 4 && (
-								<div className="text-center mt-4">
-									<button
-										type="button"
-										onClick={addInvoiceItem}
-										className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-									>
-										+ إضافة المزيد (
-										{invoiceFormData.items.length - 4} عنصر
-										إضافي)
-									</button>
-								</div>
-							)}
-						</div>
-					</form>
-				</div>
+                                                <div className="col-span-4 md:col-span-2 space-y-1">
+                                                    <label className="text-xs font-medium text-gray-500">الكمية</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={item.quantity}
+                                                        onChange={(e) => handleInvoiceItemChange(index, "quantity", parseInt(e.target.value) || 1)}
+                                                        className="w-full rounded-lg border-gray-200 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-center px-2 py-2"
+                                                        required
+                                                    />
+                                                </div>
 
-				{/* Fixed Footer */}
-				<div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-					<button
-						type="button"
-						onClick={closeModal}
-						className="px-6 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
-					>
-						إلغاء
-					</button>
-					<button
-						type="submit"
-						onClick={handleInvoiceSubmit}
-						disabled={saving}
-						className="px-6 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-					>
-						{saving && (
-							<Loader2 size={16} className="animate-spin" />
-						)}
+                                                <div className="col-span-4 md:col-span-2 space-y-1">
+                                                    <label className="text-xs font-medium text-gray-500">سعر الوحدة</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={item.unit_price}
+                                                        onChange={(e) => handleInvoiceItemChange(index, "unit_price", parseFloat(e.target.value) || 0)}
+                                                        className="w-full rounded-lg border-gray-200 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] px-3 py-2"
+                                                        required
+                                                    />
+                                                </div>
 
-						{/* Client preview */}
-						{invoiceFormData.client_id &&
-							(() => {
-								const selectedClient = clients.find(
-									(c) => c.id === invoiceFormData.client_id
-								);
-								if (!selectedClient) return null;
-								return (
-									<div className="mt-3 rounded-xl border border-gray-200 p-3 text-sm bg-gray-50">
-										<div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-											<div>
-												<span className="text-gray-500">
-													البريد:
-												</span>{" "}
-												{selectedClient.email || "-"}
-											</div>
-											<div>
-												<span className="text-gray-500">
-													الهاتف:
-												</span>{" "}
-												{selectedClient.phone || "-"}
-											</div>
-											<div>
-												<span className="text-gray-500">
-													الشركة:
-												</span>{" "}
-												{selectedClient.company_name ||
-													"-"}
-											</div>
-										</div>
-									</div>
-								);
-							})()}
-						{saving ? "جاري الحفظ..." : "إنشاء الفاتورة"}
-					</button>
-				</div>
-			</div>
-		</div>
+                                                <div className="col-span-4 md:col-span-3 space-y-1">
+                                                    <label className="text-xs font-medium text-gray-500">الإجمالي</label>
+                                                    <div className="w-full h-[38px] flex items-center px-3 bg-gray-100 rounded-lg text-sm font-semibold text-gray-700">
+                                                        {formatCurrency((Number(item.quantity) || 0) * (Number(item.unit_price) || 0))}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Totals Summary */}
+                                <div className="flex flex-col md:flex-row justify-end gap-6 pt-6 border-t border-gray-100">
+                                    <div className="w-full md:w-80 space-y-3 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                                        {(() => {
+                                            const subtotal = calcSubtotal();
+                                            const vat = calcVat(subtotal);
+                                            const total = calcTotal(subtotal, vat);
+                                            return (
+                                                <>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-gray-600">المجموع الفرعي</span>
+                                                        <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-gray-600">الضريبة ({invoiceFormData.tax_rate}%)</span>
+                                                        <span className="font-medium text-gray-900">{formatCurrency(vat)}</span>
+                                                    </div>
+                                                    <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                                                        <span className="text-base font-bold text-gray-900">الإجمالي</span>
+                                                        <span className="text-xl font-bold text-[#7f2dfb]">{formatCurrency(total)}</span>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Fixed Footer */}
+                        <div className="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50/50">
+                            <div className="hidden md:block text-sm text-gray-500">
+                                {invoiceFormData.client_id ? (
+                                    <span className="flex items-center gap-2">
+                                        <User size={16} />
+                                        جاري إنشاء الفاتورة لـ <span className="font-semibold text-gray-900">{clients.find(c => c.id === invoiceFormData.client_id)?.name}</span>
+                                    </span>
+                                ) : (
+                                    <span>يرجى اختيار العميل أولاً</span>
+                                )}
+                            </div>
+                            <div className="flex gap-3 w-full md:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="flex-1 md:flex-none px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-white hover:border-gray-300 transition-all text-sm"
+                                >
+                                    إلغاء
+                                </button>
+                                <button
+                                    type="submit"
+                                    onClick={handleInvoiceSubmit}
+                                    disabled={saving}
+                                    className="flex-1 md:flex-none px-8 py-2.5 rounded-xl bg-[#7f2dfb] text-white font-medium hover:bg-[#6a25d1] shadow-lg shadow-purple-200 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {saving ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+                                    {saving ? "جاري الحفظ..." : "إنشاء الفاتورة"}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
 	);
 }

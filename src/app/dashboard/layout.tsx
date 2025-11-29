@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Sidebar, { useSidebar } from "@/components/dashboard/sideBar";
 import SidebarProvider from "@/components/dashboard/SidebarProvider";
-import { Loader2 } from "lucide-react";
+import LoadingState from "@/components/LoadingState";
 import { Toaster } from "@/components/ui/sonner"; 
 import { motion } from "framer-motion"; 
 import { cn } from "@/lib/utils";
@@ -42,24 +42,67 @@ function DashboardContent({ children }: { children: ReactNode }) {
 function AuthWrapper({ children }: { children: ReactNode }) {
 	const [authChecked, setAuthChecked] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [connectionError, setConnectionError] = useState(false);
 	const router = useRouter();
 
 	// ✅ Check authentication once on mount
 	const checkAuth = useCallback(async () => {
 		try {
 			setIsLoading(true);
+			setConnectionError(false);
+			
+			// Add timeout wrapper for getUser
+			const getUserPromise = supabase.auth.getUser();
+			const timeoutPromise = new Promise((_, reject) =>
+				setTimeout(() => reject(new Error("Connection timeout")), 10000)
+			);
+
 			const {
 				data: { user },
-			} = await supabase.auth.getUser();
+				error,
+			} = await Promise.race([getUserPromise, timeoutPromise]) as any;
+
+			// Check for network/connection errors
+			if (error) {
+				if (
+					error.message?.includes("Failed to fetch") ||
+					error.message?.includes("NetworkError") ||
+					error.message?.includes("timeout") ||
+					error.message?.includes("ERR_CONNECTION_TIMED_OUT")
+				) {
+					console.error("Network error during authentication check:", error);
+					setConnectionError(true);
+					setAuthChecked(false);
+					return;
+				}
+				// For other auth errors, redirect to login
+				router.replace("/login");
+				return;
+			}
 
 			if (!user) {
 				router.replace("/login");
 				return;
 			}
 			setAuthChecked(true);
-		} catch (error) {
+			setConnectionError(false);
+		} catch (error: any) {
 			console.error("Error checking authentication:", error);
-			router.replace("/login");
+			
+			// Handle timeout and network errors gracefully
+			if (
+				error?.message?.includes("timeout") ||
+				error?.message?.includes("Failed to fetch") ||
+				error?.message?.includes("NetworkError") ||
+				error?.message?.includes("ERR_CONNECTION_TIMED_OUT") ||
+				error?.name === "TypeError"
+			) {
+				setConnectionError(true);
+				setAuthChecked(false);
+			} else {
+				// For other errors, redirect to login
+				router.replace("/login");
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -69,31 +112,75 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 		checkAuth();
 
 		// ✅ Real-time auth listener
-		const { data: subscription } = supabase.auth.onAuthStateChange(
-			(event, session) => {
-				if (!session) router.replace("/login");
-			}
-		);
+		let subscription: { subscription: { unsubscribe: () => void } } | null = null;
+		
+		try {
+			const { data: sub } = supabase.auth.onAuthStateChange(
+				(event, session) => {
+					if (!session && !connectionError) {
+						router.replace("/login");
+					}
+				}
+			);
+			subscription = sub;
+		} catch (err) {
+			console.error("Error setting up auth listener:", err);
+		}
 
 		return () => {
-			subscription.subscription.unsubscribe();
+			if (subscription) {
+				subscription.subscription.unsubscribe();
+			}
 		};
 	}, [checkAuth, router]);
 
 	// ⏳ Loading state
-	if (isLoading) {
+	if (isLoading && !connectionError) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
-                <div className="flex flex-col items-center justify-center">
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="mb-4"
-                    >
-                        <Loader2 className="h-10 w-10 text-[#7f2dfb]" />
-                    </motion.div>
-					<p className="text-gray-500 font-medium animate-pulse">جاري التحقق من الهوية...</p>
-				</div>
+            <LoadingState message="جاري التحقق من الهوية..." fullScreen />
+		);
+	}
+
+	// 🔴 Connection error state
+	if (connectionError) {
+		return (
+			<div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center p-4">
+				<motion.div
+					initial={{ opacity: 0, scale: 0.9 }}
+					animate={{ opacity: 1, scale: 1 }}
+					className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-red-100"
+				>
+					<div className="flex flex-col items-center gap-6 text-center">
+						<div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+							<svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+							</svg>
+						</div>
+						<div>
+							<h2 className="text-2xl font-bold text-[#012d46] mb-2">
+								فشل الاتصال بالخادم
+							</h2>
+							<p className="text-gray-600 mb-1">
+								لا يمكن الاتصال بخادم Supabase
+							</p>
+							<p className="text-sm text-gray-500">
+								يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى
+							</p>
+						</div>
+						<button
+							onClick={() => checkAuth()}
+							className="w-full px-6 py-3 bg-[#7f2dfb] text-white rounded-xl font-semibold hover:bg-[#6a1fd8] transition-colors"
+						>
+							إعادة المحاولة
+						</button>
+						<button
+							onClick={() => router.push("/login")}
+							className="text-sm text-gray-500 hover:text-[#7f2dfb] transition-colors"
+						>
+							العودة إلى صفحة تسجيل الدخول
+						</button>
+					</div>
+				</motion.div>
 			</div>
 		);
 	}

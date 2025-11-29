@@ -1,0 +1,41 @@
+-- Create the avatars bucket if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Enable RLS on storage.objects if not already enabled
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Public Read Access
+-- Allow anyone to view avatars
+CREATE POLICY "Avatar images are publicly accessible"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'avatars' );
+
+-- Policy: Authenticated Uploads
+-- Allow authenticated users to upload avatars
+CREATE POLICY "Authenticated users can upload avatars"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'avatars' 
+  AND auth.role() = 'authenticated'
+);
+
+-- Policy: Owner Updates
+-- Allow users to update their own avatars
+CREATE POLICY "Users can update their own avatars"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'avatars' 
+  AND auth.uid() = owner
+);
+
+-- Policy: Owner Deletes
+-- Allow users to delete their own avatars
+CREATE POLICY "Users can delete their own avatars"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'avatars' 
+  AND auth.uid() = owner
+);
+

@@ -12,13 +12,17 @@ import {
 	Settings,
 	ExternalLink,
 	Search,
+    ChevronDown,
+    ChevronUp,
+    Send
 } from "lucide-react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FaqItem {
 	q: string;
 	a: string;
-	articleHref: string; // placeholder to small article page
+	articleHref: string;
 }
 
 interface FaqSection {
@@ -31,7 +35,7 @@ interface FaqSection {
 const faqSections: FaqSection[] = [
 	{
 		title: "الفواتير",
-		icon: <FileText className="text-blue-600" />,
+		icon: <FileText className="text-blue-600" size={24} />,
 		key: "invoices",
 		items: [
 			{
@@ -53,7 +57,7 @@ const faqSections: FaqSection[] = [
 	},
 	{
 		title: "الحساب والأمان",
-		icon: <ShieldCheck className="text-purple-600" />,
+		icon: <ShieldCheck className="text-purple-600" size={24} />,
 		key: "account",
 		items: [
 			{
@@ -75,7 +79,7 @@ const faqSections: FaqSection[] = [
 	},
 	{
 		title: "الاشتراكات والدفع",
-		icon: <CreditCard className="text-green-600" />,
+		icon: <CreditCard className="text-green-600" size={24} />,
 		key: "billing",
 		items: [
 			{
@@ -115,49 +119,55 @@ export default function HelpPage() {
 	}, [searchTerm]);
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-8 pb-10">
 			{/* Header */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<div className="flex items-center justify-between gap-3">
-					<div className="flex items-center gap-3">
-						<HelpCircle className="text-purple-600" />
-						<div>
-							<h1 className="text-2xl font-bold text-gray-900">
-								المساعدة
-							</h1>
-							<p className="text-gray-500 mt-1">
-								ابحث عن إجابات سريعة أو تواصل مع فريق الدعم
-							</p>
-						</div>
-					</div>
-					<div className="relative w-full max-w-xs">
-						<Search
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-							size={16}
-						/>
-						<input
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							placeholder="اكتب مشكلتك…"
-							className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-						/>
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6"
+            >
+				<div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="p-3 bg-purple-50 rounded-2xl">
+					    <HelpCircle className="text-[#7f2dfb]" size={32} />
+                    </div>
+					<div>
+						<h1 className="text-3xl font-bold text-[#012d46]">
+							مركز المساعدة
+						</h1>
+						<p className="text-gray-500 mt-1">
+							ابحث عن إجابات سريعة أو تواصل مع فريق الدعم المتخصص
+						</p>
 					</div>
 				</div>
-			</div>
+				<div className="relative w-full md:w-96">
+					<Search
+						className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+						size={20}
+					/>
+					<input
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						placeholder="اكتب سؤالك هنا..."
+						className="w-full rounded-2xl border border-gray-200 pr-12 pl-4 py-3.5 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all shadow-sm"
+					/>
+				</div>
+			</motion.div>
 
 			{/* Quick links */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 				<Link
 					href="/dashboard/invoices"
-					className="bg-white rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition"
+					className="bg-white rounded-2xl border border-gray-100 p-5 hover:bg-gray-50 transition-all hover:shadow-md group"
 				>
-					<div className="flex items-center gap-3">
-						<FileText className="text-blue-600" />
+					<div className="flex items-center gap-4">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+						    <FileText size={20} />
+                        </div>
 						<div>
-							<div className="text-sm font-medium text-gray-900">
+							<div className="text-sm font-bold text-gray-900">
 								الفواتير
 							</div>
-							<div className="text-xs text-gray-500">
+							<div className="text-xs text-gray-500 mt-0.5">
 								إدارة الفواتير والأسئلة الشائعة
 							</div>
 						</div>
@@ -165,31 +175,35 @@ export default function HelpPage() {
 				</Link>
 				<Link
 					href="/dashboard/settings"
-					className="bg-white rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition"
+					className="bg-white rounded-2xl border border-gray-100 p-5 hover:bg-gray-50 transition-all hover:shadow-md group"
 				>
-					<div className="flex items-center gap-3">
-						<Settings className="text-gray-700" />
+					<div className="flex items-center gap-4">
+                        <div className="p-2 bg-gray-100 text-gray-600 rounded-xl group-hover:scale-110 transition-transform">
+						    <Settings size={20} />
+                        </div>
 						<div>
-							<div className="text-sm font-medium text-gray-900">
+							<div className="text-sm font-bold text-gray-900">
 								الإعدادات
 							</div>
-							<div className="text-xs text-gray-500">
+							<div className="text-xs text-gray-500 mt-0.5">
 								الأمان، الإشعارات، التفضيلات
 							</div>
 						</div>
 					</div>
 				</Link>
 				<Link
-					href="/dashboard/settings#billing"
-					className="bg-white rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition"
+					href="/dashboard/settings"
+					className="bg-white rounded-2xl border border-gray-100 p-5 hover:bg-gray-50 transition-all hover:shadow-md group"
 				>
-					<div className="flex items-center gap-3">
-						<CreditCard className="text-green-600" />
+					<div className="flex items-center gap-4">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-xl group-hover:scale-110 transition-transform">
+						    <CreditCard size={20} />
+                        </div>
 						<div>
-							<div className="text-sm font-medium text-gray-900">
+							<div className="text-sm font-bold text-gray-900">
 								الفوترة والاشتراك
 							</div>
-							<div className="text-xs text-gray-500">
+							<div className="text-xs text-gray-500 mt-0.5">
 								الخطة، الدفع، الفواتير
 							</div>
 						</div>
@@ -197,15 +211,17 @@ export default function HelpPage() {
 				</Link>
 				<Link
 					href="/dashboard/profile"
-					className="bg-white rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition"
+					className="bg-white rounded-2xl border border-gray-100 p-5 hover:bg-gray-50 transition-all hover:shadow-md group"
 				>
-					<div className="flex items-center gap-3">
-						<ShieldCheck className="text-purple-600" />
+					<div className="flex items-center gap-4">
+                        <div className="p-2 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
+						    <ShieldCheck size={20} />
+                        </div>
 						<div>
-							<div className="text-sm font-medium text-gray-900">
+							<div className="text-sm font-bold text-gray-900">
 								الملف الشخصي
 							</div>
-							<div className="text-xs text-gray-500">
+							<div className="text-xs text-gray-500 mt-0.5">
 								تحديث معلوماتك العامة
 							</div>
 						</div>
@@ -214,149 +230,134 @@ export default function HelpPage() {
 			</div>
 
 			{/* Grouped FAQ with articles */}
-			<div className="space-y-4">
-				{filteredSections.map((section) => (
-					<div
-						key={section.title}
-						className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6"
-					>
-						<div className="flex items-center gap-2 mb-3">
-							{section.icon}
-							<h2 className="text-lg font-semibold">
-								{section.title}
-							</h2>
-						</div>
-						<div className="divide-y divide-gray-200">
-							{section.items.map((item, idx) => {
-								const id = `${section.key}-${idx}`;
-								return (
-									<div key={id} className="py-3">
-										<button
-											onClick={() =>
-												setOpenKey(
-													openKey === id ? null : id
-												)
-											}
-											className="w-full text-right flex items-center justify-between gap-4"
-										>
-											<span className="text-sm font-medium text-gray-900">
-												{item.q}
-											</span>
-											<span className="text-gray-400">
-												{openKey === id ? "–" : "+"}
-											</span>
-										</button>
-										{openKey === id && (
-											<div className="mt-2 space-y-2">
-												<p className="text-sm text-gray-600 leading-relaxed">
-													{item.a}
-												</p>
-												<Link
-													href={item.articleHref}
-													className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 text-sm"
-												>
-													قراءة المقال{" "}
-													<ExternalLink size={14} />
-												</Link>
-											</div>
-										)}
-									</div>
-								);
-							})}
-						</div>
-					</div>
-				))}
-			</div>
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                    {filteredSections.map((section, index) => (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            key={section.title}
+                            className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm"
+                        >
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
+                                <div className="p-2 bg-gray-50 rounded-xl">{section.icon}</div>
+                                <h2 className="text-lg font-bold text-[#012d46]">
+                                    {section.title}
+                                </h2>
+                            </div>
+                            <div className="space-y-4">
+                                {section.items.map((item, idx) => {
+                                    const id = `${section.key}-${idx}`;
+                                    const isOpen = openKey === id;
+                                    return (
+                                        <div key={id} className="border border-gray-100 rounded-2xl overflow-hidden transition-colors hover:border-gray-200">
+                                            <button
+                                                onClick={() => setOpenKey(isOpen ? null : id)}
+                                                className="w-full text-right flex items-center justify-between gap-4 p-4 bg-white hover:bg-gray-50 transition-colors"
+                                            >
+                                                <span className="text-sm font-bold text-gray-900">
+                                                    {item.q}
+                                                </span>
+                                                <span className="text-gray-400">
+                                                    {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                </span>
+                                            </button>
+                                            <AnimatePresence>
+                                                {isOpen && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="p-4 pt-0 text-sm text-gray-600 bg-gray-50/50 border-t border-gray-100">
+                                                            <p className="leading-relaxed mb-3">{item.a}</p>
+                                                            <Link
+                                                                href={item.articleHref}
+                                                                className="inline-flex items-center gap-1 text-[#7f2dfb] hover:text-[#6a1fd8] text-xs font-bold"
+                                                            >
+                                                                قراءة المقال كاملاً <ExternalLink size={12} />
+                                                            </Link>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
 
-			{/* Contact support */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-					<h3 className="text-md font-semibold mb-3">تواصل معنا</h3>
-					<div className="space-y-3 text-sm">
-						<a
-							href="mailto:support@bilfora.com"
-							className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
-						>
-							<Mail size={16} /> support@bilfora.com
-						</a>
-						<a
-							href="tel:+966500000000"
-							className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
-						>
-							<Phone size={16} /> +966 50 000 0000
-						</a>
-						<div className="flex items-center gap-2">
-							<button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">
-								<MessageSquare size={16} /> محادثة مباشرة
-								(قريباً)
-							</button>
-							<button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">
-								<MessageSquare size={16} /> واتساب (قريباً)
-							</button>
-						</div>
-					</div>
-				</div>
-				<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6 md:col-span-2">
-					<h3 className="text-md font-semibold mb-3">
-						أرسل لنا رسالة
-					</h3>
-					<form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<input
-							placeholder="الاسم"
-							className="rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-						/>
-						<input
-							placeholder="البريد الإلكتروني"
-							type="email"
-							className="rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-						/>
-						<textarea
-							placeholder="كيف يمكننا مساعدتك؟"
-							className="md:col-span-2 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-							rows={4}
-						/>
-						<div className="md:col-span-2 flex items-center justify-end">
-							<button className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]">
-								إرسال
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
+                {/* Contact support */}
+                <div className="space-y-6">
+                    <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
+                        <h3 className="text-lg font-bold text-[#012d46] mb-4">تواصل معنا</h3>
+                        <div className="space-y-4">
+                            <a
+                                href="mailto:support@bilfora.com"
+                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 group transition-colors border border-transparent hover:border-purple-100"
+                            >
+                                <div className="p-2 bg-purple-100 text-[#7f2dfb] rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all">
+                                    <Mail size={18} /> 
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500 block">البريد الإلكتروني</span>
+                                    <span className="text-sm font-bold text-gray-900">support@bilfora.com</span>
+                                </div>
+                            </a>
+                            <a
+                                href="tel:+966500000000"
+                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 group transition-colors border border-transparent hover:border-purple-100"
+                            >
+                                <div className="p-2 bg-purple-100 text-[#7f2dfb] rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all">
+                                    <Phone size={18} /> 
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500 block">الهاتف الموحد</span>
+                                    <span className="text-sm font-bold text-gray-900" style={{direction: "ltr"}}>+966 50 000 0000</span>
+                                </div>
+                            </a>
+                            
+                            <div className="pt-4 border-t border-gray-100">
+                                <button className="w-full py-3 rounded-xl border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 mb-3">
+                                    <MessageSquare size={18} /> محادثة مباشرة
+                                </button>
+                                <button className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100">
+                                    <MessageSquare size={18} /> تواصل عبر واتساب
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-			{/* Contextual help */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h3 className="text-md font-semibold mb-3">مساعدة سياقية</h3>
-				<p className="text-sm text-gray-600 mb-3">
-					سنضيف أزرار مساعدة صغيرة (؟) داخل الصفحات لتفتح المقالات
-					المناسبة مباشرة.
-				</p>
-				<div className="flex flex-wrap gap-2 text-sm">
-					<Link
-						href="/dashboard/help/articles/create-invoice"
-						className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-					>
-						إنشاء فاتورة
-					</Link>
-					<Link
-						href="/dashboard/help/articles/invoice-template"
-						className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-					>
-						قالب الفاتورة
-					</Link>
-					<Link
-						href="/dashboard/help/articles/enable-2fa"
-						className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-					>
-						تفعيل 2FA
-					</Link>
-					<Link
-						href="/dashboard/help/articles/change-payment"
-						className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-					>
-						تغيير وسيلة الدفع
-					</Link>
-				</div>
+                    <div className="bg-[#7f2dfb] rounded-3xl p-6 shadow-xl shadow-purple-200 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-bl-full -mr-8 -mt-8" />
+                        <h3 className="text-lg font-bold mb-4 relative z-10">
+                            أرسل رسالة فورية
+                        </h3>
+                        <form className="space-y-3 relative z-10">
+                            <input
+                                placeholder="الاسم"
+                                className="w-full rounded-xl border-0 bg-white/20 placeholder:text-purple-100 text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-sm"
+                            />
+                            <input
+                                placeholder="البريد الإلكتروني"
+                                type="email"
+                                className="w-full rounded-xl border-0 bg-white/20 placeholder:text-purple-100 text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-sm"
+                            />
+                            <textarea
+                                placeholder="كيف يمكننا مساعدتك؟"
+                                className="w-full rounded-xl border-0 bg-white/20 placeholder:text-purple-100 text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-sm resize-none"
+                                rows={3}
+                            />
+                            <button className="w-full py-3 rounded-xl bg-white text-[#7f2dfb] text-sm font-bold hover:bg-purple-50 active:translate-y-[1px] transition-all flex items-center justify-center gap-2 shadow-md">
+                                <Send size={16} /> إرسال الرسالة
+                            </button>
+                        </form>
+                    </div>
+                </div>
 			</div>
 		</div>
 	);

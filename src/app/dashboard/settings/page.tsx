@@ -5,7 +5,6 @@ import {
 	ShieldCheck,
 	Lock,
 	LogOut,
-	Bell,
 	Mail,
 	MessageSquare,
 	Globe2,
@@ -17,7 +16,11 @@ import {
 	UserPlus,
 	Trash2,
 	Download,
+    Settings,
+    ChevronDown
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface InvoiceItem {
 	id: string;
@@ -96,9 +99,10 @@ export default function SettingsPage() {
 	const isTeamPlan = useMemo(() => currentPlan === "Team", [currentPlan]);
 
 	const formatSar = (n: number) =>
-		new Intl.NumberFormat("ar-SA", {
+		new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency: "SAR",
+            maximumFractionDigits: 0,
 		}).format(n);
 
 	const onChangePassword = (e: React.FormEvent) => {
@@ -107,432 +111,368 @@ export default function SettingsPage() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-8 pb-10">
 			{/* Header */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h1 className="text-2xl font-bold text-gray-900">الإعدادات</h1>
-				<p className="text-gray-500 mt-1">
-					قم بإدارة الأمان، الإشعارات، التفضيلات، والفوترة
-				</p>
-			</div>
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-2"
+            >
+                <h1 className="text-3xl font-bold text-[#012d46]">الإعدادات</h1>
+                <p className="text-gray-500">تحكم في إعدادات حسابك، الأمان، والفوترة</p>
+            </motion.div>
 
 			{/* Security */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h2 className="text-lg font-semibold mb-4">الأمان</h2>
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 shadow-sm"
+            >
+				<h2 className="text-xl font-bold text-[#012d46] mb-6 flex items-center gap-2">
+                    <ShieldCheck className="text-[#7f2dfb]" size={24} />
+                    الأمان والحماية
+                </h2>
 				<form
 					onSubmit={onChangePassword}
-					className="grid grid-cols-1 md:grid-cols-3 gap-4"
+					className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
 				>
-					<div>
-						<label className="block text-sm text-gray-600 mb-1">
+					<div className="space-y-2">
+						<label className="text-sm font-medium text-gray-700">
 							كلمة المرور الحالية
 						</label>
 						<div className="relative">
 							<Lock
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
+								size={18}
 							/>
 							<input
 								type="password"
-								className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+								className="w-full rounded-xl border border-gray-200 pr-10 pl-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all"
 								placeholder="••••••••"
 							/>
 						</div>
 					</div>
-					<div>
-						<label className="block text-sm text-gray-600 mb-1">
+					<div className="space-y-2">
+						<label className="text-sm font-medium text-gray-700">
 							كلمة المرور الجديدة
 						</label>
 						<div className="relative">
 							<Lock
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
+								size={18}
 							/>
 							<input
 								type="password"
-								className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+								className="w-full rounded-xl border border-gray-200 pr-10 pl-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all"
 								placeholder="••••••••"
 							/>
 						</div>
 					</div>
-					<div>
-						<label className="block text-sm text-gray-600 mb-1">
+					<div className="space-y-2">
+						<label className="text-sm font-medium text-gray-700">
 							تأكيد كلمة المرور
 						</label>
 						<div className="relative">
 							<Lock
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
+								size={18}
 							/>
 							<input
 								type="password"
-								className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+								className="w-full rounded-xl border border-gray-200 pr-10 pl-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all"
 								placeholder="••••••••"
 							/>
 						</div>
 					</div>
-					<div className="md:col-span-3 flex items-center justify-end gap-2">
+					<div className="md:col-span-3 flex justify-end">
 						<button
 							type="submit"
-							className="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 active:translate-y-[1px]"
+							className="px-6 py-2.5 rounded-xl bg-[#7f2dfb] text-white text-sm font-bold hover:bg-[#6a1fd8] shadow-lg shadow-purple-200 transition-all"
 						>
 							تحديث كلمة المرور
 						</button>
 					</div>
 				</form>
-				<div className="mt-6 space-y-3">
-					<label className="flex items-center justify-between">
-						<span className="flex items-center gap-2 text-sm text-gray-700">
-							<ShieldCheck size={16} className="text-green-600" />{" "}
-							تفعيل التحقق بخطوتين (2FA)
-						</span>
-						<input
-							type="checkbox"
-							checked={twoFA}
-							onChange={(e) => setTwoFA(e.target.checked)}
-							className="h-5 w-5 rounded-md border border-gray-300 bg-white accent-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 cursor-pointer"
-						/>
-					</label>
-					<label className="flex items-center justify-between">
-						<span className="flex items-center gap-2 text-sm text-gray-700">
-							<ShieldCheck size={16} className="text-green-600" />{" "}
-							تنبيهات تسجيل الدخول المشبوه
-						</span>
-						<input
-							type="checkbox"
-							checked={alertLogins}
-							onChange={(e) => setAlertLogins(e.target.checked)}
-							className="h-5 w-5 rounded-md border border-gray-300 bg-white accent-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 cursor-pointer"
-						/>
-					</label>
-					<button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50">
-						<LogOut size={16} /> تسجيل الخروج من جميع الأجهزة
-					</button>
-				</div>
-			</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-50 pt-6">
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                                <ShieldCheck size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900">التحقق بخطوتين (2FA)</p>
+                                <p className="text-xs text-gray-500">حماية إضافية لحسابك</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={twoFA} onChange={(e) => setTwoFA(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#7f2dfb]"></div>
+                        </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                         <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                <Lock size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900">تنبيهات الدخول</p>
+                                <p className="text-xs text-gray-500">تنبيه عند تسجيل الدخول من جهاز جديد</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={alertLogins} onChange={(e) => setAlertLogins(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#7f2dfb]"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="flex justify-end mt-6">
+                    <button className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-2 px-4 py-2 hover:bg-red-50 rounded-xl transition-colors">
+                        <LogOut size={16} /> تسجيل الخروج من جميع الأجهزة
+                    </button>
+                </div>
+			</motion.div>
 
 			{/* Notifications */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h2 className="text-lg font-semibold mb-4">الإشعارات</h2>
-				<div className="space-y-3">
-					<label className="flex items-center justify-between">
-						<span className="flex items-center gap-2 text-sm text-gray-700">
-							<Mail size={16} className="text-purple-600" />{" "}
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 shadow-sm"
+            >
+				<h2 className="text-xl font-bold text-[#012d46] mb-6 flex items-center gap-2">
+                    <Mail className="text-[#7f2dfb]" size={24} />
+                    الإشعارات
+                </h2>
+				<div className="space-y-4">
+					<label className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
+						<span className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                            <div className="p-2 bg-purple-100 text-[#7f2dfb] rounded-lg">
+							    <Mail size={18} />
+                            </div>
 							إشعارات البريد الإلكتروني
 						</span>
 						<input
 							type="checkbox"
 							checked={emailNotif}
 							onChange={(e) => setEmailNotif(e.target.checked)}
-							className="h-5 w-5 rounded-md border border-gray-300 bg-white accent-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 cursor-pointer"
+							className="h-5 w-5 rounded border-gray-300 text-[#7f2dfb] focus:ring-[#7f2dfb]"
 						/>
 					</label>
-					<label className="flex items-center justify-between">
-						<span className="flex items-center gap-2 text-sm text-gray-700">
-							<MessageSquare
-								size={16}
-								className="text-purple-600"
-							/>{" "}
-							إشعارات الرسائل القصيرة
+					<label className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
+						<span className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                            <div className="p-2 bg-purple-100 text-[#7f2dfb] rounded-lg">
+							    <MessageSquare size={18} />
+                            </div>
+							إشعارات الرسائل القصيرة (SMS)
 						</span>
 						<input
 							type="checkbox"
 							checked={smsNotif}
 							onChange={(e) => setSmsNotif(e.target.checked)}
-							className="h-5 w-5 rounded-md border border-gray-300 bg-white accent-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 cursor-pointer"
+							className="h-5 w-5 rounded border-gray-300 text-[#7f2dfb] focus:ring-[#7f2dfb]"
 						/>
 					</label>
 				</div>
-				<div className="mt-4">
-					<label className="block text-sm text-gray-600 mb-1">
+				<div className="mt-6">
+					<label className="block text-sm font-medium text-gray-700 mb-2">
 						تكرار الإشعارات
 					</label>
-					<select
-						value={frequency}
-						onChange={(e) =>
-							setFrequency(
-								e.target.value as
-									| "immediate"
-									| "daily"
-									| "weekly"
-							)
-						}
-						className="w-56 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-					>
-						<option value="immediate">فوري</option>
-						<option value="daily">ملخص يومي</option>
-						<option value="weekly">ملخص أسبوعي</option>
-					</select>
+					<div className="relative w-full md:w-64">
+						<select
+							value={frequency}
+							onChange={(e) =>
+								setFrequency(
+									e.target.value as
+										| "immediate"
+										| "daily"
+										| "weekly"
+								)
+							}
+							className="w-full appearance-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all bg-white"
+						>
+							<option value="immediate">فوري</option>
+							<option value="daily">ملخص يومي</option>
+							<option value="weekly">ملخص أسبوعي</option>
+						</select>
+                        <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+					</div>
 				</div>
-			</div>
+			</motion.div>
 
 			{/* System Preferences */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h2 className="text-lg font-semibold mb-4">تفضيلات النظام</h2>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<div>
-						<label className="block text-sm text-gray-600 mb-1">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 shadow-sm"
+            >
+				<h2 className="text-xl font-bold text-[#012d46] mb-6 flex items-center gap-2">
+                    <Settings className="text-[#7f2dfb]" size={24} />
+                    تفضيلات النظام
+                </h2>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div className="space-y-2">
+						<label className="block text-sm font-medium text-gray-700">
 							اللغة
 						</label>
 						<div className="relative">
 							<Globe2
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
+								size={18}
 							/>
 							<select
 								value={language}
 								onChange={(e) => setLanguage(e.target.value)}
-								className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+								className="w-full appearance-none rounded-xl border border-gray-200 pr-10 pl-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all bg-white"
 							>
 								<option value="ar">العربية</option>
 								<option value="en">English</option>
 							</select>
+                            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
 						</div>
 					</div>
-					<div>
-						<label className="block text-sm text-gray-600 mb-1">
+					<div className="space-y-2">
+						<label className="block text-sm font-medium text-gray-700">
 							العملة الافتراضية
 						</label>
 						<div className="relative">
 							<CreditCard
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
+								size={18}
 							/>
 							<select
 								value={currency}
 								onChange={(e) => setCurrency(e.target.value)}
-								className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+								className="w-full appearance-none rounded-xl border border-gray-200 pr-10 pl-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all bg-white"
 							>
 								<option value="SAR">SAR</option>
 								<option value="USD">USD</option>
 								<option value="EUR">EUR</option>
 							</select>
+                            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
 						</div>
 					</div>
-					<div>
-						<label className="block text-sm text-gray-600 mb-1">
+					<div className="space-y-2">
+						<label className="block text-sm font-medium text-gray-700">
 							المنطقة الزمنية
 						</label>
 						<div className="relative">
 							<Clock4
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-								size={16}
+								size={18}
 							/>
 							<select
 								value={timezone}
 								onChange={(e) => setTimezone(e.target.value)}
-								className="w-full rounded-xl border border-gray-200 pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+								className="w-full appearance-none rounded-xl border border-gray-200 pr-10 pl-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all bg-white"
 							>
 								<option value="auto">تلقائي</option>
 								<option value="Asia/Riyadh">Asia/Riyadh</option>
 								<option value="UTC">UTC</option>
 							</select>
+                            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
 						</div>
 					</div>
 				</div>
-			</div>
+			</motion.div>
 
 			{/* Billing & Subscription */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h2 className="text-lg font-semibold mb-4">
-					الفوترة والاشتراك
-				</h2>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<div className="border border-gray-200 rounded-xl p-4">
-						<div className="text-sm text-gray-600">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 shadow-sm"
+            >
+				<h2 className="text-xl font-bold text-[#012d46] mb-6 flex items-center gap-2">
+                    <CreditCard className="text-[#7f2dfb]" size={24} />
+                    الفوترة والاشتراك
+                </h2>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div className="border border-gray-100 rounded-2xl p-6 bg-gray-50/50">
+						<div className="text-sm text-gray-500 font-medium mb-1">
 							الخطة الحالية
 						</div>
-						<div className="text-xl font-bold mt-1">
+						<div className="text-2xl font-bold text-[#012d46] mb-1">
 							{currentPlan}
 						</div>
-						<div className="text-sm text-gray-500 mt-1">
+						<div className="text-xs text-gray-400 mb-4">
 							تجدد في:{" "}
-							{new Date(renewalDate).toLocaleDateString("ar-SA")}
+							{new Date(renewalDate).toLocaleDateString("en-GB")}
 						</div>
-						<div className="flex gap-2 mt-3">
-							<button className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-700">
+						<div className="flex gap-2">
+							<button className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-2 rounded-xl bg-[#7f2dfb] text-white text-sm font-bold hover:bg-[#6a1fd8] transition-colors">
 								<ArrowUpRight size={14} /> ترقية
 							</button>
-							<button className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">
+							<button className="flex-1 inline-flex justify-center items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
 								<ArrowDownRight size={14} /> تخفيض
 							</button>
 						</div>
 					</div>
-					<div className="border border-gray-200 rounded-xl p-4">
-						<div className="text-sm text-gray-600">طريقة الدفع</div>
-						<div className="mt-1 flex items-center gap-2 text-sm text-gray-900">
-							<CreditCard size={16} /> بطاقة ائتمان •••• 4242
+
+					<div className="border border-gray-100 rounded-2xl p-6 bg-gray-50/50">
+						<div className="text-sm text-gray-500 font-medium mb-1">طريقة الدفع</div>
+						<div className="flex items-center gap-2 text-base font-bold text-gray-900 mb-4">
+							<CreditCard size={20} className="text-[#7f2dfb]" /> بطاقة ائتمان •••• 4242
 						</div>
-						<div className="flex gap-2 mt-3">
-							<button className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">
+						<div className="flex gap-2">
+							<button className="flex-1 inline-flex justify-center items-center px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
 								تغيير البطاقة
 							</button>
-							<button className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">
-								إضافة Mada
-							</button>
 						</div>
 					</div>
-					<div className="border border-gray-200 rounded-xl p-4">
-						<div className="text-sm text-gray-600">
-							سجل الفواتير
-						</div>
-						<div className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
-							<table className="w-full text-sm">
-								<thead className="bg-gray-50 text-gray-600">
-									<tr>
-										<th className="px-3 py-2 text-right">
-											رقم الفاتورة
-										</th>
-										<th className="px-3 py-2 text-right">
-											التاريخ
-										</th>
-										<th className="px-3 py-2 text-right">
-											المبلغ
-										</th>
-										<th className="px-3 py-2 text-right">
-											الحالة
-										</th>
-										<th className="px-3 py-2 text-right">
-											تحميل
-										</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-gray-200">
-									{invoices.map((inv) => (
-										<tr key={inv.id} className="bg-white">
-											<td className="px-3 py-2">
-												{inv.id}
-											</td>
-											<td className="px-3 py-2">
-												{new Date(
-													inv.date
-												).toLocaleDateString("ar-SA")}
-											</td>
-											<td className="px-3 py-2">
-												{formatSar(inv.amount)}
-											</td>
-											<td className="px-3 py-2">
-												<span
-													className={`px-2 py-0.5 rounded-full text-xs ${
-														inv.status === "paid"
-															? "bg-green-100 text-green-800"
-															: "bg-yellow-100 text-yellow-800"
-													}`}
-												>
-													{inv.status === "paid"
-														? "مدفوعة"
-														: "غير مدفوعة"}
-												</span>
-											</td>
-											<td className="px-3 py-2">
-												<button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-													<Download size={14} /> PDF
-												</button>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					</div>
-				</div>
-			</div>
 
-			{/* Team Management */}
-			{isTeamPlan && (
-				<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-					<h2 className="text-lg font-semibold mb-4">إدارة الفريق</h2>
-					<div className="flex items-center justify-between mb-3">
-						<div className="text-sm text-gray-600 flex items-center gap-2">
-							<Users size={16} /> أعضاء الفريق
+					<div className="border border-gray-100 rounded-2xl p-6 bg-gray-50/50 md:col-span-1">
+						<div className="text-sm text-gray-500 font-medium mb-3">
+							آخر الفواتير
 						</div>
-						<button className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-700">
-							<UserPlus size={14} /> إضافة عضو
-						</button>
-					</div>
-					<div className="border border-gray-200 rounded-lg overflow-hidden">
-						<table className="w-full text-sm">
-							<thead className="bg-gray-50 text-gray-600">
-								<tr>
-									<th className="px-3 py-2 text-right">
-										الاسم
-									</th>
-									<th className="px-3 py-2 text-right">
-										البريد الإلكتروني
-									</th>
-									<th className="px-3 py-2 text-right">
-										الدور
-									</th>
-									<th className="px-3 py-2 text-right">
-										إجراءات
-									</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-gray-200">
-								{teamMembers.map((m) => (
-									<tr key={m.id} className="bg-white">
-										<td className="px-3 py-2">{m.name}</td>
-										<td className="px-3 py-2">{m.email}</td>
-										<td className="px-3 py-2">
-											<select
-												value={m.role}
-												onChange={(e) =>
-													setTeamMembers((prev) =>
-														prev.map((tm) =>
-															tm.id === m.id
-																? {
-																		...tm,
-																		role: e
-																			.target
-																			.value as TeamMember["role"],
-																  }
-																: tm
-														)
-													)
-												}
-												className="rounded-lg border border-gray-300 px-2 py-1"
-											>
-												<option>Admin</option>
-												<option>Accountant</option>
-												<option>Viewer</option>
-											</select>
-										</td>
-										<td className="px-3 py-2">
-											<button className="text-red-600 hover:text-red-800">
-												إزالة
-											</button>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+						<div className="space-y-2">
+                            {invoices.map((inv) => (
+                                <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-gray-900">{inv.id}</span>
+                                        <span className="text-[10px] text-gray-400">{new Date(inv.date).toLocaleDateString("en-GB")}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold">{formatSar(inv.amount)}</span>
+                                        <button className="text-gray-400 hover:text-[#7f2dfb] transition-colors">
+                                            <Download size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+						</div>
 					</div>
 				</div>
-			)}
+			</motion.div>
 
 			{/* Danger Zone */}
-			<div className="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
-				<h2 className="text-lg font-semibold mb-2 text-red-600">
-					منطقة حساسة
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white rounded-3xl border border-red-100 p-6 md:p-8 shadow-sm"
+            >
+				<h2 className="text-xl font-bold text-red-600 mb-2">
+					منطقة الخطر
 				</h2>
-				<p className="text-sm text-gray-500 mb-4">
-					الرجاء استخدام هذه الإجراءات بحذر.
+				<p className="text-sm text-gray-500 mb-6">
+					الرجاء استخدام هذه الإجراءات بحذر، لا يمكن التراجع عنها.
 				</p>
-				<div className="flex flex-col sm:flex-row gap-3">
-					<button className="px-4 py-2 rounded-xl border border-red-300 text-red-600 text-sm hover:bg-red-50 inline-flex items-center gap-2">
-						<Bell size={16} />
-						تعطيل الإشعارات مؤقتاً
-					</button>
-					<button className="px-4 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50 inline-flex items-center gap-2">
-						<Download size={16} />
-						تصدير بيانات الحساب
-					</button>
-					<button className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700 inline-flex items-center gap-2">
-						<Trash2 size={16} />
+				<div className="flex flex-col sm:flex-row gap-4">
+					<button className="px-6 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
+						<Trash2 size={18} />
 						حذف الحساب نهائياً
 					</button>
+                    <button className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+						<Download size={18} />
+						تصدير كل البيانات
+					</button>
 				</div>
-			</div>
+			</motion.div>
 		</div>
 	);
 }

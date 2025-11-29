@@ -39,6 +39,7 @@ import {
 } from "@/types/database";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import LoadingState from "@/components/LoadingState";
 
 export default function AnalyticsPage() {
 	// State management
@@ -411,16 +412,7 @@ export default function AnalyticsPage() {
     };
 
 	if (loading) {
-		return (
-			<div className="flex flex-col items-center justify-center min-h-[60vh]">
-                 <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-				    <Loader2 className="h-12 w-12 text-[#7f2dfb]" />
-                </motion.div>
-			</div>
-		);
+		return <LoadingState message="جاري تحليل البيانات..." />;
 	}
 
 	if (error) {

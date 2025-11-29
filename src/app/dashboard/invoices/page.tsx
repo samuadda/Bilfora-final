@@ -33,6 +33,7 @@ import {
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import LoadingState from "@/components/LoadingState";
 
 const statusConfig = {
 	draft: {
@@ -201,16 +202,7 @@ export default function InvoicesPage() {
 	};
 
 	if (loading) {
-		return (
-			<div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-				    <Loader2 className="h-12 w-12 text-[#7f2dfb]" />
-                </motion.div>
-			</div>
-		);
+		return <LoadingState message="جاري جلب الفواتير..." />;
 	}
 
 	return (

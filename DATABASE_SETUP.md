@@ -42,6 +42,17 @@ The application uses the following main tables:
     -- This creates utility functions and triggers
     ```
 
+    ```sql
+    -- Run 004_invoice_totals_and_pdf.sql
+    -- Run 005_products.sql
+    -- Run 006_fix_registration_constraints.sql
+    ```
+
+    ```sql
+    -- Run 007_storage_bucket.sql
+    -- This creates the avatars storage bucket and policies
+    ```
+
 ### Option 2: Using Supabase CLI
 
 1. **Install Supabase CLI** (if not already installed):
@@ -88,6 +99,12 @@ The application uses the following main tables:
 -   Auto-populates profile when new user registers
 -   Updates timestamps automatically
 -   Calculates totals for orders and invoices
+
+### 007_storage_bucket.sql
+
+-   Creates the `avatars` storage bucket
+-   Enables public read access for avatars
+-   Configures security policies for uploads and updates
 
 ## Key Features
 
