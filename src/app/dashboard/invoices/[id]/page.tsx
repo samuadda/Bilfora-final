@@ -18,46 +18,32 @@ import { motion } from "framer-motion";
 
 // Register Arabic fonts for proper RTL rendering with error handling
 try {
-Font.register({
-	family: "NotoNaskh", // اسم بسيط بدون مسافات
-	fonts: [
-		{
-			src: "/fonts/Noto-Naskh-Arabic/NotoNaskhArabic-Regular.ttf",
-			fontWeight: "normal",
-		},
-		{
-			src: "/fonts/Noto-Naskh-Arabic/NotoNaskhArabic-Medium.ttf",
-			fontWeight: 500,
-		},
-		{
-			src: "/fonts/Noto-Naskh-Arabic/NotoNaskhArabic-SemiBold.ttf",
-			fontWeight: 600,
-		},
-		{
-			src: "/fonts/Noto-Naskh-Arabic/NotoNaskhArabic-Bold.ttf",
-			fontWeight: "bold",
-		},
-	],
-});
+  Font.register({
+    family: "Markazi",
+    fonts: [
+      {
+        src: "/fonts/markazi/MarkaziText-Regular.ttf",
+        fontWeight: "normal",
+      },
+      {
+        src: "/fonts/markazi/MarkaziText-Medium.ttf",
+        fontWeight: 500,
+      },
+      {
+        src: "/fonts/markazi/MarkaziText-SemiBold.ttf",
+        fontWeight: 600,
+      },
+      {
+        src: "/fonts/markazi/MarkaziText-Bold.ttf",
+        fontWeight: "bold",
+      },
+    ],
+  });
 
-} catch (error) {
-	console.warn("Failed to register Noto Naskh Arabic font:", error);
-}
-
-// Register Markazi Text as fallback
-try {
-	Font.register({
-		family: "Markazi Text",
-		fonts: [
-			{
-				src: "/fonts/markazi/MarkaziText-Regular.ttf",
-				fontWeight: "normal",
-			},
-			{ src: "/fonts/markazi/MarkaziText-Bold.ttf", fontWeight: "bold" },
-		],
-	});
-} catch (error) {
-	console.warn("Failed to register Markazi Text font:", error);
+  // Arabic hyphenation OFF (مهم)
+  Font.registerHyphenationCallback((word) => [word]);
+} catch (err) {
+  console.warn("Font registration failed:", err);
 }
 
 const styles = StyleSheet.create({
@@ -65,9 +51,9 @@ const styles = StyleSheet.create({
 		flexDirection: "column",
 		backgroundColor: "#FFFFFF",
 		padding: 32,
-		fontSize: 12,
-		fontFamily: "NotoNaskh",
-		lineHeight: 1.6,
+		fontSize: 14,
+		fontFamily: "Markazi",
+		lineHeight: 1.5,
 		direction: "rtl",
 	},
 	header: {
@@ -95,21 +81,21 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		fontSize: 14,
 		fontWeight: "bold",
-		fontFamily: "NotoNaskh",
+		
 	},
 	companyName: {
 		fontSize: 22,
 		fontWeight: "bold",
 		color: "#012d46",
 		marginBottom: 8,
-		fontFamily: "NotoNaskh",
+		
 	},
 	companyInfo: {
 		fontSize: 10,
 		color: "#6B7280",
 		lineHeight: 1.6,
 		marginTop: 4,
-		fontFamily: "NotoNaskh",
+		
 	},
 	companyInfoRow: {
 		marginBottom: 3,
@@ -124,13 +110,13 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 		color: "#012d46",
 		marginBottom: 16,
-		fontFamily: "NotoNaskh",
+		
 	},
 	invoiceDetails: {
 		fontSize: 11,
 		color: "#374151",
 		lineHeight: 1.8,
-		fontFamily: "NotoNaskh",
+		
 	},
 	invoiceDetailRow: {
 		marginBottom: 6,
@@ -147,7 +133,7 @@ const styles = StyleSheet.create({
 		padding: 10,
 		borderRadius: 6,
 		textAlign: "right",
-		fontFamily: "NotoNaskh",
+		
 	},
 	clientInfo: {
 		flexDirection: "column",
@@ -168,14 +154,14 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 		color: "#012d46",
 		marginBottom: 8,
-		fontFamily: "NotoNaskh",
+		
 	},
 	clientDetailRow: {
 		fontSize: 11,
 		color: "#6B7280",
 		marginBottom: 4,
 		lineHeight: 1.6,
-		fontFamily: "NotoNaskh",
+		
 	},
 	table: {
 		width: "100%",
@@ -206,7 +192,7 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		textAlign: "right",
 		fontSize: 12,
-		fontFamily: "NotoNaskh",
+		
 	},
 	tableHeaderCellCenter: {
 		textAlign: "center",
@@ -217,14 +203,14 @@ const styles = StyleSheet.create({
 		textAlign: "right",
 		fontSize: 11,
 		color: "#374151",
-		fontFamily: "NotoNaskh",
+		
 	},
 	tableCellCenter: {
 		textAlign: "center",
 	},
 	tableCellNumber: {
 		textAlign: "right",
-		fontFamily: "NotoNaskh",
+		
 		direction: "ltr",
 	},
 	descriptionCell: {
@@ -233,7 +219,7 @@ const styles = StyleSheet.create({
 		textAlign: "right",
 		fontSize: 11,
 		color: "#374151",
-		fontFamily: "NotoNaskh",
+		
 	},
 	totalsSection: {
 		marginTop: 28,
@@ -257,14 +243,14 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: "#6B7280",
 		textAlign: "right",
-		fontFamily: "NotoNaskh",
+		
 	},
 	totalValue: {
 		fontSize: 12,
 		fontWeight: "bold",
 		color: "#374151",
 		textAlign: "left",
-		fontFamily: "NotoNaskh",
+		
 		direction: "ltr",
 	},
 	totalDivider: {
@@ -285,13 +271,13 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: "bold",
 		color: "#FFFFFF",
-		fontFamily: "NotoNaskh",
+		
 	},
 	finalTotalValue: {
 		fontSize: 16,
 		fontWeight: "bold",
 		color: "#FFFFFF",
-		fontFamily: "NotoNaskh",
+		
 		direction: "ltr",
 	},
 	footer: {
@@ -307,7 +293,7 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		lineHeight: 1.6,
 		marginBottom: 4,
-		fontFamily: "NotoNaskh",
+		
 	},
 	notes: {
 		marginTop: 24,
@@ -321,17 +307,18 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 		color: "#92400E",
 		lineHeight: 1.6,
-		fontFamily: "NotoNaskh",
+		
 	},
 	notesLabel: {
 		fontWeight: "bold",
 		marginBottom: 4,
+		
 	},
 });
 
 function InvoicePDF({ invoice, client, items }: any) {
 	const subtotal = items.reduce(
-		(s: number, it: any) => s + it.quantity * it.unit_price,
+		(s: number, it: any) => s + (it.quantity || 0) * (it.unit_price || 0),
 		0
 	);
 	const vat = subtotal * ((invoice?.tax_rate || 0) / 100);
@@ -346,7 +333,8 @@ function InvoicePDF({ invoice, client, items }: any) {
 		}).format(amount);
 	};
 
-	const formatDate = (dateString: string) => {
+	const formatDate = (dateString?: string) => {
+		if (!dateString) return "-";
 		return new Date(dateString).toLocaleDateString("en-GB");
 	};
 
@@ -365,6 +353,14 @@ function InvoicePDF({ invoice, client, items }: any) {
 			default:
 				return "غير محدد";
 		}
+	};
+
+	// Helper to ensure text is never empty string or null/undefined
+	// react-pdf can have issues with empty strings in some contexts
+	const safeString = (text: any) => {
+		if (text === null || text === undefined || text === "") return " ";
+		const str = String(text);
+		return str === "" ? " " : str;
 	};
 
 	return (
@@ -398,16 +394,16 @@ function InvoicePDF({ invoice, client, items }: any) {
 						<View style={styles.invoiceDetails}>
 							<Text style={styles.invoiceDetailRow}>
 								رقم الفاتورة:{" "}
-								{invoice?.invoice_number || invoice?.id}
+								{safeString(invoice?.invoice_number || invoice?.id)}
 							</Text>
 							<Text style={styles.invoiceDetailRow}>
-								تاريخ الإصدار: {formatDate(invoice?.issue_date)}
+								تاريخ الإصدار: {safeString(formatDate(invoice?.issue_date))}
 							</Text>
 							<Text style={styles.invoiceDetailRow}>
-								تاريخ الاستحقاق: {formatDate(invoice?.due_date)}
+								تاريخ الاستحقاق: {safeString(formatDate(invoice?.due_date))}
 							</Text>
 							<Text style={styles.invoiceDetailRow}>
-								الحالة: {getStatusText(invoice?.status || "")}
+								الحالة: {safeString(getStatusText(invoice?.status))}
 							</Text>
 						</View>
 					</View>
@@ -419,28 +415,28 @@ function InvoicePDF({ invoice, client, items }: any) {
 					<View style={styles.clientInfo}>
 						<View style={styles.clientDetails}>
 							<Text style={styles.clientName}>
-								{client?.name || "غير محدد"}
+								{safeString(client?.name || "غير محدد")}
 							</Text>
 							{client?.company_name && (
 								<Text style={styles.clientDetailRow}>
-									الشركة: {client.company_name}
+									الشركة: {safeString(client?.company_name)}
 								</Text>
 							)}
 							<Text style={styles.clientDetailRow}>
-								البريد الإلكتروني: {client?.email || "-"}
+								البريد الإلكتروني: {safeString(client?.email || "-")}
 							</Text>
 							<Text style={styles.clientDetailRow}>
-								الهاتف: {client?.phone || "-"}
+								الهاتف: {safeString(client?.phone || "-")}
 							</Text>
 							{client?.tax_number && (
 								<Text style={styles.clientDetailRow}>
-									الرقم الضريبي: {client.tax_number}
+									الرقم الضريبي: {safeString(client?.tax_number)}
 								</Text>
 							)}
 							{client?.address && (
 								<Text style={styles.clientDetailRow}>
-									العنوان: {client.address}
-									{client?.city ? `، ${client.city}` : ""}
+									العنوان: {safeString(client?.address)}
+									{client?.city ? `، ${safeString(client?.city)}` : ""}
 								</Text>
 							)}
 						</View>
@@ -496,7 +492,7 @@ function InvoicePDF({ invoice, client, items }: any) {
 								key={i}
 							>
 								<Text style={styles.descriptionCell}>
-									{it.description || "-"}
+									{safeString(it.description || "-")}
 								</Text>
 								<Text
 									style={[
@@ -504,7 +500,7 @@ function InvoicePDF({ invoice, client, items }: any) {
 										styles.tableCellCenter,
 									]}
 								>
-									{it.quantity || 0}
+									{safeString(it.quantity || 0)}
 								</Text>
 								<Text
 									style={[
@@ -512,7 +508,7 @@ function InvoicePDF({ invoice, client, items }: any) {
 										styles.tableCellNumber,
 									]}
 								>
-									{formatCurrency(Number(it.unit_price) || 0)}
+									{safeString(formatCurrency(Number(it.unit_price) || 0))}
 								</Text>
 								<Text
 									style={[
@@ -520,10 +516,10 @@ function InvoicePDF({ invoice, client, items }: any) {
 										styles.tableCellNumber,
 									]}
 								>
-									{formatCurrency(
-										(it.quantity || 0) *
-											(it.unit_price || 0)
-									)}
+									{safeString(formatCurrency(
+										(Number(it.quantity) || 0) *
+											(Number(it.unit_price) || 0)
+									))}
 								</Text>
 							</View>
 						))}
@@ -540,15 +536,15 @@ function InvoicePDF({ invoice, client, items }: any) {
 									المجموع الفرعي:
 								</Text>
 								<Text style={styles.totalValue}>
-									{formatCurrency(subtotal)}
+									{safeString(formatCurrency(subtotal))}
 								</Text>
 							</View>
 							<View style={styles.totalRow}>
 								<Text style={styles.totalLabel}>
-									الضريبة ({invoice?.tax_rate || 0}%):
+									الضريبة ({safeString(invoice?.tax_rate || 0)}%):
 								</Text>
 								<Text style={styles.totalValue}>
-									{formatCurrency(vat)}
+									{safeString(formatCurrency(vat))}
 								</Text>
 							</View>
 							<View style={styles.totalDivider} />
@@ -557,7 +553,7 @@ function InvoicePDF({ invoice, client, items }: any) {
 									الإجمالي:
 								</Text>
 								<Text style={styles.finalTotalValue}>
-									{formatCurrency(total)}
+									{safeString(formatCurrency(total))}
 								</Text>
 							</View>
 						</View>
@@ -566,16 +562,16 @@ function InvoicePDF({ invoice, client, items }: any) {
 
 				{/* Notes */}
 				{invoice?.notes && (
-					<View style={styles.notesText}>
+					<View style={styles.notes}>
 						<Text style={styles.notesLabel}>ملاحظات:</Text>
-						<Text>{invoice.notes}</Text>
+						<Text style={styles.notesText}>{safeString(invoice.notes)}</Text>
 					</View>
 				)}
 
 				{/* Professional Footer */}
 				<View style={styles.footer}>
 					<Text style={styles.footerText}>
-						صُنعت هذه الفاتورة بواسطة منصة بيلفورا – النظام المعتمد
+						صُنعت هذه الفاتورة بواسطة منصة بيلفورة - النظام المعتمد
 						لإصدار الفواتير الاحترافية.
 					</Text>
 				</View>
@@ -708,7 +704,7 @@ export default function InvoiceShowPage() {
 								return (
 									<span className="inline-flex items-center gap-2">
 										<Printer size={18} />
-										خطأ في التحميل
+										فشل التحميل
 									</span>
 								);
 							}

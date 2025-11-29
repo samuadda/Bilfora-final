@@ -271,7 +271,7 @@ export default function ProductsPage() {
                                         </span>
                                     </td>
                                     <td className="p-5">
-                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-2">
                                             <button 
                                                 onClick={() => openEdit(p)} 
                                                 className="p-2 text-gray-500 hover:text-[#7f2dfb] hover:bg-purple-50 rounded-lg transition-colors"

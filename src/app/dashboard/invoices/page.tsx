@@ -353,7 +353,7 @@ export default function InvoicesPage() {
                                             </div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
-											<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+											<div className="flex items-center gap-2">
                                                 <button onClick={() => router.push(`/dashboard/invoices/${invoice.id}`)} className="p-2 text-gray-400 hover:text-[#7f2dfb] hover:bg-purple-50 rounded-lg transition-colors" title="عرض التفاصيل">
                                                     <Eye size={18} />
                                                 </button>
