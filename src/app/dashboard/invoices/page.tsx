@@ -85,7 +85,11 @@ export default function InvoicesPage() {
 		let filtered = [...invoices];
 
 		if (statusFilter !== "all") {
-			filtered = filtered.filter((i) => i.status === statusFilter);
+			if (statusFilter === "overdue") {
+				filtered = filtered.filter((i) => isOverdue(i.due_date, i.status));
+			} else {
+				filtered = filtered.filter((i) => i.status === statusFilter);
+			}
 		}
 
 		if (searchTerm) {
@@ -198,7 +202,7 @@ export default function InvoicesPage() {
 		new Date(dateString).toLocaleDateString("en-GB");
 
 	const isOverdue = (dueDate: string, status: InvoiceStatus) => {
-		return new Date(dueDate) < new Date() && status !== "paid";
+		return new Date(dueDate) < new Date() && status !== "paid" && status !== "cancelled";
 	};
 
 	if (loading) {
@@ -277,6 +281,7 @@ export default function InvoicesPage() {
                             <option value="draft">مسودة</option>
                             <option value="sent">مرسلة</option>
                             <option value="paid">مدفوعة</option>
+                            <option value="cancelled">ملغية</option>
                             <option value="overdue">متأخرة</option>
                          </select>
                          <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
@@ -362,14 +367,21 @@ export default function InvoicesPage() {
                                                         <Send size={18} />
                                                     </button>
                                                 )}
-                                                {invoice.status !== 'paid' && (
-                                                     <button onClick={() => handleStatusChange(invoice.id, "paid")} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="تحديد كمدفوعة">
-                                                        <CheckCircle size={18} />
+                                                {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+                                                    <>
+                                                        <button onClick={() => handleStatusChange(invoice.id, "paid")} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="تحديد كمدفوعة">
+                                                            <CheckCircle size={18} />
+                                                        </button>
+                                                        <button onClick={() => handleStatusChange(invoice.id, "cancelled")} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="إلغاء الفاتورة">
+                                                            <XCircle size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {invoice.status === 'draft' && (
+                                                    <button onClick={() => setDeleteCandidate(invoice)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="حذف">
+                                                        <Trash2 size={18} />
                                                     </button>
                                                 )}
-                                                <button onClick={() => setDeleteCandidate(invoice)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="حذف">
-                                                    <Trash2 size={18} />
-                                                </button>
 											</div>
 										</td>
 									</motion.tr>
