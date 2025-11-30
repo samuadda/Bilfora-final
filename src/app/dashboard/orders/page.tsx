@@ -7,6 +7,8 @@ import {
 	Download,
 	Filter,
 	ChevronDown,
+	ChevronLeft,
+	ChevronRight,
 	CheckCircle,
 	Clock,
 	XCircle,
@@ -69,6 +71,10 @@ export default function OrdersPage() {
 	const [editingOrder, setEditingOrder] =
 		useState<OrderWithClientAndItems | null>(null);
 	const [saving, setSaving] = useState(false);
+	
+	// Pagination
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 
 	// Form state for add/edit
 	const [formData, setFormData] = useState({
@@ -132,7 +138,15 @@ export default function OrdersPage() {
 		}
 
 		setFilteredOrders(filtered);
+		setCurrentPage(1); // Reset to page 1 when filters change
 	}, [orders, statusFilter, searchTerm, dateFilter]);
+
+	// Pagination
+	const totalPages = Math.ceil(filteredOrders.length / pageSize);
+	const paginatedOrders = filteredOrders.slice(
+		(currentPage - 1) * pageSize,
+		currentPage * pageSize
+	);
 
 	const loadOrders = async () => {
 		try {
@@ -679,7 +693,7 @@ export default function OrdersPage() {
 							</tr>
 						</thead>
 						<tbody className="bg-white divide-y divide-gray-200">
-							{filteredOrders.map((order) => {
+							{paginatedOrders.map((order) => {
 								const statusInfo = statusConfig[order.status];
 								const StatusIcon = statusInfo.icon;
 
@@ -790,6 +804,48 @@ export default function OrdersPage() {
 							<Plus size={16} />
 							إضافة طلب جديد
 						</button>
+					</div>
+				)}
+
+				{/* Pagination */}
+				{totalPages > 1 && (
+					<div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30">
+						<div className="flex items-center gap-2">
+							<span className="text-sm text-gray-600">عدد العناصر في الصفحة:</span>
+							<select
+								value={pageSize}
+								onChange={(e) => {
+									setPageSize(Number(e.target.value));
+									setCurrentPage(1);
+								}}
+								className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm focus:border-[#7f2dfb] focus:ring-2 focus:ring-purple-100"
+							>
+								<option value={10}>10</option>
+								<option value={25}>25</option>
+								<option value={50}>50</option>
+							</select>
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+								disabled={currentPage === 1}
+								className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							>
+								<ChevronRight size={18} />
+							</button>
+							<span className="text-sm text-gray-600 px-3">
+								صفحة {currentPage} من {totalPages}
+							</span>
+							<button
+								type="button"
+								onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+								disabled={currentPage === totalPages}
+								className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							>
+								<ChevronLeft size={18} />
+							</button>
+						</div>
 					</div>
 				)}
 			</div>

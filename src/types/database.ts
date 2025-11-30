@@ -64,6 +64,8 @@ export interface OrderItem {
 }
 
 // New: Product catalog
+export type ProductStatus = "active" | "inactive";
+
 export interface Product {
     id: string;
     user_id: string;
@@ -72,6 +74,9 @@ export interface Product {
     unit: string | null;
     unit_price: number;
     active: boolean;
+    status?: ProductStatus; // Computed from active field
+    category?: string | null; // Optional field for UI
+    sku?: string | null; // Optional field for UI
     created_at: string;
     updated_at: string;
 }

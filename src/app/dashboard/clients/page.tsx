@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Edit, Trash2, Plus, Search, Loader2, Undo2, Users, CheckCircle2, XCircle, Building2, Phone, Mail, MapPin, ChevronDown } from "lucide-react";
+import { Edit, Trash2, Plus, Search, Loader2, Undo2, Users, CheckCircle2, XCircle, Building2, Phone, Mail, MapPin, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { Client, ClientStatus } from "@/types/database";
@@ -41,9 +41,9 @@ export default function ClientsPage() {
 	const [clients, setClients] = useState<Client[]>([]);
 	const [filteredClients, setFilteredClients] = useState<Client[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [page, setPage] = useState(1);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 	const [totalCount, setTotalCount] = useState(0);
-	const pageSize = 10;
 
 	const [statusFilter, setStatusFilter] = useState<
 		"all" | ClientStatus | "deleted"
@@ -79,10 +79,11 @@ export default function ClientsPage() {
 
 	useEffect(() => {
 		loadClients();
-	}, [page]);
+	}, [currentPage]);
 
 	useEffect(() => {
 		filterClients();
+		setCurrentPage(1); // Reset to page 1 when filters change
 	}, [clients, statusFilter, searchTerm]);
 
 	const loadClients = async () => {
@@ -93,7 +94,7 @@ export default function ClientsPage() {
 			} = await supabase.auth.getUser();
 			if (!user) return;
 
-			const from = (page - 1) * pageSize;
+			const from = (currentPage - 1) * pageSize;
 			const to = from + pageSize - 1;
 
 			const { data, error, count } = await supabase
@@ -218,7 +219,7 @@ export default function ClientsPage() {
 				});
 			}
 			setShowModal(false);
-            setPage(1);
+			setCurrentPage(1);
             await loadClients();
 		} catch (err: any) {
 			toast({
@@ -266,6 +267,13 @@ export default function ClientsPage() {
 
 	const formatDate = (d: string) => new Date(d).toLocaleDateString("en-GB");
 	const totalPages = Math.ceil(totalCount / pageSize);
+	
+	// Client-side pagination for filtered results
+	const paginatedClients = filteredClients.slice(
+		(currentPage - 1) * pageSize,
+		currentPage * pageSize
+	);
+	const filteredTotalPages = Math.ceil(filteredClients.length / pageSize);
 
 	if (loading)
 		return <LoadingState message="جاري تحميل العملاء..." />;
@@ -361,7 +369,7 @@ export default function ClientsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {filteredClients.map((client) => (
+                            {paginatedClients.map((client) => (
                                 <tr
                                     key={client.id}
                                     className="hover:bg-gray-50/80 transition-colors group"
@@ -451,25 +459,44 @@ export default function ClientsPage() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-4 bg-gray-50/30">
-                        <button
-                            onClick={() => setPage((p) => Math.max(1, p - 1))}
-                            disabled={page === 1}
-                            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            السابق
-                        </button>
-                        <span className="text-sm font-medium text-gray-600">
-                            صفحة {page} من {totalPages}
-                        </span>
-                        <button
-                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={page === totalPages}
-                            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            التالي
-                        </button>
+                {filteredTotalPages > 1 && (
+                    <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">عدد العناصر في الصفحة:</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => {
+                                    setPageSize(Number(e.target.value));
+                                    setCurrentPage(1);
+                               	}}
+                                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm focus:border-[#7f2dfb] focus:ring-2 focus:ring-purple-100"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                            <span className="text-sm text-gray-600 px-3">
+                                صفحة {currentPage} من {filteredTotalPages}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((p) => Math.min(filteredTotalPages, p + 1))}
+                                disabled={currentPage === filteredTotalPages}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                        </div>
                     </div>
                 )}
             </motion.div>
