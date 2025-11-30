@@ -30,6 +30,8 @@ export default function ProfilePage() {
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	const [emailSaving, setEmailSaving] = useState(false);
+	const [passwordSaving, setPasswordSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const [emailInput, setEmailInput] = useState("");
@@ -214,53 +216,162 @@ export default function ProfilePage() {
 		}
 	};
 
-    const handleEmailUpdate = async (e: React.FormEvent) => {
+    const handleEmailUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        e.stopPropagation();
+        
+        setEmailSaving(true);
+        setError(null);
+        setSuccess(null);
+        
+        // Validate email - same rules as registration
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailInput.trim()) {
+            setError("البريد الإلكتروني مطلوب");
+            setEmailSaving(false);
+            return;
+        }
+        if (!emailRegex.test(emailInput.trim())) {
+            setError("البريد الإلكتروني غير صالح");
+            setEmailSaving(false);
+            return;
+        }
+        
+        // Check if email is different from current
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email && emailInput.trim().toLowerCase() === user.email.toLowerCase()) {
+            setError("البريد الإلكتروني الجديد يجب أن يكون مختلفاً عن الحالي");
+            setEmailSaving(false);
+            return;
+        }
+        
         try {
-            setSaving(true);
-            setError(null);
-            const { error } = await supabase.auth.updateUser({ email: emailInput });
-            if (error) throw error;
-            setSuccess("تم إرسال رابط تأكيد إلى البريد الجديد. الرجاء التحقق.");
+            // Get the current origin for redirect URL
+            const redirectUrl = typeof window !== 'undefined' 
+                ? `${window.location.origin}/dashboard/profile?email_confirmed=true`
+                : `${process.env.NEXT_PUBLIC_SITE_URL || ''}/dashboard/profile?email_confirmed=true`;
+            
+            // Update user email - Supabase will automatically send confirmation email
+            const { data, error: updateError } = await supabase.auth.updateUser(
+                { 
+                    email: emailInput.trim() 
+                },
+                {
+                    emailRedirectTo: redirectUrl
+                }
+            );
+            
+            if (updateError) {
+                console.error("Email update error details:", updateError);
+                // Check for specific error codes
+                if (updateError.message?.includes('already registered') || 
+                    updateError.message?.includes('already exists') ||
+                    updateError.message?.includes('User already registered')) {
+                    setError("هذا البريد الإلكتروني مستخدم بالفعل");
+                } else if (updateError.message?.includes('rate limit') || 
+                          updateError.message?.includes('too many requests')) {
+                    setError("تم إرسال الكثير من الطلبات. يرجى المحاولة لاحقاً");
+                } else if (updateError.message?.includes('Email rate limit')) {
+                    setError("تم إرسال الكثير من رسائل البريد الإلكتروني. يرجى الانتظار قليلاً");
+                } else {
+                    setError(updateError.message || "فشل تحديث البريد الإلكتروني");
+                }
+                setEmailSaving(false);
+                return;
+            }
+            
+            // Check if update was successful
+            if (data?.user) {
+                // The email will be in email_change_token until confirmed
+                // Supabase should automatically send confirmation email
+                console.log("Email update initiated. Confirmation email should be sent to:", emailInput.trim());
+                setSuccess("تم إرسال رابط تأكيد إلى البريد الجديد. الرجاء التحقق من بريدك الإلكتروني (والبريد العشوائي) والنقر على الرابط لتأكيد التغيير.");
+                setEmailInput("");
+            } else {
+                setError("حدث خطأ أثناء تحديث البريد الإلكتروني");
+            }
         } catch (err: any) {
             console.error("Email update error:", err);
             setError(err?.message || "فشل تحديث البريد الإلكتروني");
         } finally {
-            setSaving(false);
+            setEmailSaving(false);
         }
     };
 
-    const handlePasswordChange = async (e: React.FormEvent) => {
+    const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        e.stopPropagation();
+        
+        setPasswordSaving(true);
+        setError(null);
+        setSuccess(null);
+        
+        // Validate current password
+        if (!passwords.current) {
+            setError("كلمة المرور الحالية مطلوبة");
+            setPasswordSaving(false);
+            return;
+        }
+        
+        // Validate new password - same rules as registration
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+        if (!passwords.newPass) {
+            setError("كلمة المرور الجديدة مطلوبة");
+            setPasswordSaving(false);
+            return;
+        }
+        if (!passwordRegex.test(passwords.newPass)) {
+            setError("كلمة المرور يجب أن تكون 8 خانات على الأقل، وتحتوي على حرف ورقم على الأقل");
+            setPasswordSaving(false);
+            return;
+        }
+        
+        // Validate confirmation
+        if (!passwords.confirm) {
+            setError("تأكيد كلمة المرور مطلوب");
+            setPasswordSaving(false);
+            return;
+        }
+        if (passwords.newPass !== passwords.confirm) {
+            setError("كلمات المرور غير متطابقة");
+            setPasswordSaving(false);
+            return;
+        }
+        
         try {
-            setSaving(true);
-            setError(null);
-            setSuccess(null);
-            if (!passwords.newPass || passwords.newPass.length < 8) {
-                setError("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل");
-                return;
-            }
-            if (passwords.newPass !== passwords.confirm) {
-                setError("تأكيد كلمة المرور غير متطابق");
-                return;
-            }
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user || !user.email) throw new Error("غير مسجل");
+            if (!user || !user.email) {
+                throw new Error("غير مسجل دخول");
+            }
             
-            const signIn = await supabase.auth.signInWithPassword({ email: user.email, password: passwords.current });
-            if (signIn.error) {
+            // Verify current password
+            const { error: signInError } = await supabase.auth.signInWithPassword({ 
+                email: user.email, 
+                password: passwords.current 
+            });
+            
+            if (signInError) {
                 setError("كلمة المرور الحالية غير صحيحة");
+                setPasswordSaving(false);
                 return;
             }
-            const { error } = await supabase.auth.updateUser({ password: passwords.newPass });
-            if (error) throw error;
+            
+            // Update password
+            const { error: updateError } = await supabase.auth.updateUser({ 
+                password: passwords.newPass 
+            });
+            
+            if (updateError) {
+                throw updateError;
+            }
+            
             setSuccess("تم تغيير كلمة المرور بنجاح");
             setPasswords({ current: "", newPass: "", confirm: "" });
         } catch (err: any) {
             console.error("Password change error:", err);
             setError(err?.message || "فشل تغيير كلمة المرور");
         } finally {
-            setSaving(false);
+            setPasswordSaving(false);
         }
     };
 
@@ -622,13 +733,46 @@ export default function ProfilePage() {
                                 <Mail className="text-[#7f2dfb]" size={20} />
                                 البريد الإلكتروني
                             </h2>
+                            {error && error.includes("البريد") && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                                    <p className="text-red-800 text-sm font-medium">{error}</p>
+                                </div>
+                            )}
+                            {success && success.includes("رابط تأكيد") && (
+                                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                                    <p className="text-green-800 text-sm font-medium">{success}</p>
+                                </div>
+                            )}
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-gray-700">البريد الجديد</label>
-                                    <input value={emailInput} onChange={(e) => setEmailInput(e.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" type="email" required />
+                                    <input 
+                                        value={emailInput} 
+                                        onChange={(e) => setEmailInput(e.target.value)} 
+                                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" 
+                                        type="email" 
+                                        required 
+                                        disabled={emailSaving}
+                                        placeholder="example@domain.com"
+                                    />
+                                    <p className="text-xs text-gray-500">سيتم إرسال رابط تأكيد إلى البريد الجديد</p>
                                 </div>
-                                <button type="submit" disabled={saving} className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
-                                    تحديث البريد
+                                <button 
+                                    type="submit" 
+                                    disabled={emailSaving} 
+                                    className="w-full py-2.5 rounded-xl bg-[#7f2dfb] text-white text-sm font-bold hover:bg-[#6a1fd8] shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {emailSaving ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            جاري التحديث...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={18} />
+                                            تحديث البريد
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -638,21 +782,68 @@ export default function ProfilePage() {
                                 <Building2 className="text-[#7f2dfb]" size={20} />
                                 تغيير كلمة المرور
                             </h2>
+                            {error && error.includes("كلمة المرور") && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                                    <p className="text-red-800 text-sm font-medium">{error}</p>
+                                </div>
+                            )}
+                            {success && success.includes("كلمة المرور") && (
+                                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                                    <p className="text-green-800 text-sm font-medium">{success}</p>
+                                </div>
+                            )}
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-gray-700">كلمة المرور الحالية</label>
-                                    <input type="password" value={passwords.current} onChange={(e) => setPasswords(p => ({ ...p, current: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" required />
+                                    <input 
+                                        type="password" 
+                                        value={passwords.current} 
+                                        onChange={(e) => setPasswords(p => ({ ...p, current: e.target.value }))} 
+                                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" 
+                                        required 
+                                        disabled={passwordSaving}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-gray-700">الجديدة</label>
-                                    <input type="password" value={passwords.newPass} onChange={(e) => setPasswords(p => ({ ...p, newPass: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" required />
+                                    <input 
+                                        type="password" 
+                                        value={passwords.newPass} 
+                                        onChange={(e) => setPasswords(p => ({ ...p, newPass: e.target.value }))} 
+                                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" 
+                                        required 
+                                        disabled={passwordSaving}
+                                        placeholder="8 أحرف على الأقل، حرف ورقم"
+                                    />
+                                    <p className="text-xs text-gray-500">يجب أن تكون 8 خانات على الأقل، وتحتوي على حرف ورقم على الأقل</p>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-gray-700">تأكيد الجديدة</label>
-                                    <input type="password" value={passwords.confirm} onChange={(e) => setPasswords(p => ({ ...p, confirm: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" required />
+                                    <input 
+                                        type="password" 
+                                        value={passwords.confirm} 
+                                        onChange={(e) => setPasswords(p => ({ ...p, confirm: e.target.value }))} 
+                                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#7f2dfb] focus:ring-[#7f2dfb] transition-all" 
+                                        required 
+                                        disabled={passwordSaving}
+                                    />
                                 </div>
-                                <button type="submit" disabled={saving} className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
-                                    حفظ كلمة المرور
+                                <button 
+                                    type="submit" 
+                                    disabled={passwordSaving} 
+                                    className="w-full py-2.5 rounded-xl bg-[#7f2dfb] text-white text-sm font-bold hover:bg-[#6a1fd8] shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {passwordSaving ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            جاري الحفظ...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={18} />
+                                            حفظ كلمة المرور
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </form>

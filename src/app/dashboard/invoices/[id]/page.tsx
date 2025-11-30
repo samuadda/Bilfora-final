@@ -575,3 +575,385 @@ function InvoicePDF({ invoice, client, items }: any) {
     </Document>
   );
 }
+
+// ------- Page component ----------
+
+export default function InvoiceDetailPage() {
+  const params = useParams();
+  const invoiceId = params.id as string;
+  const [invoice, setInvoice] = useState<any>(null);
+  const [client, setClient] = useState<any>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadInvoice = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return;
+        }
+
+        const { data, error: fetchError } = await supabase
+          .from("invoices")
+          .select(`
+            *,
+            client:clients(*),
+            items:invoice_items(*)
+          `)
+          .eq("id", invoiceId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        if (data) {
+          setInvoice(data);
+          setClient(data.client);
+          setItems(data.items || []);
+        }
+      } catch (err: any) {
+        console.error("Error loading invoice:", err);
+        setError(err.message || "حدث خطأ أثناء تحميل الفاتورة");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (invoiceId) {
+      loadInvoice();
+    }
+  }, [invoiceId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-[#7f2dfb]" />
+      </div>
+    );
+  }
+
+  if (error || !invoice) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <FileText className="w-16 h-16 text-gray-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">
+          {error || "الفاتورة غير موجودة"}
+        </h2>
+        <Link
+          href="/dashboard/invoices"
+          className="mt-4 text-[#7f2dfb] hover:underline flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          العودة إلى قائمة الفواتير
+        </Link>
+      </div>
+    );
+  }
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "SAR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("ar-SA");
+  };
+
+  const taxRate = Number(invoice?.tax_rate || 0);
+  const subtotal = items.reduce(
+    (sum: number, it: any) =>
+      sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
+    0
+  );
+  const vat = subtotal * (taxRate / 100);
+  const total = subtotal + vat;
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body {
+            background: white !important;
+          }
+          
+          /* Hide navigation and buttons when printing */
+          a[href="/dashboard/invoices"],
+          button,
+          .no-print {
+            display: none !important;
+          }
+          
+          /* Remove background colors and shadows for print */
+          .print-invoice {
+            background: white !important;
+            box-shadow: none !important;
+            border: none !important;
+            padding: 20px !important;
+            margin: 0 !important;
+          }
+          
+          /* Ensure proper page breaks */
+          .print-invoice {
+            page-break-inside: avoid;
+          }
+          
+          /* Table styling for print */
+          .print-invoice table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          
+          .print-invoice table thead {
+            background: #7f2dfb !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+          }
+          
+          .print-invoice table th {
+            background: #7f2dfb !important;
+            color: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+            padding: 12px !important;
+            border: 1px solid #6a1fd8 !important;
+          }
+          
+          .print-invoice table td {
+            padding: 10px !important;
+            border: 1px solid #e5e7eb !important;
+          }
+          
+          .print-invoice table tbody tr {
+            border-bottom: 1px solid #e5e7eb !important;
+          }
+          
+          /* Ensure text is readable for print */
+          .print-invoice h1,
+          .print-invoice h2,
+          .print-invoice h3 {
+            color: #012d46 !important;
+          }
+          
+          /* Totals section */
+          .print-invoice .totals-section {
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+          }
+          
+          /* Remove animations and transitions */
+          * {
+            animation: none !important;
+            transition: none !important;
+          }
+          
+          /* Page setup */
+          @page {
+            margin: 1cm;
+            size: A4;
+          }
+          
+          /* Ensure full width */
+          .print-invoice {
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+          
+          /* Show print header only when printing */
+          .print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 20px;
+          }
+        }
+        
+        /* Hide print header on screen */
+        .print-header {
+          display: none;
+        }
+      `}} />
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 no-print">
+          <Link
+            href="/dashboard/invoices"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-[#7f2dfb] transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            العودة إلى قائمة الفواتير
+          </Link>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#012d46]">
+              فاتورة #{invoice.invoice_number || invoice.id}
+            </h1>
+            <div className="flex gap-3">
+              <PDFDownloadLink
+                document={<InvoicePDF invoice={invoice} client={client} items={items} />}
+                fileName={`invoice-${invoice.invoice_number || invoice.id}.pdf`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#7f2dfb] text-white rounded-lg hover:bg-[#6b1fd9] transition-colors"
+              >
+                {({ loading: pdfLoading }) =>
+                  pdfLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      جاري التحميل...
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="w-4 h-4" />
+                      تحميل PDF
+                    </>
+                  )
+                }
+              </PDFDownloadLink>
+            </div>
+          </div>
+        </div>
+        
+        {/* Print Header */}
+        <div className="print-header mb-6">
+          <h1 className="text-2xl font-bold text-[#012d46] text-center mb-4">
+            فاتورة #{invoice.invoice_number || invoice.id}
+          </h1>
+        </div>
+
+        {/* Invoice Details */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="print-invoice bg-white rounded-lg shadow-sm p-6 md:p-8"
+        >
+          {/* Invoice Info */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <h3 className="text-lg font-semibold text-[#012d46] mb-4">
+                معلومات الفاتورة
+              </h3>
+              <div className="space-y-2 text-gray-600">
+                <p>
+                  <span className="font-medium">رقم الفاتورة:</span>{" "}
+                  {invoice.invoice_number || invoice.id}
+                </p>
+                <p>
+                  <span className="font-medium">تاريخ الإصدار:</span>{" "}
+                  {formatDate(invoice.issue_date)}
+                </p>
+                <p>
+                  <span className="font-medium">تاريخ الاستحقاق:</span>{" "}
+                  {formatDate(invoice.due_date)}
+                </p>
+                <p>
+                  <span className="font-medium">الحالة:</span>{" "}
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                    {invoice.status}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[#012d46] mb-4">
+                معلومات العميل
+              </h3>
+              <div className="space-y-2 text-gray-600">
+                <p className="font-medium text-[#012d46]">{client?.name || "-"}</p>
+                {client?.company_name && <p>الشركة: {client.company_name}</p>}
+                {client?.email && <p>البريد: {client.email}</p>}
+                {client?.phone && <p>الهاتف: {client.phone}</p>}
+                {client?.tax_number && <p>الرقم الضريبي: {client.tax_number}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-[#012d46] mb-4">
+              تفاصيل الفاتورة
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-[#7f2dfb] text-white">
+                    <th className="p-3 text-right text-sm font-semibold">#</th>
+                    <th className="p-3 text-right text-sm font-semibold">الوصف</th>
+                    <th className="p-3 text-center text-sm font-semibold">الكمية</th>
+                    <th className="p-3 text-left text-sm font-semibold">سعر الوحدة</th>
+                    <th className="p-3 text-center text-sm font-semibold">نسبة الضريبة</th>
+                    <th className="p-3 text-left text-sm font-semibold">مبلغ الضريبة</th>
+                    <th className="p-3 text-left text-sm font-semibold">الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item: any, index: number) => {
+                    const qty = Number(item.quantity) || 0;
+                    const unit = Number(item.unit_price) || 0;
+                    const lineNet = qty * unit;
+                    const lineVat = lineNet * (taxRate / 100);
+                    const lineTotal = lineNet + lineVat;
+
+                    return (
+                      <tr
+                        key={item.id || index}
+                        className="border-b border-gray-200 hover:bg-gray-50"
+                      >
+                        <td className="p-3 text-right text-sm">{index + 1}</td>
+                        <td className="p-3 text-right text-sm">{item.description || "-"}</td>
+                        <td className="p-3 text-center text-sm">{qty}</td>
+                        <td className="p-3 text-left text-sm">{formatCurrency(unit)}</td>
+                        <td className="p-3 text-center text-sm">{taxRate}%</td>
+                        <td className="p-3 text-left text-sm">{formatCurrency(lineVat)}</td>
+                        <td className="p-3 text-left text-sm font-medium">
+                          {formatCurrency(lineTotal)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Totals */}
+          <div className="flex justify-end">
+            <div className="totals-section w-full md:w-96 space-y-2 p-4 rounded-lg">
+              <div className="flex justify-between text-gray-600">
+                <span>المجموع الفرعي (بدون ضريبة):</span>
+                <span className="font-medium">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>مجموع الضريبة ({taxRate}%):</span>
+                <span className="font-medium">{formatCurrency(vat)}</span>
+              </div>
+              <div className="border-t border-gray-300 pt-2 mt-2">
+                <div className="flex justify-between text-lg font-bold text-[#012d46]">
+                  <span>الإجمالي المستحق:</span>
+                  <span>{formatCurrency(total)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {invoice.notes && (
+            <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 className="font-semibold text-yellow-900 mb-2">ملاحظات:</h4>
+              <p className="text-yellow-800 text-sm">{invoice.notes}</p>
+            </div>
+          )}
+        </motion.div>
+        </div>
+      </div>
+    </>
+  );
+}

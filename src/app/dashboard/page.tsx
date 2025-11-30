@@ -563,8 +563,14 @@ export default function DashboardPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.7 }}
-						className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm"
+						className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm relative"
 					>
+						<Link
+							href="/dashboard/clients"
+							className="absolute top-6 left-6 px-4 py-2 bg-gray-50 text-[#7f2dfb] rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors z-10"
+						>
+							عرض السجل الكامل
+						</Link>
 						<h3 className="text-xl font-bold text-[#012d46] mb-2">
 							تحليل العملاء
 						</h3>

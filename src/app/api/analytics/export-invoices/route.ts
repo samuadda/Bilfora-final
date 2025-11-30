@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         due_date,
         tax_amount,
         subtotal,
+        created_at,
         clients!inner(name)
       `)
       .eq('user_id', user.id);
@@ -46,12 +47,13 @@ export async function GET(request: NextRequest) {
     const exportData = data?.map(invoice => ({
       invoice_number: invoice.invoice_number,
       client_name: invoice.clients?.name || 'غير محدد',
-      total_amount: invoice.total_amount,
+      total_amount: invoice.total_amount || 0,
       status: invoice.status,
       issue_date: invoice.issue_date,
       due_date: invoice.due_date,
-      tax_amount: invoice.tax_amount,
-      subtotal: invoice.subtotal
+      tax_amount: invoice.tax_amount || 0,
+      subtotal: invoice.subtotal || 0,
+      created_at: invoice.created_at || invoice.issue_date
     })) || [];
 
     return NextResponse.json(exportData);

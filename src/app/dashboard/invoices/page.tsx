@@ -198,8 +198,16 @@ export default function InvoicesPage() {
             maximumFractionDigits: 0
 		}).format(amount);
 
-	const formatDate = (dateString: string) =>
-		new Date(dateString).toLocaleDateString("en-GB");
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString);
+		const dateStr = date.toLocaleDateString("en-GB");
+		const timeStr = date.toLocaleTimeString("en-GB", { 
+			hour: "2-digit", 
+			minute: "2-digit",
+			hour12: false 
+		});
+		return { date: dateStr, time: timeStr };
+	};
 
 	const isOverdue = (dueDate: string, status: InvoiceStatus) => {
 		return new Date(dueDate) < new Date() && status !== "paid" && status !== "cancelled";
@@ -352,10 +360,18 @@ export default function InvoicesPage() {
 											</span>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											<div className="flex items-center gap-1">
-                                                <Calendar size={14} className="text-gray-400"/>
-                                                {formatDate(invoice.issue_date)}
-                                            </div>
+											{(() => {
+												const { date, time } = formatDate(invoice.created_at);
+												return (
+													<div className="flex items-center gap-2">
+														<Calendar size={14} className="text-gray-400"/>
+														<div className="flex flex-col gap-0.5">
+															<span className="font-semibold text-gray-900">{date}</span>
+															<span className="text-xs text-gray-500">{time}</span>
+														</div>
+													</div>
+												);
+											})()}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div className="flex items-center gap-2">
@@ -400,9 +416,9 @@ export default function InvoicesPage() {
 						<p className="text-gray-500 mt-1 mb-6 max-w-xs mx-auto">لم نجد أي فواتير تطابق بحثك. ابدأ بإنشاء فاتورة جديدة.</p>
 						<button
 							onClick={() => setShowInvoiceModal(true)}
-							className="inline-flex items-center gap-2 px-6 py-3 bg-[#7f2dfb] text-white rounded-xl hover:bg-[#6a1fd8] transition-colors font-medium"
+							className="inline-flex items-center gap-2 px-6 py-3 bg-[#7f2dfb] text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
 						>
-							<Plus size={18} />
+							<Plus size={18} strokeWidth={2.5} />
 							إنشاء فاتورة
 						</button>
 					</div>

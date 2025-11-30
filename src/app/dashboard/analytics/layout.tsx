@@ -62,13 +62,62 @@ export default function AnalyticsLayout({
 		}
 	};
 
+	// Helper function to escape CSV values
+	const escapeCSV = (value: any): string => {
+		if (value === null || value === undefined) return '';
+		const str = String(value);
+		// If value contains comma, quote, or newline, wrap in quotes and escape quotes
+		if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+			return `"${str.replace(/"/g, '""')}"`;
+		}
+		return str;
+	};
+
+	// Helper function to format currency
+	const formatCurrency = (amount: number | null | undefined): string => {
+		if (amount === null || amount === undefined) return '0.00';
+		return new Intl.NumberFormat('en-US', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(amount);
+	};
+
+	// Helper function to format date
+	const formatDate = (dateString: string | null | undefined): string => {
+		if (!dateString) return '-';
+		try {
+			const date = new Date(dateString);
+			return date.toLocaleDateString('ar-SA', {
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit'
+			});
+		} catch {
+			return dateString;
+		}
+	};
+
+	// Helper function to translate status
+	const translateStatus = (status: string): string => {
+		const statusMap: Record<string, string> = {
+			'draft': 'مسودة',
+			'sent': 'مرسلة',
+			'paid': 'مدفوعة',
+			'overdue': 'متأخرة',
+			'cancelled': 'ملغية'
+		};
+		return statusMap[status] || status;
+	};
+
 	const exportData = async (format: 'csv' | 'excel', type: 'summary' | 'invoices') => {
 		try {
 			if (type === 'summary') {
 				// Export summary data
 				const summaryData = [
-					['نطاق التصدير', `${from ? new Date(from).toLocaleDateString("ar-SA") : 'غير محدد'} - ${to ? new Date(to).toLocaleDateString("ar-SA") : 'غير محدد'}`],
-					['تاريخ التصدير', new Date().toLocaleDateString("ar-SA")],
+					['تقرير التحليلات', ''],
+					['نطاق التصدير', `${from ? formatDate(from) : 'غير محدد'} - ${to ? formatDate(to) : 'غير محدد'}`],
+					['تاريخ التصدير', formatDate(new Date().toISOString())],
+					['وقت التصدير', new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })],
 					[''],
 					['البيانات', 'القيمة'],
 					['إجمالي الإيرادات', 'يتم حسابها من البيانات'],
@@ -77,8 +126,13 @@ export default function AnalyticsLayout({
 					['العملاء النشطون', 'يتم حسابها من البيانات']
 				];
 
-				const csvContent = summaryData.map(row => row.join(',')).join('\n');
-				const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+				const csvContent = summaryData.map(row => 
+					row.map(cell => escapeCSV(cell)).join(',')
+				).join('\n');
+				
+				// Add BOM for UTF-8 to ensure Arabic displays correctly in Excel
+				const BOM = '\uFEFF';
+				const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement("a");
 				a.href = url;
@@ -88,59 +142,71 @@ export default function AnalyticsLayout({
 			} else if (type === 'invoices') {
 				// Export detailed invoice data
 				const response = await fetch(`/api/analytics/export-invoices?from=${from || ''}&to=${to || ''}`);
+				if (!response.ok) {
+					throw new Error('فشل تحميل البيانات');
+				}
 				const data = await response.json();
 				
-				if (format === 'csv') {
-					const csvContent = [
-						['رقم الفاتورة', 'العميل', 'المبلغ الإجمالي', 'الحالة', 'تاريخ الإصدار', 'تاريخ الاستحقاق', 'الضريبة', 'المجموع الفرعي'],
-						...data.map((invoice: any) => [
-							invoice.invoice_number,
-							invoice.client_name,
-							invoice.total_amount,
-							invoice.status,
-							new Date(invoice.issue_date).toLocaleDateString("ar-SA"),
-							new Date(invoice.due_date).toLocaleDateString("ar-SA"),
-							invoice.tax_amount,
-							invoice.subtotal
-						])
-					].map(row => row.join(',')).join('\n');
-					
-					const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-					const url = URL.createObjectURL(blob);
-					const a = document.createElement("a");
-					a.href = url;
-					a.download = `invoices-${new Date().toISOString().split('T')[0]}.csv`;
-					a.click();
-					URL.revokeObjectURL(url);
-				} else {
-					// For Excel, we'll use a simple CSV with .xlsx extension
-					// In a real app, you'd use a library like xlsx
-					const csvContent = [
-						['رقم الفاتورة', 'العميل', 'المبلغ الإجمالي', 'الحالة', 'تاريخ الإصدار', 'تاريخ الاستحقاق', 'الضريبة', 'المجموع الفرعي'],
-						...data.map((invoice: any) => [
-							invoice.invoice_number,
-							invoice.client_name,
-							invoice.total_amount,
-							invoice.status,
-							new Date(invoice.issue_date).toLocaleDateString("ar-SA"),
-							new Date(invoice.due_date).toLocaleDateString("ar-SA"),
-							invoice.tax_amount,
-							invoice.subtotal
-						])
-					].map(row => row.join('\t')).join('\n');
-					
-					const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-					const url = URL.createObjectURL(blob);
-					const a = document.createElement("a");
-					a.href = url;
-					a.download = `invoices-${new Date().toISOString().split('T')[0]}.xlsx`;
-					a.click();
-					URL.revokeObjectURL(url);
-				}
+				// Format headers
+				const headers = [
+					'رقم الفاتورة',
+					'العميل',
+					'المبلغ الإجمالي (ريال)',
+					'الحالة',
+					'تاريخ الإصدار',
+					'تاريخ الاستحقاق',
+					'مبلغ الضريبة (ريال)',
+					'المجموع الفرعي (ريال)',
+					'تاريخ الإنشاء'
+				];
+				
+				// Format data rows
+				const rows = data.map((invoice: any) => [
+					escapeCSV(invoice.invoice_number || '-'),
+					escapeCSV(invoice.client_name || 'غير محدد'),
+					formatCurrency(invoice.total_amount),
+					escapeCSV(translateStatus(invoice.status || '')),
+					formatDate(invoice.issue_date),
+					formatDate(invoice.due_date),
+					formatCurrency(invoice.tax_amount),
+					formatCurrency(invoice.subtotal),
+					formatDate(invoice.created_at || invoice.issue_date)
+				]);
+				
+				// Add metadata header
+				const metadata = [
+					['تقرير الفواتير', ''],
+					['نطاق التصدير', `${from ? formatDate(from) : 'الكل'} - ${to ? formatDate(to) : 'الآن'}`],
+					['تاريخ التصدير', formatDate(new Date().toISOString())],
+					['وقت التصدير', new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })],
+					['عدد الفواتير', data.length.toString()],
+					['']
+				];
+				
+				const allRows = [
+					...metadata.map(row => row.map(cell => escapeCSV(cell)).join(',')),
+					headers.map(h => escapeCSV(h)).join(','),
+					...rows.map(row => row.join(','))
+				];
+				
+				const csvContent = allRows.join('\n');
+				
+				// Add BOM for UTF-8 to ensure Arabic displays correctly in Excel
+				const BOM = '\uFEFF';
+				const blob = new Blob(
+					[BOM + csvContent], 
+					{ type: format === 'csv' ? 'text/csv;charset=utf-8;' : 'application/vnd.ms-excel;charset=utf-8;' }
+				);
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = `invoices-${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`;
+				a.click();
+				URL.revokeObjectURL(url);
 			}
 		} catch (error) {
 			console.error('Export error:', error);
-			alert('حدث خطأ أثناء التصدير');
+			alert('حدث خطأ أثناء التصدير. يرجى المحاولة مرة أخرى.');
 		}
 	};
 
