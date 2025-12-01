@@ -19,11 +19,11 @@ export const Features = () => {
     return (
         <section className="mx-auto mt-20 max-w-7xl px-4 py-12 text-slate-800" id="features">
             <div className="mb-12 flex flex-col items-center text-center gap-4">
-                <TextAnimate
+ى                <TextAnimate
                     as="h2"
                     animation="blurIn"
                     once={true}
-                    className="max-w-2xl text-4xl font-bold md:text-5xl lg:text-6xl text-[#012d46]"
+                    className="max-w-2xl text-4xl font-bold md:text-5xl lg:text-6xl text-[#012d46] leading-tight"
                 >
                     كل ما تحتاجه لإدارة فواتيرك باحترافية
                 </TextAnimate>

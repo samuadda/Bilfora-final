@@ -20,6 +20,7 @@ export default function LoginForm() {
 	const [generalError, setGeneralError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [successMessage, setSuccessMessage] = useState("");
+	const [isRedirecting, setIsRedirecting] = useState(false);
 	const [rememberMe, setRememberMe] = useState(false);
 
 	// Forgot password states
@@ -138,10 +139,15 @@ export default function LoginForm() {
 			// Login successful
 			setGeneralError("");
 			setSuccessMessage("تم تسجيل الدخول بنجاح!");
-
+			setIsLoading(false);
+			
+			// Show redirecting message after a brief moment
 			setTimeout(() => {
-				router.push("/dashboard");
-			}, 1000);
+				setIsRedirecting(true);
+				setTimeout(() => {
+					router.push("/dashboard");
+				}, 500);
+			}, 800);
 		} catch (error: any) {
 			console.error("Login Error:", error);
 			
@@ -269,6 +275,19 @@ export default function LoginForm() {
 						</motion.div>
 					)}
 
+					{isRedirecting && (
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3"
+						>
+							<div className="h-4 w-4 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin flex-shrink-0"></div>
+							<p className="text-blue-700 text-sm font-medium">
+								جاري التحويل...
+							</p>
+						</motion.div>
+					)}
+
 					{generalError && (
 						<motion.div
 							initial={{ opacity: 0, height: 0 }}
@@ -281,7 +300,7 @@ export default function LoginForm() {
 						</motion.div>
 					)}
 
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form onSubmit={handleSubmit} className="space-y-6" style={{ pointerEvents: isRedirecting ? 'none' : 'auto', opacity: isRedirecting ? 0.6 : 1 }}>
 						<div>
 							<label
 								htmlFor="email"
@@ -393,13 +412,18 @@ export default function LoginForm() {
 						<div>
 							<button
 								type="submit"
-								disabled={isLoading}
+								disabled={isLoading || isRedirecting}
 								className="flex w-full justify-center rounded-xl bg-[#012d46] px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-[#023b5c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#012d46] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 							>
 								{isLoading ? (
 									<div className="flex items-center gap-2">
 										<div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
 										<span>جاري الدخول...</span>
+									</div>
+								) : isRedirecting ? (
+									<div className="flex items-center gap-2">
+										<div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+										<span>جاري التحويل...</span>
 									</div>
 								) : (
 									"تسجيل الدخول"

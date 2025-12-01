@@ -5,11 +5,11 @@ import Link from "next/link";
 import MainButton from "@/components/MainButton";
 import { TypewriterEffect } from "@/components/landing-page/typewriter-effect";
 import { TextAnimate } from "@/components/landing-page/text-animate";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Safari } from "@/components/landing-page/safari";
 import { Features } from "@/components/landing-page/Features";
 import Iphone15Pro from "@/components/landing-page/iphone-15-pro";
-import { StickyScroll } from "@/components/landing-page/sticky-scroll-reveal";
+import { ElegantFeatures } from "@/components/landing-page/elegant-features";
 import { Marquee } from "@/components/landing-page/marquee";
 import { cn } from "@/lib/utils";
 import { Ripple } from "@/components/landing-page/ripple";
@@ -18,8 +18,81 @@ import { DotPattern } from "@/components/landing-page/dot-pattern";
 import { Pricing } from "@/components/landing-page/Pricing";
 import { FAQ } from "@/components/landing-page/FAQ";
 import { Logos } from "@/components/landing-page/Logos";
+import { useState, useEffect, useRef } from "react";
+
+function StatNumber({
+	value,
+	prefix = "",
+	suffix = "",
+	duration = 1200,
+}: {
+	value: number;
+	prefix?: string;
+	suffix?: string;
+	duration?: number;
+}) {
+	const ref = useRef<HTMLSpanElement | null>(null);
+	const [display, setDisplay] = useState(0);
+	const [hasAnimated, setHasAnimated] = useState(false);
+
+	useEffect(() => {
+		const element = ref.current;
+		if (!element) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				const entry = entries[0];
+				if (entry.isIntersecting && !hasAnimated) {
+					setHasAnimated(true);
+					const start = performance.now();
+					const startValue = 0;
+
+					const animate = (time: number) => {
+						const progress = Math.min((time - start) / duration, 1);
+						const current = startValue + (value - startValue) * progress;
+						setDisplay(current);
+						if (progress < 1) {
+							requestAnimationFrame(animate);
+						}
+					};
+
+					requestAnimationFrame(animate);
+				}
+			},
+			{ threshold: 0.5 }
+		);
+
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [value, duration, hasAnimated]);
+
+	const formatted = Math.round(display).toLocaleString("en-US");
+
+	return (
+		<span ref={ref}>
+			{prefix}
+			{formatted}
+			{suffix}
+		</span>
+	);
+}
 
 export default function Home() {
+	const [showScrollButton, setShowScrollButton] = useState(false);
+
+	useEffect(() => {
+		const handleScroll = () => {
+			// Show button after scrolling down 400px
+			if (window.scrollY > 400) {
+				setShowScrollButton(true);
+			} else {
+				setShowScrollButton(false);
+			}
+		};
+
+		window.addEventListener("scroll", handleScroll);
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, []);
 	const heroWords = [
 		{ text: "أنشئ", className: "text-[#012d46]" },
 		{ text: " فواتيرك", className: "text-[#012d46]" },
@@ -167,17 +240,22 @@ export default function Home() {
 				<Navbar />
 
 				{/* Scroll to top button */}
-				<motion.button
-					onClick={scrollToTop}
-					className="fixed bottom-8 right-8 z-50 p-3 bg-[#7f2dfb] text-white rounded-full shadow-lg hover:bg-[#6a1fd8] hover:shadow-xl transition-all duration-200 hover:scale-110"
-					initial={{ opacity: 0, scale: 0 }}
-					animate={{ opacity: 1, scale: 1 }}
-					transition={{ duration: 0.3, delay: 2 }}
-					whileHover={{ scale: 1.1 }}
-					whileTap={{ scale: 0.9 }}
-				>
-					<ChevronUp size={24} />
-				</motion.button>
+				<AnimatePresence>
+					{showScrollButton && (
+						<motion.button
+							onClick={scrollToTop}
+							className="fixed bottom-8 right-8 z-50 p-3 bg-[#7f2dfb] text-white rounded-full shadow-lg hover:bg-[#6a1fd8] hover:shadow-xl transition-all duration-200 hover:scale-110"
+							initial={{ opacity: 0, scale: 0 }}
+							animate={{ opacity: 1, scale: 1 }}
+							exit={{ opacity: 0, scale: 0 }}
+							transition={{ duration: 0.3 }}
+							whileHover={{ scale: 1.1 }}
+							whileTap={{ scale: 0.9 }}
+						>
+							<ChevronUp size={24} />
+						</motion.button>
+					)}
+				</AnimatePresence>
 
 				{/* hero section */}
 				<section className="relative flex justify-center items-center pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
@@ -269,53 +347,121 @@ export default function Home() {
 					</div>
 				</section>
 
-                <Logos />
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					whileInView={{ opacity: 1, y: 0 }}
+					viewport={{ once: true, amount: 0.3 }}
+					transition={{ duration: 0.5, ease: "easeOut" }}
+				>
+					<Logos />
+				</motion.div>
 
 				{/* features */}
-				<div className="relative z-10" id="features">
+				<motion.div
+					id="features"
+					className="relative z-10"
+					initial={{ opacity: 0, y: 30 }}
+					whileInView={{ opacity: 1, y: 0 }}
+					viewport={{ once: true, amount: 0.2 }}
+					transition={{ duration: 0.5, ease: "easeOut" }}
+				>
 					<Features />
-				</div>
+				</motion.div>
 
 				{/* mock up */}
 				<section className="py-24 bg-gray-50 overflow-hidden">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex flex-col items-center justify-center gap-10 mb-16 text-center">
-                            <TextAnimate
-                                as="h2"
-                                animation="blurIn"
-                                once={true}
-                                className="text-4xl font-bold md:text-5xl text-[#012d46]"
-                            >
-                                بلفرها من جوالك أو لابتوبك في ثوانٍ
-                            </TextAnimate>
-                            <p className="max-w-2xl text-lg text-gray-600">
-                                تجربة استخدام سلسة ومتناسقة عبر جميع أجهزتك. ابدأ الفاتورة من المكتب وأرسلها من المقهى.
-                            </p>
-                        </div>
-                        <motion.div
-                            initial={{ opacity: 0, y: 50 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, ease: "easeOut" }}
-                            viewport={{ once: true, amount: 0.2 }}
-                            className="flex flex-col md:flex-row items-center justify-center gap-8 lg:gap-16"
-                        >
-                            <Iphone15Pro
-                                className="w-full max-w-[300px] h-auto shadow-2xl rounded-[3rem]"
-                                src="https://images.unsplash.com/photo-1616469829581-73993eb86b02?q=80&w=1000&auto=format&fit=crop"
-                            />
-                            <div className="w-full max-w-2xl shadow-2xl rounded-xl overflow-hidden border border-gray-200">
-                                <Safari
-                                    className="w-full h-auto"
-                                    url="bilfora.com"
-                                    imageSrc="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2426&auto=format&fit=crop"
-                                />
-                            </div>
-                        </motion.div>
-                    </div>
+					<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+						<div className="flex flex-col items-center justify-center gap-10 mb-16 text-center">
+							<TextAnimate
+								as="h2"
+								animation="blurIn"
+								once={true}
+								className="text-4xl font-bold md:text-5xl text-[#012d46]"
+							>
+								بلفرها من جوالك أو لابتوبك في ثوانٍ
+							</TextAnimate>
+							<p className="max-w-2xl text-lg text-gray-600">
+								تجربة استخدام سلسة ومتناسقة عبر جميع أجهزتك. ابدأ الفاتورة من المكتب وأرسلها من المقهى.
+							</p>
+						</div>
+						<motion.div
+							initial={{ opacity: 0, y: 50 }}
+							whileInView={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5, ease: "easeOut" }}
+							viewport={{ once: true, amount: 0.2 }}
+							className="flex flex-col md:flex-row items-center justify-center gap-8 lg:gap-16"
+						>
+							<Iphone15Pro
+								className="w-full max-w-[300px] h-auto shadow-2xl rounded-[3rem]"
+								src="/phoneDashboardDemo.png"
+							/>
+							<div className="w-full max-w-2xl shadow-2xl rounded-xl overflow-hidden border border-gray-200">
+								<Safari
+									className="w-full h-auto"
+									url="bilfora.com/dashboard"
+									imageSrc="/dashboardDemo.png"
+								/>
+							</div>
+						</motion.div>
+
+						{/* statistics section */}
+						<motion.div
+							initial={{ opacity: 0, y: 40 }}
+							whileInView={{ opacity: 1, y: 0 }}
+							viewport={{ once: true, amount: 0.3 }}
+							transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+							className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+						>
+							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								<p className="text-3xl md:text-4xl font-extrabold text-[#7f2dfb] mb-1">
+									<StatNumber value={10} prefix="+" suffix="K" />
+								</p>
+								<p className="text-sm font-semibold text-slate-800">
+									فاتورة مُصدَرة
+								</p>
+								<p className="mt-1 text-xs text-slate-500">
+									تم إنشاؤها من خلال بيلفورا
+								</p>
+							</div>
+							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								<p className="text-3xl md:text-4xl font-extrabold text-emerald-500 mb-1">
+									<StatNumber value={500} prefix="+" />
+								</p>
+								<p className="text-sm font-semibold text-slate-800">
+									منشأة ومستقل
+								</p>
+								<p className="mt-1 text-xs text-slate-500">
+									يعتمدون على بيلفورا يومياً
+								</p>
+							</div>
+							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								<p className="text-3xl md:text-4xl font-extrabold text-cyan-500 mb-1">
+									<StatNumber value={3} prefix="+" suffix="M" />
+								</p>
+								<p className="text-sm font-semibold text-slate-800">
+									SAR قيمة فواتير
+								</p>
+								<p className="mt-1 text-xs text-slate-500">
+									تمت معالجتها عبر المنصة
+								</p>
+							</div>
+							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								<p className="text-3xl md:text-4xl font-extrabold text-amber-500 mb-1">
+									<StatNumber value={90} suffix="%" />
+								</p>
+								<p className="text-sm font-semibold text-slate-800">
+									توفّر في الوقت
+								</p>
+								<p className="mt-1 text-xs text-slate-500">
+									عند إنشاء وإرسال الفواتير
+								</p>
+							</div>
+						</motion.div>
+					</div>
 				</section>
 
 				{/* how does it work ? */}
-				<div className="py-24" id="how-to">
+				<div className="py-24 bg-gradient-to-b from-white to-gray-50" id="how-to">
                     <div className="text-center mb-16">
                         <TextAnimate
                             as="h2"
@@ -329,13 +475,26 @@ export default function Home() {
                             خطوات بسيطة تفصلك عن فاتورتك الأولى
                         </p>
                     </div>
-					<StickyScroll content={content} contentClassName="hidden lg:block lg:w-1/2" />
+					<ElegantFeatures content={content} />
 				</div>
-                
-                <Pricing />
+
+				<motion.div
+					initial={{ opacity: 0, y: 30 }}
+					whileInView={{ opacity: 1, y: 0 }}
+					viewport={{ once: true, amount: 0.2 }}
+					transition={{ duration: 0.5, ease: "easeOut" }}
+				>
+					<Pricing />
+				</motion.div>
 
 				{/* Reviews */}
-				<div className="relative flex w-full flex-col items-center justify-center py-24 bg-slate-50 overflow-hidden">
+				<motion.div
+					className="relative flex w-full flex-col items-center justify-center py-24 bg-slate-50 overflow-hidden"
+					initial={{ opacity: 0, y: 30 }}
+					whileInView={{ opacity: 1, y: 0 }}
+					viewport={{ once: true, amount: 0.3 }}
+					transition={{ duration: 0.6, ease: "easeOut" }}
+				>
 					<div className="mb-12 text-center">
                         <h2 className="text-4xl font-bold md:text-5xl text-[#012d46] mb-4">
                             تجارب أصدقائنا
@@ -356,13 +515,26 @@ export default function Home() {
 					</Marquee>
 					<div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-slate-50"></div>
 					<div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-slate-50"></div>
-				</div>
+				</motion.div>
 
-                <FAQ />
+				<motion.div
+					initial={{ opacity: 0, y: 30 }}
+					whileInView={{ opacity: 1, y: 0 }}
+					viewport={{ once: true, amount: 0.2 }}
+					transition={{ duration: 0.5, ease: "easeOut" }}
+				>
+					<FAQ />
+				</motion.div>
 
 				{/* CTA Section */}
 				<footer className="max-w-screen mx-auto relative overflow-hidden pt-20">
-					<div className="max-w-6xl mx-auto px-4 relative flex flex-col justify-center mb-24 items-center gap-8 text-center py-16 lg:py-24 rounded-3xl bg-gradient-to-br from-[#7f2dfb] to-indigo-600 overflow-hidden shadow-2xl mx-4 lg:mx-auto">
+					<motion.div
+						initial={{ opacity: 0, y: 40 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						viewport={{ once: true, amount: 0.4 }}
+						transition={{ duration: 0.6, ease: "easeOut" }}
+						className="max-w-6xl mx-auto px-4 relative flex flex-col justify-center mb-24 items-center gap-8 text-center py-16 lg:py-24 rounded-3xl bg-gradient-to-br from-[#7f2dfb] to-indigo-600 overflow-hidden shadow-2xl mx-4 lg:mx-auto"
+					>
 						<Ripple
 							mainCircleSize={500}
 							mainCircleOpacity={0.3}
@@ -382,7 +554,7 @@ export default function Home() {
 								ابدأ الآن مجاناً
 							</button>
 						</Link>
-					</div>
+					</motion.div>
 
 					{/* Main Footer */}
 					<div className="bg-[#0f172a] text-white border-t border-gray-800">

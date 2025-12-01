@@ -53,7 +53,6 @@ export default function ProductsPage() {
 		unit: "",
 		description: "",
 		category: "",
-		sku: "",
 	});
 	const [error, setError] = useState<string | null>(null);
 
@@ -115,8 +114,7 @@ export default function ProductsPage() {
 			filtered = filtered.filter(
 				(p) =>
 					p.name.toLowerCase().includes(q) ||
-					(p.description || "").toLowerCase().includes(q) ||
-					(p.sku || "").toLowerCase().includes(q)
+					(p.description || "").toLowerCase().includes(q)
 			);
 		}
 
@@ -211,7 +209,6 @@ export default function ProductsPage() {
 			unit: "",
 			description: "",
 			category: "",
-			sku: "",
 		});
 		setError(null);
 		setEditing(null);
@@ -226,7 +223,6 @@ export default function ProductsPage() {
 			unit: "",
 			description: "",
 			category: "",
-			sku: "",
 		});
 		setError(null);
 		setShowModal(true);
@@ -237,7 +233,6 @@ export default function ProductsPage() {
 		setForm({
 			...product,
 			category: product.category || "",
-			sku: product.sku || "",
 		});
 		setError(null);
 		setShowModal(true);
@@ -256,7 +251,6 @@ export default function ProductsPage() {
 				unit_price: product.unit_price,
 				active: product.active,
 				category: product.category,
-				sku: product.sku ? `${product.sku}-COPY` : null,
 			});
 
 			if (error) throw error;
@@ -297,11 +291,8 @@ export default function ProductsPage() {
 				unit: form.unit?.trim() || null,
 				unit_price: Number(form.unit_price) || 0,
 				active: editing ? editing.active : true,
+				category: form.category?.trim() || null,
 			};
-
-			// Note: category and sku are not in the DB schema, but we can store them
-			// in description or handle them separately if needed
-			// For now, we'll just ignore them in the payload
 
 			const { error } = editing
 				? await supabase
@@ -788,11 +779,6 @@ export default function ProductsPage() {
 																	{p.description}
 																</p>
 															)}
-															{p.sku && (
-																<p className="text-xs text-gray-400 mt-1">
-																	كود: {p.sku}
-																</p>
-															)}
 														</div>
 													</div>
 												</td>
@@ -1039,35 +1025,19 @@ export default function ProductsPage() {
 										</div>
 									</div>
 
-									<div className="grid grid-cols-2 gap-4">
-										<div className="space-y-2">
-											<label className="text-sm font-medium text-gray-700">
-												الفئة
-											</label>
-											<input
-												type="text"
-												value={form.category || ""}
-												onChange={(e) =>
-													setForm((s) => ({ ...s, category: e.target.value }))
-												}
-												className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="الفئة (اختياري)"
-											/>
-										</div>
-										<div className="space-y-2">
-											<label className="text-sm font-medium text-gray-700">
-												كود المنتج (SKU)
-											</label>
-											<input
-												type="text"
-												value={form.sku || ""}
-												onChange={(e) =>
-													setForm((s) => ({ ...s, sku: e.target.value }))
-												}
-												className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="SKU (اختياري)"
-											/>
-										</div>
+									<div className="space-y-2">
+										<label className="text-sm font-medium text-gray-700">
+											الفئة
+										</label>
+										<input
+											type="text"
+											value={form.category || ""}
+											onChange={(e) =>
+												setForm((s) => ({ ...s, category: e.target.value }))
+											}
+											className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
+											placeholder="الفئة (اختياري)"
+										/>
 									</div>
 
 									<div className="space-y-2">

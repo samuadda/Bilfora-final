@@ -14,6 +14,7 @@ const NavItems = [
 	{ name: "المميزات", href: "/#features" },
 	{ name: "كيف يعمل", href: "/#how-to" },
 	{ name: "الأسعار", href: "/#pricing" },
+	{ name: "من نحن", href: "/about" },
 	{ name: "الأسئلة الشائعة", href: "/#faq" },
 ];
 
