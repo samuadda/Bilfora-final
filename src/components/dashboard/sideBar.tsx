@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { supabasePersistent, supabaseSession } from "@/lib/supabase-clients";
 import {
 	LayoutDashboard,
 	FileText,
@@ -72,16 +73,26 @@ export default function Sidebar() {
 	}, [isCollapsed]);
 
 	// 🔒 Logout
+	// Clear session from both persistent and session clients to ensure complete logout
 	const confirmLogout = async () => {
 		setIsLoggingOut(true);
-		await supabase.auth.signOut();
-		setIsLoggingOut(false);
-		setIsLogoutOpen(false);
-		toast({
-			title: "تم تسجيل الخروج",
-			description: "نراك قريبًا 👋",
-		});
-		router.replace("/login");
+		try {
+			// Sign out from both clients to ensure session is cleared regardless of which was used
+			await Promise.all([
+				supabasePersistent.auth.signOut(),
+				supabaseSession.auth.signOut(),
+			]);
+		} catch (error) {
+			console.error("Error during logout:", error);
+		} finally {
+			setIsLoggingOut(false);
+			setIsLogoutOpen(false);
+			toast({
+				title: "تم تسجيل الخروج",
+				description: "نراك قريبًا 👋",
+			});
+			router.replace("/login");
+		}
 	};
 
 	const toggleSidebar = () => setIsCollapsed(!isCollapsed);

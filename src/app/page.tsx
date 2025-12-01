@@ -49,7 +49,8 @@ function StatNumber({
 
 					const animate = (time: number) => {
 						const progress = Math.min((time - start) / duration, 1);
-						const current = startValue + (value - startValue) * progress;
+						const current =
+							startValue + (value - startValue) * progress;
 						setDisplay(current);
 						if (progress < 1) {
 							requestAnimationFrame(animate);
@@ -119,7 +120,7 @@ export default function Home() {
 				"احفظ قائمة عملائك وخدماتك مع الأسعار والضرائب المفضلة، واخترها بسرعة في كل فاتورة بدون إعادة إدخال البيانات.",
 			content: (
 				<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--orange-500),var(--yellow-500))] text-white text-2xl font-bold p-8 text-center rounded-xl">
-                    قاعدة بيانات ذكية
+					قاعدة بيانات ذكية
 				</div>
 			),
 		},
@@ -260,20 +261,20 @@ export default function Home() {
 				{/* hero section */}
 				<section className="relative flex justify-center items-center pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
 					<div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
-                        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-[#7f2dfb] opacity-20 blur-[100px]"></div>
-                    </div>
-					
+						<div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-[#7f2dfb] opacity-20 blur-[100px]"></div>
+					</div>
+
 					<div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative z-20">
 						<div className="max-w-4xl mx-auto text-center">
-                            <motion.div
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                                className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-sm font-medium text-purple-800 mb-8"
-                            >
-                                <span className="flex h-2 w-2 rounded-full bg-purple-600 ml-2 animate-pulse"></span>
-                                جديد: نظام إدارة الفواتير الأذكى في المملكة 🇸🇦
-                            </motion.div>
+							<motion.div
+								initial={{ opacity: 0, y: -20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5 }}
+								className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-sm font-medium text-purple-800 mb-8"
+							>
+								<span className="flex h-2 w-2 rounded-full bg-purple-600 ml-2 animate-pulse"></span>
+								جديد: نظام إدارة الفواتير الأذكى في المملكة 🇸🇦
+							</motion.div>
 							<h1>
 								<TypewriterEffect
 									words={heroWords}
@@ -288,9 +289,10 @@ export default function Home() {
 								delay={1}
 							>
 								بيلفورا هي منصتك الذكية لإصدار الفواتير
-								الإلكترونية للمستقلين وأصحاب الأعمال. وفّر وقتك ومجهودك وركز على شغفك.
+								الإلكترونية للمستقلين وأصحاب الأعمال. وفّر وقتك
+								ومجهودك وركز على شغفك.
 							</TextAnimate>
-							
+
 							{/* CTA Buttons  */}
 							<motion.div
 								initial={{ opacity: 0, y: 20 }}
@@ -318,31 +320,41 @@ export default function Home() {
 								</Link>
 							</motion.div>
 
-                            <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 2, duration: 1 }}
-                                className="mt-12 flex items-center justify-center gap-2 text-sm text-gray-500"
-                            >
-                                <div className="flex -space-x-2 space-x-reverse">
-                                    {[1,2,3,4].map((i) => (
-                                        <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
-                                             <Image src={`https://avatar.vercel.sh/${i}`} width={32} height={32} alt="user" />
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <div className="flex text-yellow-400">
-                                        <Star className="h-4 w-4 fill-current" />
-                                        <Star className="h-4 w-4 fill-current" />
-                                        <Star className="h-4 w-4 fill-current" />
-                                        <Star className="h-4 w-4 fill-current" />
-                                        <Star className="h-4 w-4 fill-current" />
-                                    </div>
-                                    <span className="font-bold text-gray-700">5.0</span>
-                                </div>
-                                <span>من 500+ عميل سعيد</span>
-                            </motion.div>
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ delay: 2, duration: 1 }}
+								className="mt-12 flex items-center justify-center gap-2 text-sm text-gray-500"
+							>
+								<div className="flex -space-x-2 space-x-reverse">
+									{[1, 2, 3, 4].map((i) => (
+										<div
+											key={i}
+											className="h-8 w-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden"
+										>
+											<Image
+												src={`https://avatar.vercel.sh/${i}`}
+												width={32}
+												height={32}
+												alt="user"
+											/>
+										</div>
+									))}
+								</div>
+								<div className="flex items-center gap-1">
+									<div className="flex text-yellow-400">
+										<Star className="h-4 w-4 fill-current" />
+										<Star className="h-4 w-4 fill-current" />
+										<Star className="h-4 w-4 fill-current" />
+										<Star className="h-4 w-4 fill-current" />
+										<Star className="h-4 w-4 fill-current" />
+									</div>
+									<span className="font-bold text-gray-700">
+										5.0
+									</span>
+								</div>
+								<span>من 500+ عميل سعيد</span>
+							</motion.div>
 						</div>
 					</div>
 				</section>
@@ -381,7 +393,8 @@ export default function Home() {
 								بلفرها من جوالك أو لابتوبك في ثوانٍ
 							</TextAnimate>
 							<p className="max-w-2xl text-lg text-gray-600">
-								تجربة استخدام سلسة ومتناسقة عبر جميع أجهزتك. ابدأ الفاتورة من المكتب وأرسلها من المقهى.
+								تجربة استخدام سلسة ومتناسقة عبر جميع أجهزتك.
+								ابدأ الفاتورة من المكتب وأرسلها من المقهى.
 							</p>
 						</div>
 						<motion.div
@@ -409,12 +422,20 @@ export default function Home() {
 							initial={{ opacity: 0, y: 40 }}
 							whileInView={{ opacity: 1, y: 0 }}
 							viewport={{ once: true, amount: 0.3 }}
-							transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+							transition={{
+								duration: 0.5,
+								ease: "easeOut",
+								delay: 0.1,
+							}}
 							className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
 						>
 							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
 								<p className="text-3xl md:text-4xl font-extrabold text-[#7f2dfb] mb-1">
-									<StatNumber value={10} prefix="+" suffix="K" />
+									<StatNumber
+										value={10}
+										prefix="+"
+										suffix="K"
+									/>
 								</p>
 								<p className="text-sm font-semibold text-slate-800">
 									فاتورة مُصدَرة
@@ -436,7 +457,11 @@ export default function Home() {
 							</div>
 							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
 								<p className="text-3xl md:text-4xl font-extrabold text-cyan-500 mb-1">
-									<StatNumber value={3} prefix="+" suffix="M" />
+									<StatNumber
+										value={3}
+										prefix="+"
+										suffix="M"
+									/>
 								</p>
 								<p className="text-sm font-semibold text-slate-800">
 									SAR قيمة فواتير
@@ -461,20 +486,23 @@ export default function Home() {
 				</section>
 
 				{/* how does it work ? */}
-				<div className="py-24 bg-gradient-to-b from-white to-gray-50" id="how-to">
-                    <div className="text-center mb-16">
-                        <TextAnimate
-                            as="h2"
-                            animation="blurIn"
-                            once={true}
-                            className="text-4xl font-bold md:text-5xl text-[#012d46]"
-                        >
-                            كيف تبلفرها ؟
-                        </TextAnimate>
-                        <p className="mt-4 text-lg text-gray-600">
-                            خطوات بسيطة تفصلك عن فاتورتك الأولى
-                        </p>
-                    </div>
+				<div
+					className="py-24 bg-gradient-to-b from-white to-gray-50"
+					id="how-to"
+				>
+					<div className="text-center mb-16">
+						<TextAnimate
+							as="h2"
+							animation="blurIn"
+							once={true}
+							className="text-4xl font-bold md:text-5xl text-[#012d46]"
+						>
+							كيف تبلفرها ؟
+						</TextAnimate>
+						<p className="mt-4 text-lg text-gray-600">
+							خطوات بسيطة تفصلك عن فاتورتك الأولى
+						</p>
+					</div>
 					<ElegantFeatures content={content} />
 				</div>
 
@@ -496,19 +524,23 @@ export default function Home() {
 					transition={{ duration: 0.6, ease: "easeOut" }}
 				>
 					<div className="mb-12 text-center">
-                        <h2 className="text-4xl font-bold md:text-5xl text-[#012d46] mb-4">
-                            تجارب أصدقائنا
-                        </h2>
-                        <p className="text-lg text-gray-600">
-                            قصص نجاح من أشخاص مثلك يستخدمون بيلفورا يومياً
-                        </p>
-                    </div>
+						<h2 className="text-4xl font-bold md:text-5xl text-[#012d46] mb-4">
+							تجارب أصدقائنا
+						</h2>
+						<p className="text-lg text-gray-600">
+							قصص نجاح من أشخاص مثلك يستخدمون بيلفورا يومياً
+						</p>
+					</div>
 					<Marquee pauseOnHover className="[--duration:40s]">
 						{firstRow.map((review) => (
 							<ReviewCard key={review.username} {...review} />
 						))}
 					</Marquee>
-					<Marquee reverse pauseOnHover className="[--duration:40s] mt-8">
+					<Marquee
+						reverse
+						pauseOnHover
+						className="[--duration:40s] mt-8"
+					>
 						{secondRow.map((review) => (
 							<ReviewCard key={review.username} {...review} />
 						))}
@@ -543,12 +575,15 @@ export default function Home() {
 						/>
 						<h1 className="relative z-10 text-3xl md:text-5xl text-white font-bold max-w-4xl leading-tight">
 							لا تضيع وقتك مع إكسل أو الفواتير اليدوية
-                            <br/>
-                            <span className="text-purple-200">جرب بيلفورا مجاناً اليوم</span>
+							<br />
+							<span className="text-purple-200">
+								جرب بيلفورا مجاناً اليوم
+							</span>
 						</h1>
-                        <p className="relative z-10 text-lg text-purple-100 max-w-2xl">
-                            انضم للآلاف من المستقلين الذين ينظمون أعمالهم بذكاء. بدون بطاقة ائتمان.
-                        </p>
+						<p className="relative z-10 text-lg text-purple-100 max-w-2xl">
+							انضم للآلاف من المستقلين الذين ينظمون أعمالهم بذكاء.
+							بدون بطاقة ائتمان.
+						</p>
 						<Link href="/register" className="relative z-10">
 							<button className="px-10 py-4 rounded-full text-[#7f2dfb] font-bold text-lg bg-white cursor-pointer hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
 								ابدأ الآن مجاناً
@@ -576,7 +611,7 @@ export default function Home() {
 										للمستقلين وأصحاب الأعمال. أنشئ فواتيرك
 										بسهولة واحترافية في ثوانٍ.
 									</p>
-									<div className="flex items-center space-x-4 space-x-reverse">
+									<div className="flex items-center gap-4">
 										<Link
 											href="https://twitter.com/bilfora"
 											target="_blank"
@@ -589,20 +624,6 @@ export default function Home() {
 												viewBox="0 0 24 24"
 											>
 												<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-											</svg>
-										</Link>
-										<Link
-											href="https://instagram.com/bilfora"
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-gray-400 hover:text-[#7f2dfb] transition-colors p-1"
-										>
-											<svg
-												className="h-5 w-5"
-												fill="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297z" />
 											</svg>
 										</Link>
 										<Link
@@ -753,7 +774,7 @@ export default function Home() {
 									<div className="text-gray-500 text-sm">
 										© 2025 بيلفورا. جميع الحقوق محفوظة.
 									</div>
-									<div className="flex items-center space-x-6 space-x-reverse text-sm">
+									<div className="flex items-center gap-8 text-sm">
 										<Link
 											href="/privacy"
 											className="text-gray-500 hover:text-white transition-colors"

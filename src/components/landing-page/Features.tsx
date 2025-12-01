@@ -19,7 +19,7 @@ export const Features = () => {
     return (
         <section className="mx-auto mt-20 max-w-7xl px-4 py-12 text-slate-800" id="features">
             <div className="mb-12 flex flex-col items-center text-center gap-4">
-ى                <TextAnimate
+          <TextAnimate
                     as="h2"
                     animation="blurIn"
                     once={true}

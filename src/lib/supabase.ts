@@ -1,16 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-	throw new Error("Missing Supabase URL or Anon Key");
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-	auth: {
-		persistSession: true,
-		autoRefreshToken: true,
-		detectSessionInUrl: true,
-	},
-});
+/**
+ * Default Supabase client (persistent)
+ *
+ * This is the default client used throughout the app for data fetching.
+ * It uses localStorage, so sessions persist across browser restarts.
+ *
+ * For login, use supabasePersistent or supabaseSession from supabase-clients.ts
+ * based on the "Remember me" checkbox.
+ */
+export { supabasePersistent as supabase } from "./supabase-clients";

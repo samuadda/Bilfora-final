@@ -1,6 +1,6 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
+import { supabasePersistent, supabaseSession } from "@/lib/supabase-clients";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,18 @@ export default function LoginForm() {
 	};
 
 	// =============  تسجيل الدخول بالبريد =============
+	/**
+	 * Manual Testing Steps:
+	 * 
+	 * 1. Login with "Remember me" checked:
+	 *    - Login → close tab → reopen site → user should still be authenticated
+	 * 
+	 * 2. Login with "Remember me" unchecked:
+	 *    - Login → close tab → reopen site → user should be logged out
+	 * 
+	 * 3. Explicit logout:
+	 *    - Click "Logout" → session should be cleared in both cases
+	 */
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		let isValid = true;
@@ -94,8 +106,11 @@ export default function LoginForm() {
 		setGeneralError("");
 
 		try {
+			// Select the appropriate client based on "Remember me" checkbox
+			const client = rememberMe ? supabasePersistent : supabaseSession;
+
 			// Add timeout wrapper for login request
-			const loginPromise = supabase.auth.signInWithPassword({
+			const loginPromise = client.auth.signInWithPassword({
 				email,
 				password,
 			});
@@ -109,7 +124,7 @@ export default function LoginForm() {
 				timeoutPromise,
 			]) as any;
 
-			// Set session persistence based on remember me checkbox
+			// Save remember me preference to localStorage for UI state
 			if (!error && rememberMe) {
 				localStorage.setItem("rememberMe", "true");
 			} else if (!error && !rememberMe) {
@@ -192,7 +207,8 @@ export default function LoginForm() {
 		setResetEmailError("");
 
 		try {
-			const { error } = await supabase.auth.resetPasswordForEmail(
+			// Use persistent client for password reset (always persistent)
+			const { error } = await supabasePersistent.auth.resetPasswordForEmail(
 				resetEmail,
 				{
 					redirectTo: `${location.origin}/reset-password`,

@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { supabasePersistent, supabaseSession } from "@/lib/supabase-clients";
 import Sidebar, { useSidebar } from "@/components/dashboard/sideBar";
 import SidebarProvider from "@/components/dashboard/SidebarProvider";
 import LoadingState from "@/components/LoadingState";
@@ -46,21 +47,32 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 	const router = useRouter();
 
 	// ✅ Check authentication once on mount
+	// Check both persistent and session clients to find the active session
 	const checkAuth = useCallback(async () => {
 		try {
 			setIsLoading(true);
 			setConnectionError(false);
 			
-			// Add timeout wrapper for getUser
-			const getUserPromise = supabase.auth.getUser();
+			// Check both clients to find active session (could be in localStorage or sessionStorage)
+			// Try persistent client first, then session client if no user found
 			const timeoutPromise = new Promise((_, reject) =>
 				setTimeout(() => reject(new Error("Connection timeout")), 10000)
 			);
 
-			const {
-				data: { user },
-				error,
-			} = await Promise.race([getUserPromise, timeoutPromise]) as any;
+			// Check persistent client first
+			const persistentPromise = supabasePersistent.auth.getUser();
+			const persistentResult = await Promise.race([persistentPromise, timeoutPromise]) as any;
+			
+			let user = persistentResult?.data?.user;
+			let error = persistentResult?.error;
+			
+			// If no user in persistent client, check session client
+			if (!user && !error) {
+				const sessionPromise = supabaseSession.auth.getUser();
+				const sessionResult = await Promise.race([sessionPromise, timeoutPromise]) as any;
+				user = sessionResult?.data?.user;
+				error = sessionResult?.error;
+			}
 
 			// Check for network/connection errors
 			if (error) {
@@ -112,25 +124,39 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 		checkAuth();
 
 		// ✅ Real-time auth listener
-		let subscription: { subscription: { unsubscribe: () => void } } | null = null;
+		// Listen to both clients for auth state changes
+		let subscriptions: Array<{ subscription: { unsubscribe: () => void } }> = [];
 		
 		try {
-			const { data: sub } = supabase.auth.onAuthStateChange(
+			// Listen to persistent client
+			const { data: sub1 } = supabasePersistent.auth.onAuthStateChange(
 				(event, session) => {
 					if (!session && !connectionError) {
 						router.replace("/login");
 					}
 				}
 			);
-			subscription = sub;
+			subscriptions.push(sub1);
+			
+			// Listen to session client
+			const { data: sub2 } = supabaseSession.auth.onAuthStateChange(
+				(event, session) => {
+					if (!session && !connectionError) {
+						router.replace("/login");
+					}
+				}
+			);
+			subscriptions.push(sub2);
 		} catch (err) {
 			console.error("Error setting up auth listener:", err);
 		}
 
 		return () => {
-			if (subscription) {
-				subscription.subscription.unsubscribe();
-			}
+			subscriptions.forEach((sub) => {
+				if (sub) {
+					sub.subscription.unsubscribe();
+				}
+			});
 		};
 	}, [checkAuth, router]);
 
