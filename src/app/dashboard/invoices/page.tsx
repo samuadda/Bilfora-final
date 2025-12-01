@@ -22,6 +22,7 @@ import {
 	ArrowDown,
 	ArrowUp,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
 	Dialog,
@@ -495,7 +496,7 @@ export default function InvoicesPage() {
 		}
 	};
 
-	const exportToCSV = () => {
+	const exportToExcel = () => {
 		const headers = [
 			"رقم الفاتورة",
 			"اسم العميل",
@@ -510,31 +511,36 @@ export default function InvoicesPage() {
 			invoice.invoice_number,
 			invoice.client.name,
 			invoice.client.email || "",
-			invoice.total_amount.toString(),
+			invoice.total_amount,
 			statusConfig[invoice.status]?.label || invoice.status,
 			formatDate(invoice.created_at),
 			formatDate(invoice.due_date),
 		]);
 
-		const csvContent = [
-			headers.join(","),
-			...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-		].join("\n");
+		// Create workbook and worksheet
+		const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
 
-		const blob = new Blob(["\uFEFF" + csvContent], {
-			type: "text/csv;charset=utf-8;",
-		});
-		const link = document.createElement("a");
-		const url = URL.createObjectURL(blob);
-		link.setAttribute("href", url);
-		link.setAttribute(
-			"download",
-			`invoices-export-${new Date().toISOString().split("T")[0]}.csv`
-		);
-		link.style.visibility = "hidden";
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
+		// Set column widths for better readability
+		const columnWidths = [
+			{ wch: 15 }, // رقم الفاتورة
+			{ wch: 20 }, // اسم العميل
+			{ wch: 25 }, // البريد الإلكتروني
+			{ wch: 12 }, // المبلغ
+			{ wch: 12 }, // الحالة
+			{ wch: 15 }, // تاريخ الإصدار
+			{ wch: 15 }, // تاريخ الاستحقاق
+		];
+		worksheet["!cols"] = columnWidths;
+
+		// Create workbook
+		const workbook = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(workbook, worksheet, "الفواتير");
+
+		// Generate Excel file and download
+		const fileName = `invoices-export-${
+			new Date().toISOString().split("T")[0]
+		}.xlsx`;
+		XLSX.writeFile(workbook, fileName);
 	};
 
 	// Stats calculations (from all invoices, not filtered)
@@ -795,11 +801,11 @@ export default function InvoicesPage() {
 						</div>
 						<button
 							type="button"
-							onClick={exportToCSV}
+							onClick={exportToExcel}
 							className="inline-flex items-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium transition-colors"
 						>
 							<Download size={18} />
-							تصدير (CSV)
+							تصدير (Excel)
 						</button>
 					</div>
 				</div>
