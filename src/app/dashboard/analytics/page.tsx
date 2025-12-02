@@ -1,71 +1,139 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
-	AreaChart,
-	Area,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-	BarChart,
-	Bar,
-	LineChart,
-	Line,
 	PieChart,
 	Pie,
 	Cell,
-    Legend
+	ResponsiveContainer,
+	Tooltip,
+	Legend,
 } from "recharts";
-import { 
-    TrendingUp, 
-    Users, 
-    ShoppingCart, 
-    DollarSign, 
-    Loader2, 
-    AlertCircle,
-    Calendar,
-    ArrowUpRight,
-    ArrowDownRight,
-    Clock
+import {
+	TrendingUp,
+	Users,
+	ShoppingCart,
+	DollarSign,
+	AlertCircle,
+	Calendar,
+	Package,
+	ArrowUpRight,
+	ArrowDownRight,
+	Download,
+	FileText,
+	Table,
+	Printer,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import {
-	DashboardStats,
-	MonthlyData,
-	OrderStatusData,
-} from "@/types/database";
+import { Invoice, InvoiceStatus, InvoiceWithClientAndItems } from "@/types/database";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import LoadingState from "@/components/LoadingState";
+import AnalyticsFiltersComponent, { AnalyticsFilters } from "@/components/filters/AnalyticsFilters";
+import KPICard from "@/components/analytics/KPICard";
+import EnhancedChart from "@/components/charts/EnhancedChart";
+import EmptyState from "@/components/analytics/EmptyState";
+import RevenueByCategory from "@/components/analytics/RevenueByCategory";
+import ExportMenu from "@/components/analytics/ExportMenu";
+import * as XLSX from "xlsx";
+import { useRef } from "react";
+
+interface PeriodComparison {
+	current: number;
+	previous: number;
+	change: number; // percentage
+}
+
+interface EnhancedStats {
+	totalRevenue: number;
+	totalInvoices: number;
+	activeCustomers: number;
+	collectionRate: number; // percentage
+	overdueRatio: number; // percentage
+	topProduct: string;
+	highestInvoice: number;
+	lowestInvoice: number;
+	avgInvoiceValue: number;
+	revenueComparison: PeriodComparison;
+	invoicesComparison: PeriodComparison;
+	collectionRateComparison: PeriodComparison;
+	overdueRatioComparison: PeriodComparison;
+}
 
 export default function AnalyticsPage() {
-	// State management
-	const [stats, setStats] = useState<DashboardStats>({
-		totalOrders: 0,
-		pendingOrders: 0,
-		totalRevenue: 0,
-		activeCustomers: 0,
-	});
-	const [revenueByMonth, setRevenueByMonth] = useState<MonthlyData[]>([]);
-	const [channels, setChannels] = useState<OrderStatusData[]>([]);
-	const [topClients, setTopClients] = useState<{ name: string; revenue: number; invoiceCount: number }[]>([]);
-	const [paymentTimes, setPaymentTimes] = useState<{ month: string; avgDays: number }[]>([]);
-	const [overdueData, setOverdueData] = useState<{ month: string; amount: number; count: number }[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
+	const router = useRouter();
 	const searchParams = useSearchParams();
 	const fromParam = searchParams.get("from");
 	const toParam = searchParams.get("to");
+	const pageRef = useRef<HTMLDivElement>(null);
 
-	// Load analytics data when date range changes
+	// State
+	const [invoices, setInvoices] = useState<InvoiceWithClientAndItems[]>([]);
+	const [filteredInvoices, setFilteredInvoices] = useState<InvoiceWithClientAndItems[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [stats, setStats] = useState<EnhancedStats>({
+		totalRevenue: 0,
+		totalInvoices: 0,
+		activeCustomers: 0,
+		collectionRate: 0,
+		overdueRatio: 0,
+		topProduct: "—",
+		highestInvoice: 0,
+		lowestInvoice: 0,
+		avgInvoiceValue: 0,
+		revenueComparison: { current: 0, previous: 0, change: 0 },
+		invoicesComparison: { current: 0, previous: 0, change: 0 },
+		collectionRateComparison: { current: 0, previous: 0, change: 0 },
+		overdueRatioComparison: { current: 0, previous: 0, change: 0 },
+	});
+
+	const [filters, setFilters] = useState<AnalyticsFilters>({
+		customerId: "all",
+		status: "all",
+		minAmount: null,
+		maxAmount: null,
+		productId: "all",
+	});
+
+	const [revenueByMonth, setRevenueByMonth] = useState<
+		{ name: string; revenue: number; orders: number }[]
+	>([]);
+	const [statusDistribution, setStatusDistribution] = useState<
+		{ name: string; value: number; color: string }[]
+	>([]);
+	const [topClients, setTopClients] = useState<
+		{ name: string; revenue: number; invoiceCount: number }[]
+	>([]);
+	const [revenueByCategory, setRevenueByCategory] = useState<
+		{ name: string; value: number; color: string }[]
+	>([]);
+
+	// Resolve date range
+	const dateFrom = fromParam
+		? new Date(fromParam)
+		: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
+	const dateTo = toParam ? new Date(toParam) : new Date();
+
+	// Previous period for comparison
+	const previousPeriodDays = Math.ceil(
+		(dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24)
+	);
+	const previousDateFrom = new Date(
+		dateFrom.getTime() - previousPeriodDays * 24 * 60 * 60 * 1000
+	);
+	const previousDateTo = new Date(dateFrom.getTime());
+
 	useEffect(() => {
 		loadAnalyticsData();
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fromParam, toParam]);
+
+	useEffect(() => {
+		applyFilters();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [invoices, filters]);
 
 	const loadAnalyticsData = async () => {
 		try {
@@ -80,336 +148,454 @@ export default function AnalyticsPage() {
 				return;
 			}
 
-			// Resolve date range
-			const dateFrom = fromParam ? new Date(fromParam) : new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
-			const dateTo = toParam ? new Date(toParam) : new Date();
+			// Load invoices with client and items
+			const { data: invoicesData, error: invoicesError } = await supabase
+				.from("invoices")
+				.select(
+					`
+					*,
+					client:clients(*),
+					items:invoice_items(*)
+				`
+				)
+				.eq("user_id", user.id)
+				.gte("created_at", previousDateFrom.toISOString())
+				.lte("created_at", dateTo.toISOString())
+				.order("created_at", { ascending: false });
 
-			// Load all analytics data in parallel
-			await Promise.all([
-				loadStats(user.id),
-				loadRevenueData(user.id, dateFrom, dateTo),
-				loadChannelData(user.id),
-				loadTopClients(user.id),
-				loadPaymentTimes(user.id, dateFrom, dateTo),
-				loadOverdueData(user.id, dateFrom, dateTo),
-			]);
-		} catch (err) {
-			console.error("Unexpected error:", err);
-			setError("حدث خطأ غير متوقع");
+			if (invoicesError) throw invoicesError;
+
+			setInvoices((invoicesData as InvoiceWithClientAndItems[]) || []);
+
+			// Calculate stats
+			await calculateStats(
+				(invoicesData as InvoiceWithClientAndItems[]) || [],
+				user.id
+			);
+		} catch (err: any) {
+			console.error("Error loading analytics:", err);
+			setError("حدث خطأ أثناء تحميل البيانات");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const loadStats = async (userId: string) => {
-		try {
-			// Get invoices stats
-			const { data: invoicesData, error: invoicesError } = await supabase
-				.from("invoices")
-				.select("status, total_amount")
-				.eq("user_id", userId);
+	const calculateStats = async (
+		allInvoices: InvoiceWithClientAndItems[],
+		userId: string
+	) => {
+		// Current period invoices
+		const currentInvoices = allInvoices.filter(
+			(inv) =>
+				new Date(inv.created_at) >= dateFrom &&
+				new Date(inv.created_at) <= dateTo
+		);
 
-			if (invoicesError) {
-				console.error("Error loading invoices stats:", invoicesError);
-				return;
-			}
+		// Previous period invoices
+		const previousInvoices = allInvoices.filter(
+			(inv) =>
+				new Date(inv.created_at) >= previousDateFrom &&
+				new Date(inv.created_at) < dateFrom
+		);
 
-			// Get clients stats
-			const { data: clientsData, error: clientsError } = await supabase
-				.from("clients")
-				.select("status")
-				.eq("user_id", userId);
+		// Current period stats
+		const currentRevenue = currentInvoices.reduce(
+			(sum, inv) => sum + inv.total_amount,
+			0
+		);
+		const currentPaidRevenue = currentInvoices
+			.filter((inv) => inv.status === "paid")
+			.reduce((sum, inv) => sum + inv.total_amount, 0);
+		const currentOverdueAmount = currentInvoices
+			.filter(
+				(inv) =>
+					inv.status !== "paid" &&
+					inv.status !== "cancelled" &&
+					new Date(inv.due_date) < new Date()
+			)
+			.reduce((sum, inv) => sum + inv.total_amount, 0);
 
-			if (clientsError) {
-				console.error("Error loading clients stats:", clientsError);
-				return;
-			}
+		// Previous period stats
+		const previousRevenue = previousInvoices.reduce(
+			(sum, inv) => sum + inv.total_amount,
+			0
+		);
+		const previousPaidRevenue = previousInvoices
+			.filter((inv) => inv.status === "paid")
+			.reduce((sum, inv) => sum + inv.total_amount, 0);
+		const previousOverdueAmount = previousInvoices
+			.filter(
+				(inv) =>
+					inv.status !== "paid" &&
+					inv.status !== "cancelled" &&
+					new Date(inv.due_date) < new Date()
+			)
+			.reduce((sum, inv) => sum + inv.total_amount, 0);
 
-			const totalInvoices = invoicesData?.length || 0;
-			const pendingInvoices =
-				invoicesData?.filter((i) => i.status === "sent").length || 0;
-			const totalRevenue =
-				invoicesData?.reduce((sum, i) => sum + i.total_amount, 0) || 0;
-			const activeCustomers =
-				clientsData?.filter((c) => c.status === "active").length || 0;
+		// Collection rate
+		const currentCollectionRate =
+			currentRevenue > 0 ? (currentPaidRevenue / currentRevenue) * 100 : 0;
+		const previousCollectionRate =
+			previousRevenue > 0 ? (previousPaidRevenue / previousRevenue) * 100 : 0;
 
-			setStats({
-				totalOrders: totalInvoices,
-				pendingOrders: pendingInvoices,
-				totalRevenue,
-				activeCustomers,
+		// Overdue ratio
+		const currentOverdueRatio =
+			currentRevenue > 0 ? (currentOverdueAmount / currentRevenue) * 100 : 0;
+		const previousOverdueRatio =
+			previousRevenue > 0 ? (previousOverdueAmount / previousRevenue) * 100 : 0;
+
+		// Top product/service
+		const productMap = new Map<string, number>();
+		currentInvoices.forEach((inv) => {
+			inv.items?.forEach((item) => {
+				const productName = item.description || "غير محدد";
+				productMap.set(
+					productName,
+					(productMap.get(productName) || 0) + item.total
+				);
 			});
-		} catch (err) {
-			console.error("Error loading stats:", err);
-		}
-	};
+		});
+		const topProductEntry = Array.from(productMap.entries()).sort(
+			(a, b) => b[1] - a[1]
+		)[0];
+		const topProduct = topProductEntry ? topProductEntry[0] : "—";
 
-	const loadRevenueData = async (userId: string, from: Date, to: Date) => {
-		try {
-			const { data, error } = await supabase
-				.from("invoices")
-				.select("created_at, total_amount")
-				.eq("user_id", userId)
-				.gte("created_at", from.toISOString())
-				.lte("created_at", to.toISOString())
-				.order("created_at");
+		// Highest/Lowest invoice
+		const amounts = currentInvoices.map((inv) => inv.total_amount);
+		const highestInvoice = amounts.length > 0 ? Math.max(...amounts) : 0;
+		const lowestInvoice = amounts.length > 0 ? Math.min(...amounts) : 0;
 
-			if (error) {
-				console.error("Error loading revenue data:", error);
-				return;
+		// Active customers
+		const { data: clientsData } = await supabase
+			.from("clients")
+			.select("id, status")
+			.eq("user_id", userId)
+			.is("deleted_at", null);
+		const activeCustomers =
+			clientsData?.filter((c) => c.status === "active").length || 0;
+
+		// Calculate comparisons
+		const revenueChange =
+			previousRevenue > 0
+				? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+				: 0;
+		const invoicesChange =
+			previousInvoices.length > 0
+				? ((currentInvoices.length - previousInvoices.length) /
+						previousInvoices.length) *
+				  100
+				: 0;
+		const collectionRateChange = previousCollectionRate
+			? currentCollectionRate - previousCollectionRate
+			: 0;
+		const overdueRatioChange = previousOverdueRatio
+			? currentOverdueRatio - previousOverdueRatio
+			: 0;
+
+		setStats({
+			totalRevenue: currentRevenue,
+			totalInvoices: currentInvoices.length,
+			activeCustomers,
+			collectionRate: currentCollectionRate,
+			overdueRatio: currentOverdueRatio,
+			topProduct,
+			highestInvoice,
+			lowestInvoice,
+			avgInvoiceValue:
+				currentInvoices.length > 0
+					? currentRevenue / currentInvoices.length
+					: 0,
+			revenueComparison: {
+				current: currentRevenue,
+				previous: previousRevenue,
+				change: revenueChange,
+			},
+			invoicesComparison: {
+				current: currentInvoices.length,
+				previous: previousInvoices.length,
+				change: invoicesChange,
+			},
+			collectionRateComparison: {
+				current: currentCollectionRate,
+				previous: previousCollectionRate,
+				change: collectionRateChange,
+			},
+			overdueRatioComparison: {
+				current: currentOverdueRatio,
+				previous: previousOverdueRatio,
+				change: overdueRatioChange,
+			},
+		});
+
+		// Calculate revenue by month
+		const monthlyMap = new Map<
+			string,
+			{ invoices: number; revenue: number }
+		>();
+		currentInvoices.forEach((inv) => {
+			const date = new Date(inv.created_at);
+			const monthKey = `${date.getFullYear()}-${String(
+				date.getMonth() + 1
+			).padStart(2, "0")}`;
+
+			if (!monthlyMap.has(monthKey)) {
+				monthlyMap.set(monthKey, { invoices: 0, revenue: 0 });
 			}
 
-			// Group data by month
-			const monthlyMap = new Map<
-				string,
-				{ invoices: number; revenue: number }
-			>();
+			const monthData = monthlyMap.get(monthKey)!;
+			monthData.invoices += 1;
+			monthData.revenue += inv.total_amount;
+		});
 
-			data?.forEach((invoice) => {
-				const date = new Date(invoice.created_at);
-				const monthKey = `${date.getFullYear()}-${String(
-					date.getMonth() + 1
-				).padStart(2, "0")}`;
-				
-				if (!monthlyMap.has(monthKey)) {
-					monthlyMap.set(monthKey, { invoices: 0, revenue: 0 });
-				}
-
-				const monthData = monthlyMap.get(monthKey)!;
-				monthData.invoices += 1;
-				monthData.revenue += invoice.total_amount;
+		const monthlyArray = Array.from(monthlyMap.entries())
+			.map(([key, data]) => {
+				const [year, month] = key.split("-");
+				const date = new Date(parseInt(year), parseInt(month) - 1);
+				return {
+					name: date.toLocaleDateString("ar-SA-u-nu-latn", {
+						month: "short",
+						year: "numeric",
+					}),
+					revenue: data.revenue,
+					orders: data.invoices,
+				};
+			})
+			.sort((a, b) => {
+				// Sort by date
+				const dateA = new Date(a.name);
+				const dateB = new Date(b.name);
+				return dateA.getTime() - dateB.getTime();
 			});
 
-			// Convert to array format
-			const monthlyArray = Array.from(monthlyMap.entries())
-				.map(([key, data]) => {
-					const [year, month] = key.split("-");
-					const date = new Date(parseInt(year), parseInt(month) - 1);
-					return {
-						name: date.toLocaleDateString("ar-SA-u-nu-latn", {
-							month: "short",
-                            year: "numeric"
-						}),
-						orders: data.invoices,
-						revenue: data.revenue,
-					};
-				})
-                // Simple sort by key (YYYY-MM)
-                .sort((a, b) => 0); // You might want to sort based on the key if needed, but Map iterates in insertion order mostly if inserted chronologically.
+		setRevenueByMonth(monthlyArray);
 
-			setRevenueByMonth(monthlyArray);
-		} catch (err) {
-			console.error("Error loading revenue data:", err);
-		}
-	};
+		// Status distribution
+		const statusCounts = currentInvoices.reduce(
+			(acc, inv) => {
+				acc[inv.status] = (acc[inv.status] || 0) + 1;
+				return acc;
+			},
+			{} as Record<string, number>
+		);
 
-	const loadChannelData = async (userId: string) => {
-		try {
-			const { data, error } = await supabase
-				.from("invoices")
-				.select("status")
-				.eq("user_id", userId);
+		const statusData = [
+			{ name: "مدفوعة", value: statusCounts.paid || 0, color: "#10B981" },
+			{ name: "مرسلة", value: statusCounts.sent || 0, color: "#3B82F6" },
+			{ name: "مسودة", value: statusCounts.draft || 0, color: "#E5E7EB" },
+			{ name: "متأخرة", value: statusCounts.overdue || 0, color: "#F59E0B" },
+			{ name: "ملغية", value: statusCounts.cancelled || 0, color: "#EF4444" },
+		].filter((item) => item.value > 0);
 
-			if (error) {
-				console.error("Error loading channel data:", error);
-				return;
-			}
+		setStatusDistribution(statusData);
 
-			// Count invoices by status for channel analysis
-			const statusCounts =
-				data?.reduce((acc, invoice) => {
-					acc[invoice.status] = (acc[invoice.status] || 0) + 1;
-					return acc;
-				}, {} as Record<string, number>) || {};
+		// Top clients
+		const clientMap = new Map<
+			string,
+			{ name: string; revenue: number; invoiceCount: number }
+		>();
+		currentInvoices
+			.filter((inv) => inv.status === "paid")
+			.forEach((inv) => {
+				const clientId = inv.client_id;
+				const clientName = inv.client?.name || "عميل غير معروف";
 
-			const channelData = [
-				{ name: "مدفوعة", value: statusCounts.paid || 0, color: "#10B981" },
-				{ name: "مرسلة", value: statusCounts.sent || 0, color: "#3B82F6" },
-				{ name: "مسودة", value: statusCounts.draft || 0, color: "#E5E7EB" },
-				{ name: "متأخرة", value: statusCounts.overdue || 0, color: "#F59E0B" },
-				{ name: "ملغية", value: statusCounts.cancelled || 0, color: "#EF4444" },
-			].filter((item) => item.value > 0);
-
-			setChannels(channelData);
-		} catch (err) {
-			console.error("Error loading channel data:", err);
-		}
-	};
-
-	const loadTopClients = async (userId: string) => {
-		try {
-			const { data, error } = await supabase
-				.from("invoices")
-				.select(`
-					client_id,
-					total_amount,
-					clients!inner(name)
-				`)
-				.eq("user_id", userId)
-				.eq("status", "paid");
-
-			if (error) {
-				console.error("Error loading top clients:", error);
-				return;
-			}
-
-			// Group by client and calculate totals
-			const clientMap = new Map<string, { name: string; revenue: number; invoiceCount: number }>();
-			
-			data?.forEach((invoice: any) => {
-				const clientId = invoice.client_id;
-				const clientName = invoice.clients?.name || "عميل غير معروف";
-				
 				if (!clientMap.has(clientId)) {
-					clientMap.set(clientId, { name: clientName, revenue: 0, invoiceCount: 0 });
+					clientMap.set(clientId, {
+						name: clientName,
+						revenue: 0,
+						invoiceCount: 0,
+					});
 				}
-				
+
 				const client = clientMap.get(clientId)!;
-				client.revenue += invoice.total_amount;
+				client.revenue += inv.total_amount;
 				client.invoiceCount += 1;
 			});
 
-			// Convert to array and sort by revenue
-			const topClientsArray = Array.from(clientMap.values())
-				.sort((a, b) => b.revenue - a.revenue)
-				.slice(0, 5); // Top 5 clients
+		const topClientsArray = Array.from(clientMap.values())
+			.sort((a, b) => b.revenue - a.revenue)
+			.slice(0, 5);
 
-			setTopClients(topClientsArray);
-		} catch (err) {
-			console.error("Error loading top clients:", err);
-		}
-	};
+		setTopClients(topClientsArray);
 
-	const loadPaymentTimes = async (userId: string, from: Date, to: Date) => {
-		try {
-			const { data, error } = await supabase
-				.from("invoices")
-				.select("created_at, updated_at, status")
-				.eq("user_id", userId)
-				.eq("status", "paid")
-				.gte("created_at", from.toISOString())
-				.lte("created_at", to.toISOString())
-				.order("created_at");
-
-			if (error) {
-				console.error("Error loading payment times:", error);
-				return;
-			}
-
-			// Group by month and calculate average payment time
-			const monthlyMap = new Map<string, number[]>();
-			
-			data?.forEach((invoice) => {
-				const createdDate = new Date(invoice.created_at);
-				const updatedDate = new Date(invoice.updated_at);
-				const paymentDays = Math.ceil((updatedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-				
-				const monthKey = createdDate.toLocaleDateString("ar-SA-u-nu-latn", {
-					month: "short",
-				});
-				
-				if (!monthlyMap.has(monthKey)) {
-					monthlyMap.set(monthKey, []);
+		// Revenue by category (simplified - using product names from invoice items)
+		const categoryMap = new Map<string, number>();
+		currentInvoices.forEach((inv) => {
+			inv.items?.forEach((item) => {
+				// Simple categorization based on description keywords
+				const desc = (item.description || "").toLowerCase();
+				let category = "خدمات";
+				if (desc.includes("منتج") || desc.includes("سلعة")) {
+					category = "منتجات";
+				} else if (desc.includes("اشتراك") || desc.includes("شهري")) {
+					category = "اشتراكات";
 				}
-				
-				monthlyMap.get(monthKey)!.push(paymentDays);
+
+				categoryMap.set(
+					category,
+					(categoryMap.get(category) || 0) + item.total
+				);
 			});
+		});
 
-			// Calculate average payment time per month
-			const paymentTimesArray = Array.from(monthlyMap.entries()).map(([month, days]) => ({
-				month,
-				avgDays: Math.round(days.reduce((sum, day) => sum + day, 0) / days.length),
-			}));
+		const categoryData = Array.from(categoryMap.entries()).map(
+			([name, value], index) => ({
+				name,
+				value,
+				color: ["#8B5CF6", "#3B82F6", "#10B981"][index % 3],
+			})
+		);
 
-			setPaymentTimes(paymentTimesArray);
-		} catch (err) {
-			console.error("Error loading payment times:", err);
-		}
+		setRevenueByCategory(categoryData);
 	};
 
-	const loadOverdueData = async (userId: string, from: Date, to: Date) => {
-		try {
-			const { data, error } = await supabase
-				.from("invoices")
-				.select("created_at, total_amount, due_date, status")
-				.eq("user_id", userId)
-				.in("status", ["sent", "overdue"])
-				.gte("created_at", from.toISOString())
-				.lte("created_at", to.toISOString())
-				.order("created_at");
+	const applyFilters = () => {
+		let filtered = [...invoices];
 
-			if (error) {
-				console.error("Error loading overdue data:", error);
-				return;
-			}
+		// Date filter (already applied in loadAnalyticsData, but ensure it's current period)
+		filtered = filtered.filter(
+			(inv) =>
+				new Date(inv.created_at) >= dateFrom &&
+				new Date(inv.created_at) <= dateTo
+		);
 
-			// Group by month and calculate overdue amounts
-			const monthlyMap = new Map<string, { amount: number; count: number }>();
-			const today = new Date();
-			
-			data?.forEach((invoice) => {
-				const dueDate = new Date(invoice.due_date);
-				const isOverdue = dueDate < today;
-				
-				if (isOverdue) {
-					const createdDate = new Date(invoice.created_at);
-					const monthKey = createdDate.toLocaleDateString("ar-SA-u-nu-latn", {
-						month: "short",
-					});
-					
-					if (!monthlyMap.has(monthKey)) {
-						monthlyMap.set(monthKey, { amount: 0, count: 0 });
-					}
-					
-					const monthData = monthlyMap.get(monthKey)!;
-					monthData.amount += invoice.total_amount;
-					monthData.count += 1;
-				}
-			});
-
-			// Convert to array
-			const overdueArray = Array.from(monthlyMap.entries()).map(([month, data]) => ({
-				month,
-				amount: data.amount,
-				count: data.count,
-			}));
-
-			setOverdueData(overdueArray);
-		} catch (err) {
-			console.error("Error loading overdue data:", err);
+		// Customer filter
+		if (filters.customerId !== "all") {
+			filtered = filtered.filter((inv) => inv.client_id === filters.customerId);
 		}
+
+		// Status filter
+		if (filters.status !== "all") {
+			filtered = filtered.filter((inv) => inv.status === filters.status);
+		}
+
+		// Amount range filter
+		if (filters.minAmount !== null) {
+			filtered = filtered.filter(
+				(inv) => inv.total_amount >= filters.minAmount!
+			);
+		}
+		if (filters.maxAmount !== null) {
+			filtered = filtered.filter(
+				(inv) => inv.total_amount <= filters.maxAmount!
+			);
+		}
+
+		// Product filter (check if invoice items contain the product)
+		if (filters.productId !== "all") {
+			filtered = filtered.filter((inv) =>
+				inv.items?.some((item) => item.id === filters.productId)
+			);
+		}
+
+		setFilteredInvoices(filtered);
 	};
 
-	const totalRevenue = revenueByMonth.reduce((s, d) => s + d.revenue, 0);
-	const totalOrders = revenueByMonth.reduce((s, d) => s + d.orders, 0);
-	const avgOrderValue = totalOrders > 0 ? Math.round((totalRevenue / totalOrders) * 100) / 100 : 0;
-
-	const formatSar = (n: number) =>
+	const formatCurrency = (amount: number) =>
 		new Intl.NumberFormat("en-US", {
 			style: "currency",
 			currency: "SAR",
-            maximumFractionDigits: 0
-		}).format(n);
+			maximumFractionDigits: 0,
+		}).format(amount);
 
-    const CustomTooltip = ({ active, payload, label, type }: any) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className="bg-gray-900 text-white p-4 rounded-2xl shadow-xl border border-gray-800 text-sm">
-                    <p className="font-bold mb-2 opacity-50">{label}</p>
-                    {payload.map((entry: any, index: number) => (
-                        <div key={index} className="flex items-center gap-2 mb-1 last:mb-0">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
-                            <span className="font-medium">
-                                {type === 'currency' ? formatSar(entry.value) : entry.value}
-                            </span>
-                            <span className="opacity-70 ml-1">{entry.name}</span>
-                        </div>
-                    ))}
-                </div>
-            );
-        }
-        return null;
-    };
+	const exportToCSV = () => {
+		const headers = [
+			"رقم الفاتورة",
+			"العميل",
+			"المبلغ",
+			"الحالة",
+			"تاريخ الإصدار",
+			"تاريخ الاستحقاق",
+		];
+
+		const rows = filteredInvoices.map((inv) => [
+			inv.invoice_number,
+			inv.client?.name || "",
+			inv.total_amount,
+			inv.status,
+			new Date(inv.created_at).toLocaleDateString("en-GB"),
+			new Date(inv.due_date).toLocaleDateString("en-GB"),
+		]);
+
+		const csvContent = [
+			headers.join(","),
+			...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+		].join("\n");
+
+		const blob = new Blob(["\uFEFF" + csvContent], {
+			type: "text/csv;charset=utf-8;",
+		});
+		const link = document.createElement("a");
+		const url = URL.createObjectURL(blob);
+		link.setAttribute("href", url);
+		link.setAttribute(
+			"download",
+			`analytics-export-${new Date().toISOString().split("T")[0]}.csv`
+		);
+		link.style.visibility = "hidden";
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
+
+	const exportToExcel = () => {
+		const headers = [
+			"رقم الفاتورة",
+			"العميل",
+			"المبلغ",
+			"الحالة",
+			"تاريخ الإصدار",
+			"تاريخ الاستحقاق",
+		];
+
+		const rows = filteredInvoices.map((inv) => [
+			inv.invoice_number,
+			inv.client?.name || "",
+			inv.total_amount,
+			inv.status,
+			new Date(inv.created_at).toLocaleDateString("en-GB"),
+			new Date(inv.due_date).toLocaleDateString("en-GB"),
+		]);
+
+		const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+		const columnWidths = [
+			{ wch: 15 },
+			{ wch: 20 },
+			{ wch: 12 },
+			{ wch: 12 },
+			{ wch: 15 },
+			{ wch: 15 },
+		];
+		worksheet["!cols"] = columnWidths;
+
+		const workbook = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(workbook, worksheet, "التحليلات");
+
+		const fileName = `analytics-export-${new Date().toISOString().split("T")[0]}.xlsx`;
+		XLSX.writeFile(workbook, fileName);
+	};
+
+	const exportToPDF = () => {
+		// Use browser's print functionality
+		// User can save as PDF from print dialog
+		window.print();
+	};
+
+	// Generate forecast data (simple linear projection)
+	const forecastData = useMemo(() => {
+		if (revenueByMonth.length < 2) return [];
+		const lastTwo = revenueByMonth.slice(-2);
+		const trend = lastTwo[1].revenue - lastTwo[0].revenue;
+		const forecast = [
+			...revenueByMonth,
+			{
+				name: "التنبؤ",
+				revenue: lastTwo[1].revenue + trend,
+				orders: 0,
+			},
+		];
+		return forecast;
+	}, [revenueByMonth]);
 
 	if (loading) {
 		return <LoadingState message="جاري تحليل البيانات..." />;
@@ -432,261 +618,266 @@ export default function AnalyticsPage() {
 		);
 	}
 
+	// Check if there's any data
+	const hasData = invoices.length > 0;
+
+	if (!hasData) {
+		return <EmptyState />;
+	}
+
 	return (
-		<div className="space-y-8 pb-12">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-[#012d46]">تقارير الأداء</h1>
-                    <p className="text-gray-500 mt-2 text-lg">تحليلات مفصلة لنمو أعمالك</p>
-                </div>
-                <div className="flex gap-3">
-                    {/* Date range picker could go here */}
-                </div>
-            </div>
-
-			{/* KPIs */}
-			<div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                <KpiCard 
-                    title="إجمالي الإيرادات" 
-                    value={formatSar(stats.totalRevenue)} 
-                    icon={DollarSign} 
-                    color="green"
-                    trend="+15%"
-                />
-                <KpiCard 
-                    title="عدد الفواتير" 
-                    value={stats.totalOrders} 
-                    icon={ShoppingCart} 
-                    color="blue"
-                />
-                <KpiCard 
-                    title="متوسط قيمة الفاتورة" 
-                    value={formatSar(avgOrderValue)} 
-                    icon={TrendingUp} 
-                    color="purple"
-                />
-                <KpiCard 
-                    title="العملاء النشطون" 
-                    value={stats.activeCustomers} 
-                    icon={Users} 
-                    color="pink"
-                />
+		<div ref={pageRef} className="space-y-8 pb-12">
+			{/* Header with Filters and Export */}
+			<div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+				<div>
+					<h1 className="text-3xl font-bold text-[#012d46]">تقارير الأداء</h1>
+					<p className="text-gray-500 mt-2 text-lg">تحليلات مفصلة لنمو أعمالك</p>
+				</div>
+				<div className="flex items-center gap-3">
+					<AnalyticsFiltersComponent
+						filters={filters}
+						onFiltersChange={setFilters}
+					/>
+					<ExportMenu
+						onExportCSV={exportToCSV}
+						onExportExcel={exportToExcel}
+						onExportPDF={exportToPDF}
+					/>
+				</div>
 			</div>
 
-			{/* Revenue & Distribution */}
+			{/* Enhanced KPI Cards */}
+			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+				<KPICard
+					title="إجمالي الإيرادات"
+					value={formatCurrency(stats.totalRevenue)}
+					icon={DollarSign}
+					color="green"
+					trend={{
+						value: stats.revenueComparison.change,
+						label: "مقارنة بالفترة السابقة",
+					}}
+				/>
+				<KPICard
+					title="عدد الفواتير"
+					value={stats.totalInvoices}
+					icon={ShoppingCart}
+					color="blue"
+					trend={{
+						value: stats.invoicesComparison.change,
+						label: "مقارنة بالفترة السابقة",
+					}}
+				/>
+				<KPICard
+					title="معدل التحصيل"
+					value={`${stats.collectionRate.toFixed(1)}%`}
+					icon={TrendingUp}
+					color="purple"
+					trend={{
+						value: stats.collectionRateComparison.change,
+						label: "مقارنة بالفترة السابقة",
+					}}
+					subtitle="نسبة الفواتير المدفوعة"
+				/>
+				<KPICard
+					title="نسبة المتأخرات"
+					value={`${stats.overdueRatio.toFixed(1)}%`}
+					icon={AlertCircle}
+					color="orange"
+					trend={{
+						value: -stats.overdueRatioComparison.change, // Negative because lower is better
+						label: "مقارنة بالفترة السابقة",
+					}}
+					subtitle="نسبة الفواتير المتأخرة"
+				/>
+			</div>
+
+			{/* Additional KPI Cards */}
+			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+				<KPICard
+					title="أفضل منتج / خدمة"
+					value={stats.topProduct}
+					icon={Package}
+					color="indigo"
+				/>
+				<KPICard
+					title="أعلى فاتورة"
+					value={formatCurrency(stats.highestInvoice)}
+					icon={ArrowUpRight}
+					color="green"
+				/>
+				<KPICard
+					title="أقل فاتورة"
+					value={formatCurrency(stats.lowestInvoice)}
+					icon={ArrowDownRight}
+					color="blue"
+				/>
+				<KPICard
+					title="متوسط قيمة الفاتورة"
+					value={formatCurrency(stats.avgInvoiceValue)}
+					icon={TrendingUp}
+					color="pink"
+				/>
+			</div>
+
+			{/* Revenue Chart with Forecast */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+			>
+				<div className="flex items-center justify-between mb-8">
+					<h3 className="text-xl font-bold text-[#012d46]">نمو الإيرادات</h3>
+				</div>
+				<EnhancedChart
+					data={revenueByMonth}
+					dataKey="revenue"
+					name="الإيرادات"
+					color="#8B5CF6"
+					gradientId="revenueGradient"
+					showForecast={true}
+					forecastData={forecastData}
+					currency={true}
+				/>
+			</motion.div>
+
+			{/* Revenue & Status Distribution */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				<motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm lg:col-span-2"
-                >
-					<div className="flex items-center justify-between mb-8">
-                        <h3 className="text-xl font-bold text-[#012d46]">نمو الإيرادات</h3>
-                        <select className="bg-gray-50 border-none rounded-lg text-sm p-2 focus:ring-0 cursor-pointer">
-                            <option>هذا العام</option>
-                            <option>العام الماضي</option>
-                        </select>
-                    </div>
-					<div className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revenueByMonth} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="analyticsRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={15} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-15} tickFormatter={(value) => `${value / 1000}k`} />
-                                <Tooltip content={<CustomTooltip type="currency" />} cursor={{ stroke: '#8B5CF6', strokeWidth: 1, strokeDasharray: '5 5' }} />
-                                <Area type="monotone" dataKey="revenue" name="الإيرادات" stroke="#8B5CF6" strokeWidth={4} fillOpacity={1} fill="url(#analyticsRevenue)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.1 }}
+					className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:col-span-2"
+				>
+					<h3 className="text-xl font-bold text-[#012d46] mb-2">الإيرادات الشهرية</h3>
+					<p className="text-sm text-gray-500 mb-8">تطور الإيرادات عبر الأشهر</p>
+					<EnhancedChart
+						data={revenueByMonth}
+						dataKey="revenue"
+						name="الإيرادات"
+						color="#3B82F6"
+						gradientId="monthlyRevenueGradient"
+						currency={true}
+					/>
 				</motion.div>
 
-				<motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col"
-                >
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.2 }}
+					className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col"
+				>
 					<h3 className="text-xl font-bold text-[#012d46] mb-2">حالة الفواتير</h3>
-                    <p className="text-sm text-gray-500 mb-8">توزيع الفواتير حسب الحالة</p>
-                    
-					<div className="flex-1 min-h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={channels}
-                                    dataKey="value"
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={85}
-                                    paddingAngle={4}
-                                    cornerRadius={6}
-                                >
-                                    {channels.map((c, i) => (
-                                        <Cell key={i} fill={c.color} strokeWidth={0} />
-                                    ))}
-                                </Pie>
-                                <Tooltip content={<CustomTooltip />} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" formatter={(value) => <span className="text-sm font-medium text-gray-600 mr-2">{value}</span>} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-				</motion.div>
-			</div>
-
-			{/* Secondary Metrics */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
-                >
-					<h3 className="text-xl font-bold text-[#012d46] mb-8">عدد الفواتير شهرياً</h3>
-					<div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={revenueByMonth} barSize={24}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
-                                <Tooltip content={<CustomTooltip />} cursor={{fill: '#f9fafb', radius: 8}} />
-                                <Bar dataKey="orders" name="عدد الفواتير" fill="#3B82F6" radius={[6, 6, 6, 6]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-				</motion.div>
-
-				<motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
-                >
-					<h3 className="text-xl font-bold text-[#012d46] mb-2">متوسط وقت الدفع</h3>
-                    <p className="text-sm text-gray-500 mb-8">متوسط الأيام حتى سداد الفاتورة</p>
-					<div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={paymentTimes}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="avgDays" 
-                                    name="الأيام"
-                                    stroke="#10B981" 
-                                    strokeWidth={4}
-                                    dot={{ r: 4, fill: "#10B981", strokeWidth: 2, stroke: "#fff" }}
-                                    activeDot={{ r: 6, strokeWidth: 0 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-				</motion.div>
-			</div>
-
-			{/* Bottom Grid */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
-                >
-					<div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-[#012d46]">أفضل العملاء</h3>
-                        <button className="text-[#7f2dfb] text-sm font-bold hover:underline">عرض الكل</button>
-                    </div>
-					<div className="space-y-4">
-						{topClients.length > 0 ? (
-							topClients.map((client, index) => (
-								<div key={index} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors">
-									<div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                            {client.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-gray-900">{client.name}</p>
-                                            <p className="text-xs text-gray-500 font-medium mt-0.5">{client.invoiceCount} فاتورة مدفوعة</p>
-                                        </div>
-									</div>
-									<div className="text-left">
-										<p className="font-bold text-green-600 bg-green-50 px-3 py-1 rounded-lg border border-green-100">
-                                            {formatSar(client.revenue)}
-                                        </p>
-									</div>
-								</div>
-							))
-						) : (
-							<div className="text-center py-12">
-                                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                <p className="text-gray-500 font-medium">لا توجد بيانات كافية</p>
-                            </div>
-						)}
+					<p className="text-sm text-gray-500 mb-8">توزيع الفواتير حسب الحالة</p>
+					<div className="flex-1 min-h-[300px]">
+						<ResponsiveContainer width="100%" height="100%">
+							<PieChart>
+								<Pie
+									data={statusDistribution}
+									dataKey="value"
+									cx="50%"
+									cy="50%"
+									innerRadius={60}
+									outerRadius={100}
+									paddingAngle={4}
+									cornerRadius={6}
+								>
+									{statusDistribution.map((entry, index) => (
+										<Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
+									))}
+								</Pie>
+								<Tooltip
+									content={({ active, payload }) => {
+										if (active && payload && payload.length) {
+											const data = payload[0];
+											return (
+												<div className="bg-gray-900 text-white p-4 rounded-2xl shadow-xl border border-gray-800 text-sm">
+													<p className="font-bold mb-2">{data.name}</p>
+													<p className="font-medium">{data.value} فاتورة</p>
+												</div>
+											);
+										}
+										return null;
+									}}
+								/>
+								<Legend
+									verticalAlign="bottom"
+									height={36}
+									iconType="circle"
+									formatter={(value) => (
+										<span className="text-sm font-medium text-gray-600 mr-2">
+											{value}
+										</span>
+									)}
+								/>
+							</PieChart>
+						</ResponsiveContainer>
 					</div>
 				</motion.div>
-
-				<motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
-                >
-					<h3 className="text-xl font-bold text-[#012d46] mb-2">الفواتير المتأخرة</h3>
-                    <p className="text-sm text-gray-500 mb-8">تحليل المبالغ غير المسددة</p>
-					<div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={overdueData} barSize={32}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
-                                <Tooltip content={<CustomTooltip type="currency" />} cursor={{fill: '#f9fafb', radius: 8}} />
-                                <Bar dataKey="amount" name="المبلغ" fill="#EF4444" radius={[8, 8, 8, 8]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-				</motion.div>
 			</div>
+
+			{/* Revenue by Category */}
+			{revenueByCategory.length > 0 && (
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.3 }}
+					className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+				>
+					<h3 className="text-xl font-bold text-[#012d46] mb-8">الإيرادات حسب الفئة</h3>
+					<RevenueByCategory categories={revenueByCategory} />
+				</motion.div>
+			)}
+
+			{/* Top Customers */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ delay: 0.4 }}
+				className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm"
+			>
+				<div className="flex items-center justify-between mb-6">
+					<h3 className="text-xl font-bold text-[#012d46]">أفضل العملاء</h3>
+					<button
+						onClick={() => router.push("/dashboard/analytics/top-customers")}
+						className="text-[#7f2dfb] text-sm font-bold hover:underline"
+					>
+						عرض الكل
+					</button>
+				</div>
+				<div className="space-y-4">
+					{topClients.length > 0 ? (
+						topClients.map((client, index) => (
+							<div
+								key={index}
+								className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors"
+							>
+								<div className="flex items-center gap-4">
+									<div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+										{client.name.charAt(0).toUpperCase()}
+									</div>
+									<div>
+										<p className="font-bold text-gray-900">{client.name}</p>
+										<p className="text-xs text-gray-500 font-medium mt-0.5">
+											{client.invoiceCount} فاتورة مدفوعة
+										</p>
+									</div>
+								</div>
+								<div className="text-left">
+									<p className="font-bold text-green-600 bg-green-50 px-3 py-1 rounded-lg border border-green-100">
+										{formatCurrency(client.revenue)}
+									</p>
+								</div>
+							</div>
+						))
+					) : (
+						<div className="text-center py-12">
+							<Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+							<p className="text-gray-500 font-medium">لا توجد بيانات كافية</p>
+						</div>
+					)}
+				</div>
+			</motion.div>
 		</div>
 	);
-}
-
-function KpiCard({ title, value, icon: Icon, color, trend }: any) {
-     const colors = {
-        purple: "bg-purple-50 text-[#7f2dfb]",
-        blue: "bg-blue-50 text-blue-600",
-        green: "bg-green-50 text-green-600",
-        pink: "bg-pink-50 text-pink-600",
-    };
-
-    return (
-        <motion.div 
-            whileHover={{ y: -4 }}
-            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group"
-        >
-            <div className="flex justify-between items-start mb-4">
-                 <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", colors[color as keyof typeof colors])}>
-                    <Icon size={24} strokeWidth={2.5} />
-                </div>
-                {trend && (
-                    <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-                        {trend}
-                        <ArrowUpRight size={12} />
-                    </span>
-                )}
-            </div>
-             <div>
-                <p className="text-gray-500 text-sm font-bold mb-1 opacity-80">{title}</p>
-                <h3 className="text-2xl font-extrabold text-gray-900 tracking-tight">{value}</h3>
-            </div>
-        </motion.div>
-    )
 }

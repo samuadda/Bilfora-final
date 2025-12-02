@@ -1,41 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-	AreaChart,
-	Area,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-	PieChart,
-	Pie,
-	Cell,
-	ResponsiveContainer,
-	BarChart,
-	Bar,
-	Legend,
-	Label,
-} from "recharts";
-import {
-	FileText,
-	Users,
-	Clock,
-	DollarSign,
-	Plus,
-	Calendar,
-} from "lucide-react";
-import Link from "next/link";
+import { useState, useEffect, useMemo } from "react";
+import { DollarSign, FileText, Users, Clock, TrendingUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { MonthlyData, OrderStatusData, CustomerData } from "@/types/database";
+import { MonthlyData, OrderStatusData } from "@/types/database";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { EmptyChart } from "@/components/dashboard/EmptyChart";
-import { cn } from "@/lib/utils";
 import LoadingState from "@/components/LoadingState";
+import DashboardKpiCard from "@/components/dashboard/DashboardKpiCard";
+import DashboardDonutChart from "@/components/dashboard/DashboardDonutChart";
+import DashboardRevenueChart from "@/components/dashboard/DashboardRevenueChart";
+import DashboardRecentActivity from "@/components/dashboard/DashboardRecentActivity";
+import DashboardQuickActions from "@/components/dashboard/DashboardQuickActions";
 
 export default function DashboardPage() {
 	const router = useRouter();
@@ -47,16 +25,19 @@ export default function DashboardPage() {
 		totalRevenue: 0,
 		activeCustomers: 0,
 	});
+
+	const [previousStats, setPreviousStats] = useState({
+		totalInvoices: 0,
+		overdueInvoices: 0,
+		totalRevenue: 0,
+		activeCustomers: 0,
+	});
+
 	const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
-	const [orderStatusData, setOrderStatusData] = useState<OrderStatusData[]>(
-		[]
-	);
-	const [customerData, setCustomerData] = useState<CustomerData[]>([]);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const [orderStatusData, setOrderStatusData] = useState<OrderStatusData[]>([]);
 	const [recentActivity, setRecentActivity] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [userName, setUserName] = useState("");
-
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
 	useEffect(() => {
@@ -88,7 +69,6 @@ export default function DashboardPage() {
 				loadStats(user.id),
 				loadMonthlyData(user.id),
 				loadInvoiceStatusData(user.id),
-				loadCustomerData(user.id),
 				loadRecentActivity(user.id),
 			]);
 		} catch (err) {
@@ -104,35 +84,81 @@ export default function DashboardPage() {
 	};
 
 	const loadStats = async (userId: string) => {
-		const { data: invoices } = await supabase
-			.from("invoices")
-			.select("status, total_amount, due_date")
-			.eq("user_id", userId);
+		const now = new Date();
+		const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+		const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+		const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-		const { data: clients } = await supabase
+		// Current month invoices
+		const { data: currentInvoices } = await supabase
+			.from("invoices")
+			.select("status, total_amount, due_date, created_at")
+			.eq("user_id", userId)
+			.gte("created_at", currentMonthStart.toISOString());
+
+		// Previous month invoices
+		const { data: previousInvoices } = await supabase
+			.from("invoices")
+			.select("status, total_amount, due_date, created_at")
+			.eq("user_id", userId)
+			.gte("created_at", previousMonthStart.toISOString())
+			.lte("created_at", previousMonthEnd.toISOString());
+
+		// Current month clients
+		const { data: currentClients } = await supabase
 			.from("clients")
-			.select("status")
+			.select("status, created_at")
 			.eq("user_id", userId)
 			.is("deleted_at", null);
 
-		const now = new Date();
-		setStats({
-			totalInvoices: invoices?.length || 0,
+		// Previous month clients
+		const { data: previousClients } = await supabase
+			.from("clients")
+			.select("status, created_at")
+			.eq("user_id", userId)
+			.is("deleted_at", null)
+			.lte("created_at", previousMonthEnd.toISOString());
+
+		// Calculate current stats
+		const currentStats = {
+			totalInvoices: currentInvoices?.length || 0,
 			overdueInvoices:
-				invoices?.filter(
+				currentInvoices?.filter(
 					(i) =>
 						new Date(i.due_date) < now &&
 						i.status !== "paid" &&
 						i.status !== "cancelled"
 				).length || 0,
 			totalRevenue:
-				invoices?.reduce(
+				currentInvoices?.reduce(
 					(sum, i) => sum + Number(i.total_amount || 0),
 					0
 				) || 0,
 			activeCustomers:
-				clients?.filter((c) => c.status === "active").length || 0,
-		});
+				currentClients?.filter((c) => c.status === "active").length || 0,
+		};
+
+		// Calculate previous stats
+		const prevStats = {
+			totalInvoices: previousInvoices?.length || 0,
+			overdueInvoices:
+				previousInvoices?.filter(
+					(i) =>
+						new Date(i.due_date) < previousMonthEnd &&
+						i.status !== "paid" &&
+						i.status !== "cancelled"
+				).length || 0,
+			totalRevenue:
+				previousInvoices?.reduce(
+					(sum, i) => sum + Number(i.total_amount || 0),
+					0
+				) || 0,
+			activeCustomers:
+				previousClients?.filter((c) => c.status === "active").length || 0,
+		};
+
+		setStats(currentStats);
+		setPreviousStats(prevStats);
 	};
 
 	const loadMonthlyData = async (userId: string) => {
@@ -195,71 +221,27 @@ export default function DashboardPage() {
 		);
 	};
 
-	const loadCustomerData = async (userId: string) => {
-		const { data } = await supabase
-			.from("clients")
-			.select("created_at")
-			.eq("user_id", userId)
-			.is("deleted_at", null);
-
-		if (!data) return;
-
-		const now = new Date();
-		const days = (d: string) =>
-			(now.getTime() - new Date(d).getTime()) / (1000 * 60 * 60 * 24);
-
-		const newC = data.filter((c) => days(c.created_at) <= 30).length;
-		const returningC = data.filter(
-			(c) => days(c.created_at) > 30 && days(c.created_at) <= 90
-		).length;
-		const regularC = data.filter((c) => days(c.created_at) > 90).length;
-
-		setCustomerData([
-			{ name: "جدد", value: newC },
-			{ name: "عائدون", value: returningC },
-			{ name: "منتظمون", value: regularC },
-		]);
-	};
-
 	const loadRecentActivity = async (userId: string) => {
 		const { data: invoices } = await supabase
 			.from("invoices")
 			.select(
-				`created_at, invoice_number, total_amount, client:clients(name)`
+				`id, created_at, invoice_number, total_amount, status, client:clients(name)`
 			)
 			.eq("user_id", userId)
 			.order("created_at", { ascending: false })
 			.limit(5);
 
-		const { data: clients } = await supabase
-			.from("clients")
-			.select("created_at, name")
-			.eq("user_id", userId)
-			.is("deleted_at", null)
-			.order("created_at", { ascending: false })
-			.limit(3);
-
-		const activity = [
-			...(invoices?.map((o) => ({
-				type: "invoice",
-				title: `فاتورة جديدة #${o.invoice_number}`,
-				subtitle: (o.client as any)?.name || "عميل غير معروف",
-				amount: o.total_amount,
-				time: o.created_at,
+		const activity =
+			invoices?.map((inv) => ({
+				type: "invoice" as const,
+				title: `فاتورة #${inv.invoice_number}`,
+				subtitle: (inv.client as any)?.name || "عميل غير معروف",
+				amount: inv.total_amount,
+				time: inv.created_at,
 				icon: FileText,
-				color: "purple",
-			})) || []),
-			...(clients?.map((c) => ({
-				type: "client",
-				title: "عميل جديد",
-				subtitle: c.name,
-				time: c.created_at,
-				icon: Users,
-				color: "blue",
-			})) || []),
-		]
-			.sort((a, b) => +new Date(b.time) - +new Date(a.time))
-			.slice(0, 5);
+				color: "purple" as const,
+				invoiceId: inv.id,
+			})) || [];
 
 		setRecentActivity(activity);
 	};
@@ -282,52 +264,47 @@ export default function DashboardPage() {
 		return `منذ ${Math.floor(diff / 1440)} يوم`;
 	};
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const CustomTooltip = ({
-		active,
-		payload,
-		label,
-		type = "default",
-	}: any) => {
-		if (active && payload && payload.length) {
-			return (
-				<div className="bg-gray-900 text-white p-4 rounded-2xl shadow-xl border border-gray-800 text-sm">
-					<p className="font-bold mb-1 opacity-50">{label}</p>
-					{/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-					{payload.map((entry: any, index: number) => (
-						<div key={index} className="flex items-center gap-2">
-							<div
-								className="w-2 h-2 rounded-full"
-								style={{
-									backgroundColor: entry.color || entry.fill,
-								}}
-							/>
-							<span className="font-medium">
-								{type === "currency"
-									? formatCurrency(entry.value)
-									: entry.value}
-							</span>
-							<span className="opacity-70 ml-1">
-								{entry.name}
-							</span>
-						</div>
-					))}
-				</div>
-			);
-		}
-		return null;
-	};
+	// Calculate period comparisons
+	const revenueChange = useMemo(() => {
+		if (previousStats.totalRevenue === 0) return 0;
+		return ((stats.totalRevenue - previousStats.totalRevenue) / previousStats.totalRevenue) * 100;
+	}, [stats.totalRevenue, previousStats.totalRevenue]);
+
+	const invoicesChange = useMemo(() => {
+		if (previousStats.totalInvoices === 0) return 0;
+		return ((stats.totalInvoices - previousStats.totalInvoices) / previousStats.totalInvoices) * 100;
+	}, [stats.totalInvoices, previousStats.totalInvoices]);
+
+	const customersChange = useMemo(() => {
+		if (previousStats.activeCustomers === 0) return 0;
+		return ((stats.activeCustomers - previousStats.activeCustomers) / previousStats.activeCustomers) * 100;
+	}, [stats.activeCustomers, previousStats.activeCustomers]);
+
+	const overdueChange = useMemo(() => {
+		if (previousStats.overdueInvoices === 0) return stats.overdueInvoices > 0 ? 100 : 0;
+		return ((stats.overdueInvoices - previousStats.overdueInvoices) / previousStats.overdueInvoices) * 100;
+	}, [stats.overdueInvoices, previousStats.overdueInvoices]);
+
+	// Calculate average invoice value
+	const avgInvoiceValue = useMemo(() => {
+		return stats.totalInvoices > 0 ? stats.totalRevenue / stats.totalInvoices : 0;
+	}, [stats.totalRevenue, stats.totalInvoices]);
+
+	// Total invoices for donut chart
+	const totalInvoicesForChart = useMemo(() => {
+		return orderStatusData.reduce((sum, item) => sum + item.value, 0);
+	}, [orderStatusData]);
 
 	if (loading) return <LoadingState message="جاري تحميل لوحة التحكم..." />;
 
 	return (
 		<div className="space-y-8 pb-10">
-			{/* Header Section */}
+			{/* Welcome Header Section */}
 			<motion.div
 				initial={{ opacity: 0, y: -10 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.8, ease: "easeOut" }}
-				className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between bg-white p-6 rounded-3xl shadow-sm border border-gray-100"
+				transition={{ duration: 0.6 }}
+				className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between"
 			>
 				<div>
 					<h1 className="text-3xl font-bold text-[#012d46]">
@@ -337,392 +314,135 @@ export default function DashboardPage() {
 						إليك نظرة عامة على أداء أعمالك اليوم
 					</p>
 				</div>
-				<div className="flex flex-wrap gap-3">
-					<motion.button
-						whileHover={{ scale: 1.02 }}
-						whileTap={{ scale: 0.98 }}
-						onClick={openInvoiceModal}
-						className="inline-flex items-center gap-2 rounded-xl bg-[#7f2dfb] text-white px-6 py-3 text-base font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
-					>
-						<Plus size={20} strokeWidth={2.5} />
-						<span>فاتورة جديدة</span>
-					</motion.button>
-				</div>
+				<DashboardQuickActions onCreateInvoice={openInvoiceModal} />
 			</motion.div>
 
-			{/* Stats Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-				<StatsCard
-					title="إجمالي المبيعات"
+			{/* KPI Cards Grid */}
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+				<DashboardKpiCard
+					title="إجمالي الإيرادات"
 					value={formatCurrency(stats.totalRevenue)}
 					icon={DollarSign}
-					trend="+12%"
-					color="purple"
+					color="green"
+					trend={{
+						value: revenueChange,
+						label: "هذا الشهر",
+					}}
 					delay={0.1}
 				/>
-				<StatsCard
-					title="إجمالي الفواتير"
-					value={stats.totalInvoices}
-					icon={FileText}
-					color="blue"
-					delay={0.2}
-				/>
-				<StatsCard
-					title="العملاء النشطون"
-					value={stats.activeCustomers}
-					icon={Users}
-					color="green"
-					delay={0.3}
-				/>
-				<StatsCard
+				<DashboardKpiCard
 					title="فواتير متأخرة"
 					value={stats.overdueInvoices}
 					icon={Clock}
 					color="orange"
+					trend={{
+						value: overdueChange,
+						label: "مقارنة بالشهر السابق",
+					}}
+					delay={0.2}
+				/>
+				<DashboardKpiCard
+					title="العملاء النشطون"
+					value={stats.activeCustomers}
+					icon={Users}
+					color="blue"
+					trend={{
+						value: customersChange,
+						label: "مقارنة بالشهر السابق",
+					}}
+					delay={0.3}
+				/>
+				<DashboardKpiCard
+					title="إجمالي الفواتير"
+					value={stats.totalInvoices}
+					icon={FileText}
+					color="purple"
+					trend={{
+						value: invoicesChange,
+						label: "هذا الشهر",
+					}}
 					delay={0.4}
-					isWarning={stats.overdueInvoices > 0}
+				/>
+				<DashboardKpiCard
+					title="متوسط قيمة الفاتورة"
+					value={formatCurrency(avgInvoiceValue)}
+					icon={TrendingUp}
+					color="indigo"
+					delay={0.5}
 				/>
 			</div>
 
-			{/* Charts Grid */}
+			{/* Main Content Grid */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Main Revenue Chart */}
+				{/* Revenue Chart - Takes 2 columns */}
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.5 }}
+					transition={{ delay: 0.6 }}
 					className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm"
 				>
 					<div className="flex items-center justify-between mb-8">
 						<div>
-							<h3 className="text-xl font-bold text-[#012d46]">
-								تحليل الإيرادات
-							</h3>
-							<p className="text-sm text-gray-500 mt-1">
-								مقارنة الأداء الشهري للسنة الحالية
-							</p>
+							<h3 className="text-xl font-bold text-[#012d46]">تحليل الإيرادات</h3>
+							<p className="text-sm text-gray-500 mt-1">مقارنة الأداء الشهري</p>
 						</div>
-						<div className="flex gap-2">
-							<span className="w-3 h-3 rounded-full bg-[#7f2dfb] inline-block self-center"></span>
-							<span className="text-sm text-gray-600 font-medium">
-								الإيرادات
-							</span>
+						<div className="flex items-center gap-2">
+							<span className="w-3 h-3 rounded-full bg-[#7f2dfb] inline-block"></span>
+							<span className="text-sm text-gray-600 font-medium">الإيرادات</span>
 						</div>
 					</div>
-
-					{monthlyData.length ? (
-						<div className="h-[350px] w-full">
-							<ResponsiveContainer width="100%" height="100%">
-								<AreaChart
-									data={monthlyData}
-									margin={{
-										top: 10,
-										right: 0,
-										left: 0,
-										bottom: 0,
-									}}
-								>
-									<defs>
-										<linearGradient
-											id="colorRevenue"
-											x1="0"
-											y1="0"
-											x2="0"
-											y2="1"
-										>
-											<stop
-												offset="5%"
-												stopColor="#7f2dfb"
-												stopOpacity={0.3}
-											/>
-											<stop
-												offset="95%"
-												stopColor="#7f2dfb"
-												stopOpacity={0}
-											/>
-										</linearGradient>
-									</defs>
-									<CartesianGrid
-										strokeDasharray="3 3"
-										vertical={false}
-										stroke="#f3f4f6"
-									/>
-									<XAxis
-										dataKey="name"
-										axisLine={false}
-										tickLine={false}
-										tick={{ fill: "#9ca3af", fontSize: 12 }}
-										dy={15}
-									/>
-									<YAxis
-										axisLine={false}
-										tickLine={false}
-										tick={{ fill: "#9ca3af", fontSize: 12 }}
-										dx={-15}
-										tickFormatter={(value) =>
-											`${value / 1000}k`
-										}
-									/>
-									<Tooltip
-										content={
-											<CustomTooltip type="currency" />
-										}
-										cursor={{
-											stroke: "#7f2dfb",
-											strokeWidth: 1,
-											strokeDasharray: "5 5",
-										}}
-									/>
-									<Area
-										type="natural"
-										dataKey="revenue"
-										name="الإيرادات"
-										stroke="#7f2dfb"
-										strokeWidth={4}
-										fillOpacity={1}
-										fill="url(#colorRevenue)"
-										animationDuration={1500}
-									/>
-								</AreaChart>
-							</ResponsiveContainer>
-						</div>
+					{monthlyData.length > 0 ? (
+						<DashboardRevenueChart
+							data={monthlyData.map((m) => ({
+								name: m.name,
+								revenue: m.revenue,
+							}))}
+						/>
 					) : (
-						<EmptyChart />
+						<div className="h-[350px] flex items-center justify-center text-gray-400">
+							<p>لا توجد بيانات كافية</p>
+						</div>
 					)}
 				</motion.div>
 
-				{/* Order Status & Activity Column */}
+				{/* Donut Chart & Recent Activity - Takes 1 column */}
 				<div className="space-y-6">
-					{/* Order Status */}
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ delay: 0.6 }}
-						className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm h-full flex flex-col"
-					>
-						<h3 className="text-xl font-bold text-[#012d46] mb-2">
-							حالة الفواتير
-						</h3>
-						<p className="text-sm text-gray-500 mb-6">
-							توزيع الفواتير حسب الحالة
-						</p>
-
-						{orderStatusData.length ? (
-							<div className="flex-1 min-h-[250px] relative">
-								<ResponsiveContainer width="100%" height="100%">
-									<PieChart>
-										<Pie
-											data={orderStatusData}
-											cx="50%"
-											cy="50%"
-											innerRadius={60}
-											outerRadius={85}
-											paddingAngle={4}
-											dataKey="value"
-											cornerRadius={6}
-										>
-											{orderStatusData.map(
-												(entry, index) => (
-													<Cell
-														key={`cell-${index}`}
-														fill={entry.color}
-														strokeWidth={0}
-													/>
-												)
-											)}
-											<Label
-												value={orderStatusData.reduce(
-													(sum, item) =>
-														sum + item.value,
-													0
-												)}
-												position="center"
-												className="text-3xl font-bold fill-gray-900"
-											/>
-										</Pie>
-										<Tooltip content={<CustomTooltip />} />
-										<Legend
-											verticalAlign="bottom"
-											height={36}
-											formatter={(value) => (
-												<span className="text-sm font-medium text-gray-600 ml-2">
-													{value}
-												</span>
-											)}
-										/>
-									</PieChart>
-								</ResponsiveContainer>
-							</div>
-						) : (
-							<EmptyChart message="لا توجد فواتير" />
-						)}
-					</motion.div>
-
-					{/* Customers Distribution - Renamed to match actual data usage */}
+					{/* Invoice Status Donut Chart */}
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.7 }}
-						className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm relative"
+						className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm"
 					>
-						<Link
-							href="/dashboard/clients"
-							className="absolute top-6 left-6 px-4 py-2 bg-gray-50 text-[#7f2dfb] rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors z-10"
-						>
-							عرض السجل الكامل
-						</Link>
-						<h3 className="text-xl font-bold text-[#012d46] mb-2">
-							تحليل العملاء
-						</h3>
-						<p className="text-sm text-gray-500 mb-6">
-							العملاء الجدد مقابل العائدين
-						</p>
-
-						{customerData.length ? (
-							<div className="h-[200px]">
-								<ResponsiveContainer width="100%" height="100%">
-									<BarChart data={customerData} barSize={32}>
-										<CartesianGrid
-											strokeDasharray="3 3"
-											vertical={false}
-											stroke="#f3f4f6"
-										/>
-										<XAxis
-											dataKey="name"
-											axisLine={false}
-											tickLine={false}
-											tick={{
-												fill: "#6b7280",
-												fontSize: 12,
-											}}
-											dy={10}
-										/>
-										<Tooltip
-											content={<CustomTooltip />}
-											cursor={{
-												fill: "#f3f4f6",
-												radius: 8,
-											}}
-										/>
-										<Bar
-											dataKey="value"
-											name="عدد العملاء"
-											fill="#10B981"
-											radius={[8, 8, 8, 8]}
-											animationDuration={1500}
-										>
-											{customerData.map(
-												(entry, index) => (
-													<Cell
-														key={`cell-${index}`}
-														fill={
-															index === 0
-																? "#10B981"
-																: index === 1
-																? "#3B82F6"
-																: "#8B5CF6"
-														}
-													/>
-												)
-											)}
-										</Bar>
-									</BarChart>
-								</ResponsiveContainer>
-							</div>
+						<h3 className="text-xl font-bold text-[#012d46] mb-2">حالة الفواتير</h3>
+						<p className="text-sm text-gray-500 mb-6">توزيع الفواتير حسب الحالة</p>
+						{orderStatusData.length > 0 ? (
+							<DashboardDonutChart
+								data={orderStatusData}
+								total={totalInvoicesForChart}
+							/>
 						) : (
-							<EmptyChart message="لا يوجد عملاء" />
+							<div className="h-[280px] flex items-center justify-center text-gray-400">
+								<p className="text-sm">لا توجد فواتير</p>
+							</div>
 						)}
+					</motion.div>
+
+					{/* Recent Activity Panel */}
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ delay: 0.8 }}
+						className="lg:h-[400px]"
+					>
+						<DashboardRecentActivity
+							activities={recentActivity}
+							formatCurrency={formatCurrency}
+							formatTimeAgo={formatTimeAgo}
+						/>
 					</motion.div>
 				</div>
 			</div>
-
-			{/* Recent Activity */}
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 0.8 }}
-				className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden"
-			>
-				<div className="p-6 sm:p-8 border-b border-gray-50 flex items-center justify-between">
-					<div>
-						<h3 className="text-xl font-bold text-[#012d46]">
-							النشاطات الأخيرة
-						</h3>
-						<p className="text-sm text-gray-500 mt-1">
-							آخر التحديثات على حسابك
-						</p>
-					</div>
-					<Link
-						href="/dashboard/notifications"
-						className="px-4 py-2 bg-gray-50 text-[#7f2dfb] rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors"
-					>
-						عرض السجل الكامل
-					</Link>
-				</div>
-
-				{recentActivity.length ? (
-					<div className="divide-y divide-gray-50">
-						{recentActivity.map((act, i) => {
-							const Icon = act.icon;
-							return (
-								<div
-									key={i}
-									className="flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors group"
-								>
-									<div className="flex items-center gap-5">
-										<div
-											className={cn(
-												"w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300",
-												act.color === "purple"
-													? "bg-purple-50 text-[#7f2dfb]"
-													: "bg-blue-50 text-blue-600"
-											)}
-										>
-											<Icon
-												className="w-7 h-7"
-												strokeWidth={2}
-											/>
-										</div>
-										<div>
-											<h4 className="text-gray-900 font-bold text-base mb-1">
-												{act.title}
-											</h4>
-											<p className="text-sm text-gray-500 flex items-center gap-2">
-												{act.subtitle}
-												{act.amount && (
-													<span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-lg text-xs font-bold border border-green-100">
-														{formatCurrency(
-															act.amount
-														)}
-													</span>
-												)}
-											</p>
-										</div>
-									</div>
-									<div className="flex flex-col items-end gap-2">
-										<span className="text-gray-400 text-xs font-medium bg-gray-50 px-2 py-1 rounded-lg">
-											{formatTimeAgo(act.time)}
-										</span>
-									</div>
-								</div>
-							);
-						})}
-					</div>
-				) : (
-					<div className="p-16 text-center">
-						<div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-							<Calendar className="text-gray-400 w-10 h-10" />
-						</div>
-						<h3 className="text-gray-900 font-bold text-lg">
-							لا توجد نشاطات حديثة
-						</h3>
-						<p className="text-gray-500 mt-2 max-w-xs mx-auto">
-							ابدأ بإنشاء فاتورة جديدة أو إضافة عميل لتظهر نشاطاتك
-							هنا
-						</p>
-					</div>
-				)}
-			</motion.div>
 
 			{/* Invoice Modal */}
 			<InvoiceCreationModal
