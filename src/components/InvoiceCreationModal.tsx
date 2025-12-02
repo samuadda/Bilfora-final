@@ -10,6 +10,7 @@ import {
 	CreateInvoiceInput,
 	CreateInvoiceItemInput,
 	Product,
+	InvoiceType,
 } from "@/types/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,8 @@ export default function InvoiceCreationModal({
 	const [invoiceFormData, setInvoiceFormData] = useState<CreateInvoiceInput>({
 		client_id: "",
 		order_id: "",
+		type: "standard_tax",
+		document_kind: "invoice",
 		issue_date: new Date().toISOString().split("T")[0],
 		due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 			.toISOString()
@@ -88,8 +91,13 @@ export default function InvoiceCreationModal({
 				sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
 			0
 		);
-	const calcVat = (subtotal: number) =>
-		subtotal * (Number(invoiceFormData.tax_rate || 0) / 100);
+	const calcVat = (subtotal: number) => {
+		// If non-tax invoice, VAT is always 0
+		if (invoiceFormData.type === "non_tax") {
+			return 0;
+		}
+		return subtotal * (Number(invoiceFormData.tax_rate || 0) / 100);
+	};
 	const calcTotal = (subtotal: number, vat: number) => subtotal + vat;
 
 	const closeModal = useCallback(() => {
@@ -180,9 +188,16 @@ export default function InvoiceCreationModal({
 		>
 	) => {
 		const { name, value } = e.target;
+		const updates: any = { [name]: value };
+		
+		// If type changes to non_tax, enforce tax_rate = 0
+		if (name === "type" && value === "non_tax") {
+			updates.tax_rate = 0;
+		}
+		
 		setInvoiceFormData((prev) => ({
 			...prev,
-			[name]: value,
+			...updates,
 		}));
 	};
 
@@ -226,6 +241,8 @@ export default function InvoiceCreationModal({
 		setInvoiceFormData({
 			client_id: "",
 			order_id: "",
+			type: "standard_tax",
+			document_kind: "invoice",
 			issue_date: new Date().toISOString().split("T")[0],
 			due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 				.toISOString()
@@ -281,6 +298,12 @@ export default function InvoiceCreationModal({
 				return;
 			}
 
+			// Calculate totals based on invoice type
+			const subtotal = calcSubtotal();
+			const vatAmount = calcVat(subtotal);
+			const totalAmount = calcTotal(subtotal, vatAmount);
+			const finalTaxRate = invoiceFormData.type === "non_tax" ? 0 : (Number(invoiceFormData.tax_rate) || 0);
+			
 			// Create invoice
 			const { data: invoiceData, error: invoiceError } = await supabase
 				.from("invoices")
@@ -288,10 +311,15 @@ export default function InvoiceCreationModal({
 					user_id: user.id,
 					client_id: invoiceFormData.client_id,
 					order_id: null,
+					type: invoiceFormData.type || "standard_tax",
+					document_kind: invoiceFormData.document_kind || "invoice",
 					issue_date: invoiceFormData.issue_date,
 					due_date: invoiceFormData.due_date,
 					status: invoiceFormData.status,
-					tax_rate: Number(invoiceFormData.tax_rate) || 0,
+					tax_rate: finalTaxRate,
+					subtotal: subtotal,
+					vat_amount: vatAmount,
+					total_amount: totalAmount,
 					invoice_number: generateInvoiceNumber(),
 					notes: invoiceFormData.notes,
 				})
@@ -592,6 +620,26 @@ export default function InvoiceCreationModal({
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="space-y-2">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <FileText size={16} className="text-gray-400" />
+                                            نوع الفاتورة *
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="type"
+                                                value={invoiceFormData.type || "standard_tax"}
+                                                onChange={handleInvoiceInputChange}
+                                                className="w-full appearance-none rounded-xl border-gray-200 px-3 py-2 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm bg-white"
+                                                required
+                                            >
+                                                <option value="standard_tax">فاتورة ضريبية</option>
+                                                <option value="simplified_tax">فاتورة ضريبية مبسطة</option>
+                                                <option value="non_tax">فاتورة غير ضريبية</option>
+                                            </select>
+                                            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                             <Calendar size={16} className="text-gray-400" />
                                             تاريخ الإصدار *
                                         </label>
@@ -649,9 +697,10 @@ export default function InvoiceCreationModal({
                                             min="0"
                                             max="100"
                                             step="0.01"
-                                            value={invoiceFormData.tax_rate ?? 0}
+                                            value={invoiceFormData.type === "non_tax" ? 0 : (invoiceFormData.tax_rate ?? 15)}
                                             onChange={handleInvoiceInputChange}
-                                            className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                            disabled={invoiceFormData.type === "non_tax"}
+                                            className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     <div className="md:col-span-2 space-y-2">
@@ -784,10 +833,12 @@ export default function InvoiceCreationModal({
                                                         <span className="text-gray-600">المجموع الفرعي</span>
                                                         <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
                                                     </div>
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-600">الضريبة ({invoiceFormData.tax_rate}%)</span>
-                                                        <span className="font-medium text-gray-900">{formatCurrency(vat)}</span>
-                                                    </div>
+                                                    {invoiceFormData.type !== "non_tax" && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">الضريبة ({invoiceFormData.tax_rate}%)</span>
+                                                            <span className="font-medium text-gray-900">{formatCurrency(vat)}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
                                                         <span className="text-base font-bold text-gray-900">الإجمالي</span>
                                                         <span className="text-xl font-bold text-[#7f2dfb]">{formatCurrency(total)}</span>

@@ -144,6 +144,7 @@ export default function InvoicesPage() {
 	const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(
 		"all"
 	);
+	const [documentKindFilter, setDocumentKindFilter] = useState<"all" | "invoice" | "credit_note">("all");
 	const [dateFilter, setDateFilter] = useState("all");
 	const [clientFilter, setClientFilter] = useState<string>("all");
 	const [amountFilter, setAmountFilter] = useState<AmountFilter>("all");
@@ -253,6 +254,11 @@ export default function InvoicesPage() {
 			}
 		}
 
+		// Document kind filter
+		if (documentKindFilter !== "all") {
+			filtered = filtered.filter((i) => i.document_kind === documentKindFilter);
+		}
+
 		// Search filter
 		if (searchTerm) {
 			filtered = filtered.filter(
@@ -356,6 +362,7 @@ export default function InvoicesPage() {
 		dateFilter,
 		clientFilter,
 		amountFilter,
+		documentKindFilter,
 		sortField,
 		sortDirection,
 	]);
@@ -741,6 +748,25 @@ export default function InvoicesPage() {
 						</div>
 						<div className="relative flex-1 lg:flex-none min-w-[140px]">
 							<select
+								value={documentKindFilter}
+								onChange={(e) =>
+									setDocumentKindFilter(
+										e.target.value as "all" | "invoice" | "credit_note"
+									)
+								}
+								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
+							>
+								<option value="all">الكل</option>
+								<option value="invoice">فواتير</option>
+								<option value="credit_note">إشعارات دائنة</option>
+							</select>
+							<ChevronDown
+								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+								size={16}
+							/>
+						</div>
+						<div className="relative flex-1 lg:flex-none min-w-[140px]">
+							<select
 								value={dateFilter}
 								onChange={(e) => setDateFilter(e.target.value)}
 								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
@@ -945,9 +971,33 @@ export default function InvoicesPage() {
 											</button>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
-											<span className="font-bold text-[#012d46]">
-												{invoice.invoice_number}
-											</span>
+											<div className="flex flex-col gap-1">
+												<span className="font-bold text-[#012d46]">
+													{invoice.invoice_number}
+												</span>
+												<div className="flex gap-1 flex-wrap">
+													{invoice.document_kind === "credit_note" && (
+														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">
+															إشعار دائن
+														</span>
+													)}
+													{invoice.type === "standard_tax" && (
+														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+															ضريبية
+														</span>
+													)}
+													{invoice.type === "simplified_tax" && (
+														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+															مبسطة
+														</span>
+													)}
+													{invoice.type === "non_tax" && (
+														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+															غير ضريبية
+														</span>
+													)}
+												</div>
+											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div className="flex flex-col">

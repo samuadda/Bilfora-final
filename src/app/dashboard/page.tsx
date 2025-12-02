@@ -5,6 +5,8 @@ import { DollarSign, FileText, Users, Clock, TrendingUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MonthlyData, OrderStatusData } from "@/types/database";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
+import QuickProductModal from "@/components/QuickProductModal";
+import QuickClientModal from "@/components/QuickClientModal";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
@@ -39,6 +41,8 @@ export default function DashboardPage() {
 	const [loading, setLoading] = useState(true);
 	const [userName, setUserName] = useState("");
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+	const [showProductModal, setShowProductModal] = useState(false);
+	const [showClientModal, setShowClientModal] = useState(false);
 
 	useEffect(() => {
 		loadDashboardData();
@@ -248,6 +252,10 @@ export default function DashboardPage() {
 
 	const openInvoiceModal = () => setShowInvoiceModal(true);
 	const closeInvoiceModal = () => setShowInvoiceModal(false);
+	const openProductModal = () => setShowProductModal(true);
+	const closeProductModal = () => setShowProductModal(false);
+	const openClientModal = () => setShowClientModal(true);
+	const closeClientModal = () => setShowClientModal(false);
 
 	const formatCurrency = (amount: number) =>
 		new Intl.NumberFormat("en-US", {
@@ -314,7 +322,11 @@ export default function DashboardPage() {
 						إليك نظرة عامة على أداء أعمالك اليوم
 					</p>
 				</div>
-				<DashboardQuickActions onCreateInvoice={openInvoiceModal} />
+				<DashboardQuickActions 
+					onCreateInvoice={openInvoiceModal}
+					onCreateProduct={openProductModal}
+					onCreateClient={openClientModal}
+				/>
 			</motion.div>
 
 			{/* KPI Cards Grid */}
@@ -448,6 +460,20 @@ export default function DashboardPage() {
 			<InvoiceCreationModal
 				isOpen={showInvoiceModal}
 				onClose={closeInvoiceModal}
+				onSuccess={() => loadDashboardData()}
+			/>
+
+			{/* Product Modal */}
+			<QuickProductModal
+				isOpen={showProductModal}
+				onClose={closeProductModal}
+				onSuccess={() => loadDashboardData()}
+			/>
+
+			{/* Client Modal */}
+			<QuickClientModal
+				isOpen={showClientModal}
+				onClose={closeClientModal}
 				onSuccess={() => loadDashboardData()}
 			/>
 		</div>

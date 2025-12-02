@@ -647,7 +647,7 @@ export default function AnalyticsPage() {
 			</div>
 
 			{/* Enhanced KPI Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 				<KPICard
 					title="إجمالي الإيرادات"
 					value={formatCurrency(stats.totalRevenue)}
@@ -693,7 +693,7 @@ export default function AnalyticsPage() {
 			</div>
 
 			{/* Additional KPI Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 				<KPICard
 					title="أفضل منتج / خدمة"
 					value={stats.topProduct}

@@ -6,6 +6,8 @@ export type AccountType = "individual" | "business";
 export type ClientStatus = "active" | "inactive";
 export type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
+export type InvoiceType = "standard_tax" | "simplified_tax" | "non_tax";
+export type DocumentKind = "invoice" | "credit_note";
 
 // Base database table interfaces
 export interface Profile {
@@ -87,12 +89,16 @@ export interface Invoice {
 	client_id: string; // UUID, FK to clients.id
 	order_id: string | null; // UUID, FK to orders.id
 	invoice_number: string; // Unique identifier
+	type: InvoiceType; // Invoice type: standard_tax, simplified_tax, or non_tax
+	document_kind: DocumentKind; // Document kind: invoice or credit_note
+	related_invoice_id?: string | null; // UUID, FK to invoices.id (for credit notes)
 	issue_date: string; // Date as ISO string
 	due_date: string; // Date as ISO string
 	status: InvoiceStatus;
 	subtotal: number; // Decimal as number
 	tax_rate: number; // Decimal as number (default 15.00)
-	tax_amount: number; // Decimal as number
+	tax_amount: number; // Decimal as number (also known as vat_amount)
+	vat_amount: number; // Decimal as number (alias for tax_amount)
 	total_amount: number; // Decimal as number
 	notes: string | null;
 	created_at: string; // Timestamptz as ISO string
@@ -201,6 +207,9 @@ export interface UpdateOrderInput {
 export interface CreateInvoiceInput {
 	client_id: string;
 	order_id?: string | null;
+	type?: InvoiceType;
+	document_kind?: DocumentKind;
+	related_invoice_id?: string | null;
 	issue_date: string;
 	due_date: string;
 	status?: InvoiceStatus;
@@ -219,6 +228,9 @@ export interface UpdateInvoiceInput {
 	id: string;
 	client_id?: string;
 	order_id?: string | null;
+	type?: InvoiceType;
+	document_kind?: DocumentKind;
+	related_invoice_id?: string | null;
 	issue_date?: string;
 	due_date?: string;
 	status?: InvoiceStatus;
@@ -298,4 +310,4 @@ export type Updatable<T> = Partial<
 > & { id: string };
 
 // Re-export commonly used types
-export type { Gender, AccountType, ClientStatus, OrderStatus, InvoiceStatus };
+export type { Gender, AccountType, ClientStatus, OrderStatus, InvoiceStatus, InvoiceType, DocumentKind };

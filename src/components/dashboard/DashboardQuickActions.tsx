@@ -2,17 +2,18 @@
 
 import { Plus, UserPlus, Package } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 
 interface DashboardQuickActionsProps {
 	onCreateInvoice: () => void;
+	onCreateClient: () => void;
+	onCreateProduct: () => void;
 }
 
 export default function DashboardQuickActions({
 	onCreateInvoice,
+	onCreateClient,
+	onCreateProduct,
 }: DashboardQuickActionsProps) {
-	const router = useRouter();
-
 	return (
 		<div className="flex flex-wrap gap-3">
 			<motion.button
@@ -27,7 +28,7 @@ export default function DashboardQuickActions({
 			<motion.button
 				whileHover={{ scale: 1.02 }}
 				whileTap={{ scale: 0.98 }}
-				onClick={() => router.push("/dashboard/clients")}
+				onClick={onCreateClient}
 				className="inline-flex items-center gap-2 rounded-xl bg-white text-gray-700 px-5 py-2.5 text-sm font-medium border border-gray-200 hover:bg-gray-50 transition-all"
 			>
 				<UserPlus size={18} strokeWidth={2.5} />
@@ -36,7 +37,7 @@ export default function DashboardQuickActions({
 			<motion.button
 				whileHover={{ scale: 1.02 }}
 				whileTap={{ scale: 0.98 }}
-				onClick={() => router.push("/dashboard/products")}
+				onClick={onCreateProduct}
 				className="inline-flex items-center gap-2 rounded-xl bg-white text-gray-700 px-5 py-2.5 text-sm font-medium border border-gray-200 hover:bg-gray-50 transition-all"
 			>
 				<Package size={18} strokeWidth={2.5} />

@@ -296,15 +296,28 @@ const styles = StyleSheet.create({
 // ------- PDF component ----------
 
 function InvoicePDF({ invoice, client, items }: any) {
-  const taxRate = Number(invoice?.tax_rate || 0);
+  const invoiceType = invoice?.type || "standard_tax";
+  const documentKind = invoice?.document_kind || "invoice";
+  const isTax = invoiceType === "standard_tax" || invoiceType === "simplified_tax";
+  const isNonTax = invoiceType === "non_tax";
+  const isCredit = documentKind === "credit_note";
+  
+  const taxRate = isNonTax ? 0 : Number(invoice?.tax_rate || 0);
 
   const subtotal = items.reduce(
     (sum: number, it: any) =>
       sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
     0
   );
-  const vat = subtotal * (taxRate / 100);
-  const total = subtotal + vat;
+  const vat = isNonTax ? 0 : (subtotal * (taxRate / 100));
+  const total = isCredit ? -subtotal - vat : subtotal + vat;
+  
+  const getTitle = () => {
+    if (isCredit) return "إشعار دائن";
+    if (invoiceType === "standard_tax") return "فاتورة ضريبية";
+    if (invoiceType === "simplified_tax") return "فاتورة ضريبية مبسطة";
+    return "فاتورة";
+  };
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", {
@@ -367,10 +380,15 @@ function InvoicePDF({ invoice, client, items }: any) {
           </View>
 
           <View style={styles.invoiceInfo}>
-            <Text style={styles.invoiceTitle}>فاتورة ضريبية</Text>
+            <Text style={styles.invoiceTitle}>{s(getTitle())}</Text>
+            {isCredit && invoice?.related_invoice_id && (
+              <Text style={[styles.invoiceDetailRow, { marginBottom: 8, fontSize: 10, color: "#6B7280" }]}>
+                هذا إشعار دائن متعلق بالفاتورة رقم {s(invoice?.invoice_number || invoice?.id)}
+              </Text>
+            )}
             <View style={styles.invoiceDetails}>
               <Text style={styles.invoiceDetailRow}>
-                رقم الفاتورة: {s(invoice?.invoice_number || invoice?.id)}
+                رقم {isCredit ? "الإشعار" : "الفاتورة"}: {s(invoice?.invoice_number || invoice?.id)}
               </Text>
               <Text style={styles.invoiceDetailRow}>
                 تاريخ الإصدار: {s(formatDate(invoice?.issue_date))}
@@ -444,31 +462,35 @@ function InvoicePDF({ invoice, client, items }: any) {
                   styles.tableCellNumber,
                 ]}
               >
-                سعر الوحدة (بدون ضريبة)
+                سعر الوحدة {isTax ? "(بدون ضريبة)" : ""}
               </Text>
-              <Text
-                style={[
-                  styles.tableHeaderCell,
-                  styles.tableCellCenter,
-                ]}
-              >
-                نسبة الضريبة
-              </Text>
+              {isTax && (
+                <>
+                  <Text
+                    style={[
+                      styles.tableHeaderCell,
+                      styles.tableCellCenter,
+                    ]}
+                  >
+                    نسبة الضريبة
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tableHeaderCell,
+                      styles.tableCellNumber,
+                    ]}
+                  >
+                    مبلغ الضريبة
+                  </Text>
+                </>
+              )}
               <Text
                 style={[
                   styles.tableHeaderCell,
                   styles.tableCellNumber,
                 ]}
               >
-                مبلغ الضريبة
-              </Text>
-              <Text
-                style={[
-                  styles.tableHeaderCell,
-                  styles.tableCellNumber,
-                ]}
-              >
-                الإجمالي (شامل الضريبة)
+                الإجمالي {isTax ? "(شامل الضريبة)" : ""}
               </Text>
             </View>
 
@@ -476,8 +498,8 @@ function InvoicePDF({ invoice, client, items }: any) {
               const qty = Number(it.quantity) || 0;
               const unit = Number(it.unit_price) || 0;
               const lineNet = qty * unit;
-              const lineVat = lineNet * (taxRate / 100);
-              const lineTotal = lineNet + lineVat;
+              const lineVat = isNonTax ? 0 : (lineNet * (taxRate / 100));
+              const lineTotal = isCredit ? -(lineNet + lineVat) : (lineNet + lineVat);
 
               return (
                 <View
@@ -504,17 +526,21 @@ function InvoicePDF({ invoice, client, items }: any) {
                   <Text style={styles.tableCellNumber}>
                     {s(formatCurrency(unit))}
                   </Text>
-                  <Text
-                    style={[
-                      styles.tableCell,
-                      styles.tableCellCenter,
-                    ]}
-                  >
-                    {taxRate ? `${taxRate}%` : "0%"}
-                  </Text>
-                  <Text style={styles.tableCellNumber}>
-                    {s(formatCurrency(lineVat))}
-                  </Text>
+                  {isTax && (
+                    <>
+                      <Text
+                        style={[
+                          styles.tableCell,
+                          styles.tableCellCenter,
+                        ]}
+                      >
+                        {taxRate ? `${taxRate}%` : "0%"}
+                      </Text>
+                      <Text style={styles.tableCellNumber}>
+                        {s(formatCurrency(lineVat))}
+                      </Text>
+                    </>
+                  )}
                   <Text style={styles.tableCellNumber}>
                     {s(formatCurrency(lineTotal))}
                   </Text>
@@ -529,29 +555,44 @@ function InvoicePDF({ invoice, client, items }: any) {
           <Text style={styles.sectionTitle}>الإجمالي</Text>
           <View style={styles.totalsSection}>
             <View style={styles.totalsCard}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>
-                  المجموع الفرعي (بدون ضريبة):
-                </Text>
-                <Text style={styles.totalValue}>
-                  {s(formatCurrency(subtotal))}
-                </Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>
-                  مجموع الضريبة ({taxRate || 0}%):
-                </Text>
-                <Text style={styles.totalValue}>
-                  {s(formatCurrency(vat))}
-                </Text>
-              </View>
-              <View style={styles.totalDivider} />
-              <View style={styles.finalTotal}>
-                <Text style={styles.finalTotalLabel}>الإجمالي المستحق:</Text>
-                <Text style={styles.finalTotalValue}>
-                  {s(formatCurrency(total))}
-                </Text>
-              </View>
+              {isTax ? (
+                <>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>
+                      المجموع الفرعي (بدون ضريبة):
+                    </Text>
+                    <Text style={styles.totalValue}>
+                      {s(formatCurrency(subtotal))}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>
+                      مجموع الضريبة ({taxRate || 0}%):
+                    </Text>
+                    <Text style={styles.totalValue}>
+                      {s(formatCurrency(vat))}
+                    </Text>
+                  </View>
+                  <View style={styles.totalDivider} />
+                  <View style={styles.finalTotal}>
+                    <Text style={styles.finalTotalLabel}>
+                      {isCredit ? "إشعار دائن:" : "الإجمالي المستحق:"}
+                    </Text>
+                    <Text style={styles.finalTotalValue}>
+                      {s(formatCurrency(total))}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.finalTotal}>
+                  <Text style={styles.finalTotalLabel}>
+                    {isCredit ? "إشعار دائن:" : "المجموع:"}
+                  </Text>
+                  <Text style={styles.finalTotalValue}>
+                    {s(formatCurrency(total))}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -668,14 +709,27 @@ export default function InvoiceDetailPage() {
     return new Date(dateString).toLocaleDateString("ar-SA");
   };
 
-  const taxRate = Number(invoice?.tax_rate || 0);
+  const invoiceType = invoice?.type || "standard_tax";
+  const documentKind = invoice?.document_kind || "invoice";
+  const isTax = invoiceType === "standard_tax" || invoiceType === "simplified_tax";
+  const isNonTax = invoiceType === "non_tax";
+  const isCredit = documentKind === "credit_note";
+  
+  const taxRate = isNonTax ? 0 : Number(invoice?.tax_rate || 0);
   const subtotal = items.reduce(
     (sum: number, it: any) =>
       sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
     0
   );
-  const vat = subtotal * (taxRate / 100);
-  const total = subtotal + vat;
+  const vat = isNonTax ? 0 : (subtotal * (taxRate / 100));
+  const total = isCredit ? -(subtotal + vat) : subtotal + vat;
+  
+  const getTitle = () => {
+    if (isCredit) return "إشعار دائن";
+    if (invoiceType === "standard_tax") return "فاتورة ضريبية";
+    if (invoiceType === "simplified_tax") return "فاتورة ضريبية مبسطة";
+    return "فاتورة";
+  };
 
   return (
     <>
@@ -794,9 +848,16 @@ export default function InvoiceDetailPage() {
             العودة إلى قائمة الفواتير
           </Link>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#012d46]">
-              فاتورة #{invoice.invoice_number || invoice.id}
-            </h1>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#012d46]">
+                {getTitle()} #{invoice.invoice_number || invoice.id}
+              </h1>
+              {isCredit && invoice?.related_invoice_id && (
+                <p className="text-sm text-gray-500 mt-1">
+                  هذا إشعار دائن متعلق بالفاتورة رقم {invoice.invoice_number || invoice.id}
+                </p>
+              )}
+            </div>
             <div className="flex gap-3">
               <PDFDownloadLink
                 document={<InvoicePDF invoice={invoice} client={client} items={items} />}
@@ -824,7 +885,7 @@ export default function InvoiceDetailPage() {
         {/* Print Header */}
         <div className="print-header mb-6">
           <h1 className="text-2xl font-bold text-[#012d46] text-center mb-4">
-            فاتورة #{invoice.invoice_number || invoice.id}
+            {getTitle()} #{invoice.invoice_number || invoice.id}
           </h1>
         </div>
 
@@ -888,10 +949,14 @@ export default function InvoiceDetailPage() {
                     <th className="p-3 text-right text-sm font-semibold">#</th>
                     <th className="p-3 text-right text-sm font-semibold">الوصف</th>
                     <th className="p-3 text-center text-sm font-semibold">الكمية</th>
-                    <th className="p-3 text-left text-sm font-semibold">سعر الوحدة</th>
-                    <th className="p-3 text-center text-sm font-semibold">نسبة الضريبة</th>
-                    <th className="p-3 text-left text-sm font-semibold">مبلغ الضريبة</th>
-                    <th className="p-3 text-left text-sm font-semibold">الإجمالي</th>
+                    <th className="p-3 text-left text-sm font-semibold">سعر الوحدة {isTax ? "(بدون ضريبة)" : ""}</th>
+                    {isTax && (
+                      <>
+                        <th className="p-3 text-center text-sm font-semibold">نسبة الضريبة</th>
+                        <th className="p-3 text-left text-sm font-semibold">مبلغ الضريبة</th>
+                      </>
+                    )}
+                    <th className="p-3 text-left text-sm font-semibold">الإجمالي {isTax ? "(شامل الضريبة)" : ""}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -899,8 +964,8 @@ export default function InvoiceDetailPage() {
                     const qty = Number(item.quantity) || 0;
                     const unit = Number(item.unit_price) || 0;
                     const lineNet = qty * unit;
-                    const lineVat = lineNet * (taxRate / 100);
-                    const lineTotal = lineNet + lineVat;
+                    const lineVat = isNonTax ? 0 : (lineNet * (taxRate / 100));
+                    const lineTotal = isCredit ? -(lineNet + lineVat) : (lineNet + lineVat);
 
                     return (
                       <tr
@@ -911,8 +976,12 @@ export default function InvoiceDetailPage() {
                         <td className="p-3 text-right text-sm">{item.description || "-"}</td>
                         <td className="p-3 text-center text-sm">{qty}</td>
                         <td className="p-3 text-left text-sm">{formatCurrency(unit)}</td>
-                        <td className="p-3 text-center text-sm">{taxRate}%</td>
-                        <td className="p-3 text-left text-sm">{formatCurrency(lineVat)}</td>
+                        {isTax && (
+                          <>
+                            <td className="p-3 text-center text-sm">{taxRate}%</td>
+                            <td className="p-3 text-left text-sm">{formatCurrency(lineVat)}</td>
+                          </>
+                        )}
                         <td className="p-3 text-left text-sm font-medium">
                           {formatCurrency(lineTotal)}
                         </td>
@@ -927,20 +996,29 @@ export default function InvoiceDetailPage() {
           {/* Totals */}
           <div className="flex justify-end">
             <div className="totals-section w-full md:w-96 space-y-2 p-4 rounded-lg">
-              <div className="flex justify-between text-gray-600">
-                <span>المجموع الفرعي (بدون ضريبة):</span>
-                <span className="font-medium">{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>مجموع الضريبة ({taxRate}%):</span>
-                <span className="font-medium">{formatCurrency(vat)}</span>
-              </div>
-              <div className="border-t border-gray-300 pt-2 mt-2">
+              {isTax ? (
+                <>
+                  <div className="flex justify-between text-gray-600">
+                    <span>المجموع الفرعي (بدون ضريبة):</span>
+                    <span className="font-medium">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>مجموع الضريبة ({taxRate}%):</span>
+                    <span className="font-medium">{formatCurrency(vat)}</span>
+                  </div>
+                  <div className="border-t border-gray-300 pt-2 mt-2">
+                    <div className="flex justify-between text-lg font-bold text-[#012d46]">
+                      <span>{isCredit ? "إشعار دائن:" : "الإجمالي المستحق:"}</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
                 <div className="flex justify-between text-lg font-bold text-[#012d46]">
-                  <span>الإجمالي المستحق:</span>
+                  <span>{isCredit ? "إشعار دائن:" : "المجموع:"}</span>
                   <span>{formatCurrency(total)}</span>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
