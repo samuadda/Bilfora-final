@@ -144,7 +144,9 @@ export default function InvoicesPage() {
 	const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(
 		"all"
 	);
-	const [documentKindFilter, setDocumentKindFilter] = useState<"all" | "invoice" | "credit_note">("all");
+	const [documentKindFilter, setDocumentKindFilter] = useState<
+		"all" | "invoice" | "credit_note"
+	>("all");
 	const [dateFilter, setDateFilter] = useState("all");
 	const [clientFilter, setClientFilter] = useState<string>("all");
 	const [amountFilter, setAmountFilter] = useState<AmountFilter>("all");
@@ -256,7 +258,9 @@ export default function InvoicesPage() {
 
 		// Document kind filter
 		if (documentKindFilter !== "all") {
-			filtered = filtered.filter((i) => i.document_kind === documentKindFilter);
+			filtered = filtered.filter(
+				(i) => i.document_kind === documentKindFilter
+			);
 		}
 
 		// Search filter
@@ -751,14 +755,19 @@ export default function InvoicesPage() {
 								value={documentKindFilter}
 								onChange={(e) =>
 									setDocumentKindFilter(
-										e.target.value as "all" | "invoice" | "credit_note"
+										e.target.value as
+											| "all"
+											| "invoice"
+											| "credit_note"
 									)
 								}
 								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
 							>
 								<option value="all">الكل</option>
 								<option value="invoice">فواتير</option>
-								<option value="credit_note">إشعارات دائنة</option>
+								<option value="credit_note">
+									إشعارات دائنة
+								</option>
 							</select>
 							<ChevronDown
 								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
@@ -976,26 +985,55 @@ export default function InvoicesPage() {
 													{invoice.invoice_number}
 												</span>
 												<div className="flex gap-1 flex-wrap">
-													{invoice.document_kind === "credit_note" && (
+													{invoice.document_kind ===
+														"credit_note" && (
 														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">
 															إشعار دائن
 														</span>
 													)}
-													{invoice.type === "standard_tax" && (
-														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-															ضريبية
-														</span>
-													)}
-													{invoice.type === "simplified_tax" && (
-														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
-															مبسطة
-														</span>
-													)}
-													{invoice.type === "non_tax" && (
-														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-															غير ضريبية
-														</span>
-													)}
+													{(() => {
+														// Handle migration from old "type" to new "invoice_type"
+														const oldType = (
+															invoice as any
+														).type;
+														const invoiceType =
+															invoice.invoice_type ||
+															(oldType ===
+															"standard_tax"
+																? "standard"
+																: oldType ===
+																  "simplified_tax"
+																? "simplified"
+																: oldType ===
+																  "non_tax"
+																? "regular"
+																: "standard");
+														if (
+															invoiceType ===
+															"standard"
+														) {
+															return (
+																<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+																	ضريبية
+																</span>
+															);
+														}
+														if (
+															invoiceType ===
+															"simplified"
+														) {
+															return (
+																<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+																	مبسطة
+																</span>
+															);
+														}
+														return (
+															<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+																غير ضريبية
+															</span>
+														);
+													})()}
 												</div>
 											</div>
 										</td>

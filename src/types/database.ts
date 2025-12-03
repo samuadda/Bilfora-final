@@ -6,7 +6,7 @@ export type AccountType = "individual" | "business";
 export type ClientStatus = "active" | "inactive";
 export type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
-export type InvoiceType = "standard_tax" | "simplified_tax" | "non_tax";
+export type InvoiceType = "standard" | "simplified" | "regular";
 export type DocumentKind = "invoice" | "credit_note";
 
 // Base database table interfaces
@@ -89,8 +89,9 @@ export interface Invoice {
 	client_id: string; // UUID, FK to clients.id
 	order_id: string | null; // UUID, FK to orders.id
 	invoice_number: string; // Unique identifier
-	type: InvoiceType; // Invoice type: standard_tax, simplified_tax, or non_tax
-	document_kind: DocumentKind; // Document kind: invoice or credit_note
+	type?: InvoiceType; // Legacy field: standard_tax, simplified_tax, or non_tax (deprecated)
+	invoice_type: InvoiceType; // Invoice type: standard, simplified, or regular
+	document_kind?: DocumentKind; // Document kind: invoice or credit_note
 	related_invoice_id?: string | null; // UUID, FK to invoices.id (for credit notes)
 	issue_date: string; // Date as ISO string
 	due_date: string; // Date as ISO string
@@ -207,7 +208,8 @@ export interface UpdateOrderInput {
 export interface CreateInvoiceInput {
 	client_id: string;
 	order_id?: string | null;
-	type?: InvoiceType;
+	type?: InvoiceType; // Legacy field (deprecated)
+	invoice_type?: InvoiceType; // Invoice type: standard, simplified, or regular
 	document_kind?: DocumentKind;
 	related_invoice_id?: string | null;
 	issue_date: string;
@@ -228,7 +230,8 @@ export interface UpdateInvoiceInput {
 	id: string;
 	client_id?: string;
 	order_id?: string | null;
-	type?: InvoiceType;
+	type?: InvoiceType; // Legacy field (deprecated)
+	invoice_type?: InvoiceType; // Invoice type: standard, simplified, or regular
 	document_kind?: DocumentKind;
 	related_invoice_id?: string | null;
 	issue_date?: string;

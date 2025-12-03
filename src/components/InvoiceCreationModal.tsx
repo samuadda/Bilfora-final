@@ -58,7 +58,7 @@ export default function InvoiceCreationModal({
 	const [invoiceFormData, setInvoiceFormData] = useState<CreateInvoiceInput>({
 		client_id: "",
 		order_id: "",
-		type: "standard_tax",
+		invoice_type: "standard",
 		document_kind: "invoice",
 		issue_date: new Date().toISOString().split("T")[0],
 		due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -92,8 +92,8 @@ export default function InvoiceCreationModal({
 			0
 		);
 	const calcVat = (subtotal: number) => {
-		// If non-tax invoice, VAT is always 0
-		if (invoiceFormData.type === "non_tax") {
+		// If regular (non-tax) invoice, VAT is always 0
+		if (invoiceFormData.invoice_type === "regular") {
 			return 0;
 		}
 		return subtotal * (Number(invoiceFormData.tax_rate || 0) / 100);
@@ -241,7 +241,7 @@ export default function InvoiceCreationModal({
 		setInvoiceFormData({
 			client_id: "",
 			order_id: "",
-			type: "standard_tax",
+			invoice_type: "standard",
 			document_kind: "invoice",
 			issue_date: new Date().toISOString().split("T")[0],
 			due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -302,7 +302,8 @@ export default function InvoiceCreationModal({
 			const subtotal = calcSubtotal();
 			const vatAmount = calcVat(subtotal);
 			const totalAmount = calcTotal(subtotal, vatAmount);
-			const finalTaxRate = invoiceFormData.type === "non_tax" ? 0 : (Number(invoiceFormData.tax_rate) || 0);
+			const finalTaxRate = invoiceFormData.invoice_type === "regular" ? 0 : (Number(invoiceFormData.tax_rate) || 0);
+			const invoiceType = invoiceFormData.invoice_type || "standard";
 			
 			// Create invoice
 			const { data: invoiceData, error: invoiceError } = await supabase
@@ -311,7 +312,7 @@ export default function InvoiceCreationModal({
 					user_id: user.id,
 					client_id: invoiceFormData.client_id,
 					order_id: null,
-					type: invoiceFormData.type || "standard_tax",
+					invoice_type: invoiceType,
 					document_kind: invoiceFormData.document_kind || "invoice",
 					issue_date: invoiceFormData.issue_date,
 					due_date: invoiceFormData.due_date,
@@ -625,15 +626,22 @@ export default function InvoiceCreationModal({
                                         </label>
                                         <div className="relative">
                                             <select
-                                                name="type"
-                                                value={invoiceFormData.type || "standard_tax"}
-                                                onChange={handleInvoiceInputChange}
+                                                name="invoice_type"
+                                                value={invoiceFormData.invoice_type || "standard"}
+                                                onChange={(e) => {
+													const newType = e.target.value as "standard" | "simplified" | "regular";
+													setInvoiceFormData((prev) => ({
+														...prev,
+														invoice_type: newType,
+														tax_rate: newType === "regular" ? 0 : (prev.tax_rate || 15),
+													}));
+												}}
                                                 className="w-full appearance-none rounded-xl border-gray-200 px-3 py-2 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm bg-white"
                                                 required
                                             >
-                                                <option value="standard_tax">فاتورة ضريبية</option>
-                                                <option value="simplified_tax">فاتورة ضريبية مبسطة</option>
-                                                <option value="non_tax">فاتورة غير ضريبية</option>
+                                                <option value="standard">فاتورة ضريبية</option>
+                                                <option value="simplified">فاتورة ضريبية مبسطة</option>
+                                                <option value="regular">فاتورة عادية (غير ضريبية)</option>
                                             </select>
                                             <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                         </div>
@@ -697,9 +705,9 @@ export default function InvoiceCreationModal({
                                             min="0"
                                             max="100"
                                             step="0.01"
-                                            value={invoiceFormData.type === "non_tax" ? 0 : (invoiceFormData.tax_rate ?? 15)}
+                                            value={invoiceFormData.invoice_type === "regular" ? 0 : (invoiceFormData.tax_rate ?? 15)}
                                             onChange={handleInvoiceInputChange}
-                                            disabled={invoiceFormData.type === "non_tax"}
+                                            disabled={invoiceFormData.invoice_type === "regular"}
                                             className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                         />
                                     </div>
@@ -833,7 +841,7 @@ export default function InvoiceCreationModal({
                                                         <span className="text-gray-600">المجموع الفرعي</span>
                                                         <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
                                                     </div>
-                                                    {invoiceFormData.type !== "non_tax" && (
+                                                    {invoiceFormData.invoice_type !== "regular" && (
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-gray-600">الضريبة ({invoiceFormData.tax_rate}%)</span>
                                                             <span className="font-medium text-gray-900">{formatCurrency(vat)}</span>

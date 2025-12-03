@@ -1,0 +1,257 @@
+"use client";
+
+import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { InvoiceWithClientAndItems, Client, InvoiceItem } from "@/types/database";
+import {
+	baseStyles as s,
+	safeText,
+	formatCurrency,
+	formatDate,
+} from "./sharedStyles";
+
+interface SellerInfo {
+	name: string;
+	crNumber: string;
+	vatNumber: string;
+	address: string;
+}
+
+interface InvoicePDF_CreditNoteProps {
+	invoice: InvoiceWithClientAndItems;
+	client: Client | null;
+	items: InvoiceItem[];
+	sellerInfo: SellerInfo;
+	relatedInvoiceNumber?: string;
+}
+
+export function InvoicePDF_CreditNote({
+	invoice,
+	client,
+	items,
+	sellerInfo,
+	relatedInvoiceNumber,
+}: InvoicePDF_CreditNoteProps) {
+	// Calculate totals (negative for credit note)
+	const subtotal = items.reduce(
+		(sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
+		0
+	);
+	const taxRate = Number(invoice.tax_rate || 15);
+	const vatAmount = subtotal * (taxRate / 100);
+	const totalAmount = -(subtotal + vatAmount); // Negative for credit note
+
+	return (
+		<Document>
+			<Page size="A4" style={s.page}>
+				{/* Header */}
+				<View style={s.header}>
+					<View style={s.headerLeft}>
+						<Text style={s.invoiceTitle}>إشعار دائن</Text>
+						{relatedInvoiceNumber && (
+							<Text style={[s.invoiceMeta, { color: "#DC2626", marginBottom: 6 }]}>
+								هذا إشعار دائن متعلق بالفاتورة رقم: {safeText(relatedInvoiceNumber)}
+							</Text>
+						)}
+						<Text style={s.invoiceMeta}>
+							رقم الإشعار: {safeText(invoice.invoice_number || invoice.id)}
+						</Text>
+						<Text style={s.invoiceMeta}>
+							تاريخ الإصدار: {formatDate(invoice.issue_date)}
+						</Text>
+						<Text style={s.invoiceMeta}>
+							تاريخ الاستحقاق: {formatDate(invoice.due_date)}
+						</Text>
+					</View>
+				</View>
+
+				{/* Seller Information */}
+				<View style={s.infoSection}>
+					<Text style={s.infoSectionTitle}>معلومات البائع</Text>
+					<View style={s.infoBox}>
+						<View style={s.infoRow}>
+							<Text style={s.infoLabel}>الاسم:</Text>
+							<Text style={s.infoValue}>{safeText(sellerInfo.name)}</Text>
+						</View>
+						<View style={s.infoRow}>
+							<Text style={s.infoLabel}>الرقم التجاري:</Text>
+							<Text style={s.infoValue}>{safeText(sellerInfo.crNumber)}</Text>
+						</View>
+						<View style={s.infoRow}>
+							<Text style={s.infoLabel}>الرقم الضريبي:</Text>
+							<Text style={s.infoValue}>{safeText(sellerInfo.vatNumber)}</Text>
+						</View>
+						<View style={s.infoRow}>
+							<Text style={s.infoLabel}>العنوان:</Text>
+							<Text style={s.infoValue}>{safeText(sellerInfo.address)}</Text>
+						</View>
+					</View>
+				</View>
+
+				{/* Buyer Information */}
+				<View style={s.infoSection}>
+					<Text style={s.infoSectionTitle}>معلومات المشتري</Text>
+					<View style={s.infoBox}>
+						<View style={s.infoRow}>
+							<Text style={s.infoLabel}>الاسم:</Text>
+							<Text style={s.infoValue}>{safeText(client?.name || "—")}</Text>
+						</View>
+						{client?.company_name && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>اسم الشركة:</Text>
+								<Text style={s.infoValue}>{safeText(client.company_name)}</Text>
+							</View>
+						)}
+						{client?.tax_number && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>الرقم الضريبي:</Text>
+								<Text style={s.infoValue}>{safeText(client.tax_number)}</Text>
+							</View>
+						)}
+						{client?.address && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>العنوان:</Text>
+								<Text style={s.infoValue}>
+									{safeText(client.address)}
+									{client?.city ? `، ${safeText(client.city)}` : null}
+								</Text>
+							</View>
+						)}
+						{client?.email && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>البريد الإلكتروني:</Text>
+								<Text style={s.infoValue}>{safeText(client.email)}</Text>
+							</View>
+						)}
+						{client?.phone && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>الهاتف:</Text>
+								<Text style={s.infoValue}>{safeText(client.phone)}</Text>
+							</View>
+						)}
+					</View>
+				</View>
+
+				{/* Line Items Table */}
+				<View style={s.table}>
+					<View style={s.tableHeader}>
+						<View style={s.colIndex}>
+							<Text style={s.tableHeaderCell}>#</Text>
+						</View>
+						<View style={s.colDescription}>
+							<Text style={s.tableHeaderCell}>الوصف</Text>
+						</View>
+						<View style={s.colQuantity}>
+							<Text style={[s.tableHeaderCell, s.tableCellCenter]}>الكمية</Text>
+						</View>
+						<View style={s.colUnitPrice}>
+							<Text style={[s.tableHeaderCell, s.tableCellNumber]}>
+								سعر الوحدة (بدون ضريبة)
+							</Text>
+						</View>
+						<View style={s.colTaxRate}>
+							<Text style={[s.tableHeaderCell, s.tableCellCenter]}>
+								نسبة الضريبة
+							</Text>
+						</View>
+						<View style={s.colTaxAmount}>
+							<Text style={[s.tableHeaderCell, s.tableCellNumber]}>
+								مبلغ الضريبة
+							</Text>
+						</View>
+						<View style={s.colTotal}>
+							<Text style={[s.tableHeaderCell, s.tableCellNumber]}>
+								الإجمالي (شامل الضريبة)
+							</Text>
+						</View>
+					</View>
+
+					{items.map((item, index) => {
+						const qty = Number(item.quantity) || 0;
+						const unitPrice = Number(item.unit_price) || 0;
+						const lineSubtotal = qty * unitPrice;
+						const lineVat = lineSubtotal * (taxRate / 100);
+						const lineTotal = -(lineSubtotal + lineVat); // Negative for credit note
+
+						return (
+							<View
+								key={item.id || index}
+								style={[s.tableRow, index % 2 === 1 ? s.tableRowAlt : {}]}
+							>
+								<View style={s.colIndex}>
+									<Text style={s.tableCell}>{index + 1}</Text>
+								</View>
+								<View style={s.colDescription}>
+									<Text style={s.tableCell}>
+										{safeText(item.description)}
+									</Text>
+								</View>
+								<View style={s.colQuantity}>
+									<Text style={[s.tableCell, s.tableCellCenter]}>
+										{safeText(qty)}
+									</Text>
+								</View>
+								<View style={s.colUnitPrice}>
+									<Text style={s.tableCellNumber}>
+										{formatCurrency(unitPrice)}
+									</Text>
+								</View>
+								<View style={s.colTaxRate}>
+									<Text style={[s.tableCell, s.tableCellCenter]}>
+										{safeText(taxRate)}%
+									</Text>
+								</View>
+								<View style={s.colTaxAmount}>
+									<Text style={s.tableCellNumber}>
+										{formatCurrency(-lineVat)}
+									</Text>
+								</View>
+								<View style={s.colTotal}>
+									<Text style={s.tableCellNumber}>
+										{formatCurrency(lineTotal)}
+									</Text>
+								</View>
+							</View>
+						);
+					})}
+				</View>
+
+				{/* Totals Section */}
+				<View style={s.totalsSection}>
+					<View style={s.totalsBox}>
+						<View style={s.totalRow}>
+							<Text style={s.totalLabel}>المجموع الفرعي (بدون ضريبة):</Text>
+							<Text style={s.totalValue}>{formatCurrency(-subtotal)}</Text>
+						</View>
+						<View style={s.totalRow}>
+							<Text style={s.totalLabel}>
+								ضريبة القيمة المضافة ({taxRate}%):
+							</Text>
+							<Text style={s.totalValue}>{formatCurrency(-vatAmount)}</Text>
+						</View>
+						<View style={s.totalDivider} />
+						<View style={s.finalTotalRow}>
+							<Text style={s.finalTotalLabel}>إشعار دائن:</Text>
+							<Text style={s.finalTotalValue}>{formatCurrency(totalAmount)}</Text>
+						</View>
+					</View>
+				</View>
+
+				{/* Notes */}
+				{invoice.notes && (
+					<View style={s.notesSection}>
+						<Text style={s.notesLabel}>ملاحظات:</Text>
+						<Text style={s.notesText}>{safeText(invoice.notes)}</Text>
+					</View>
+				)}
+
+				{/* Footer */}
+				<View style={s.footer}>
+					<Text style={s.footerText}>
+						صُنعت هذه الفاتورة بواسطة منصة بيلفورة
+					</Text>
+				</View>
+			</Page>
+		</Document>
+	);
+}
+
