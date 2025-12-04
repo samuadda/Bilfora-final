@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, FileText, Users, Clock, TrendingUp } from "lucide-react";
+import { DollarSign, FileText, Users, Clock, TrendingUp, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MonthlyData, OrderStatusData } from "@/types/database";
 import InvoiceCreationModal from "@/components/InvoiceCreationModal";
-import QuickProductModal from "@/components/QuickProductModal";
-import QuickClientModal from "@/components/QuickClientModal";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
@@ -26,6 +24,7 @@ export default function DashboardPage() {
 		overdueInvoices: 0,
 		totalRevenue: 0,
 		activeCustomers: 0,
+		paidInvoices: 0,
 	});
 
 	const [previousStats, setPreviousStats] = useState({
@@ -33,6 +32,7 @@ export default function DashboardPage() {
 		overdueInvoices: 0,
 		totalRevenue: 0,
 		activeCustomers: 0,
+		paidInvoices: 0,
 	});
 
 	const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
@@ -41,8 +41,6 @@ export default function DashboardPage() {
 	const [loading, setLoading] = useState(true);
 	const [userName, setUserName] = useState("");
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-	const [showProductModal, setShowProductModal] = useState(false);
-	const [showClientModal, setShowClientModal] = useState(false);
 
 	useEffect(() => {
 		loadDashboardData();
@@ -140,6 +138,8 @@ export default function DashboardPage() {
 				) || 0,
 			activeCustomers:
 				currentClients?.filter((c) => c.status === "active").length || 0,
+			paidInvoices:
+				currentInvoices?.filter((i) => i.status === "paid").length || 0,
 		};
 
 		// Calculate previous stats
@@ -159,6 +159,8 @@ export default function DashboardPage() {
 				) || 0,
 			activeCustomers:
 				previousClients?.filter((c) => c.status === "active").length || 0,
+			paidInvoices:
+				previousInvoices?.filter((i) => i.status === "paid").length || 0,
 		};
 
 		setStats(currentStats);
@@ -252,10 +254,6 @@ export default function DashboardPage() {
 
 	const openInvoiceModal = () => setShowInvoiceModal(true);
 	const closeInvoiceModal = () => setShowInvoiceModal(false);
-	const openProductModal = () => setShowProductModal(true);
-	const closeProductModal = () => setShowProductModal(false);
-	const openClientModal = () => setShowClientModal(true);
-	const closeClientModal = () => setShowClientModal(false);
 
 	const formatCurrency = (amount: number) =>
 		new Intl.NumberFormat("en-US", {
@@ -293,6 +291,11 @@ export default function DashboardPage() {
 		return ((stats.overdueInvoices - previousStats.overdueInvoices) / previousStats.overdueInvoices) * 100;
 	}, [stats.overdueInvoices, previousStats.overdueInvoices]);
 
+	const paidInvoicesChange = useMemo(() => {
+		if (previousStats.paidInvoices === 0) return stats.paidInvoices > 0 ? 100 : 0;
+		return ((stats.paidInvoices - previousStats.paidInvoices) / previousStats.paidInvoices) * 100;
+	}, [stats.paidInvoices, previousStats.paidInvoices]);
+
 	// Calculate average invoice value
 	const avgInvoiceValue = useMemo(() => {
 		return stats.totalInvoices > 0 ? stats.totalRevenue / stats.totalInvoices : 0;
@@ -319,18 +322,14 @@ export default function DashboardPage() {
 						مرحباً، {userName || "شريك النجاح"} 👋
 					</h1>
 					<p className="text-gray-500 mt-2 text-lg">
-						إليك نظرة عامة على أداء أعمالك اليوم
+						إليك نظرة عامة على أداء أعمالك هذا الشهر
 					</p>
 				</div>
-				<DashboardQuickActions 
-					onCreateInvoice={openInvoiceModal}
-					onCreateProduct={openProductModal}
-					onCreateClient={openClientModal}
-				/>
+				<DashboardQuickActions onCreateInvoice={openInvoiceModal} />
 			</motion.div>
 
 			{/* KPI Cards Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				<DashboardKpiCard
 					title="إجمالي الإيرادات"
 					value={formatCurrency(stats.totalRevenue)}
@@ -343,15 +342,33 @@ export default function DashboardPage() {
 					delay={0.1}
 				/>
 				<DashboardKpiCard
-					title="فواتير متأخرة"
-					value={stats.overdueInvoices}
-					icon={Clock}
-					color="orange"
+					title="إجمالي الفواتير"
+					value={stats.totalInvoices}
+					icon={FileText}
+					color="purple"
 					trend={{
-						value: overdueChange,
-						label: "مقارنة بالشهر السابق",
+						value: invoicesChange,
+						label: "هذا الشهر",
 					}}
 					delay={0.2}
+				/>
+				<DashboardKpiCard
+					title="الفواتير المدفوعة"
+					value={stats.paidInvoices}
+					icon={CheckCircle}
+					color="indigo"
+					trend={{
+						value: paidInvoicesChange,
+						label: "مقارنة بالشهر السابق",
+					}}
+					delay={0.3}
+				/>
+				<DashboardKpiCard
+					title="متوسط قيمة الفاتورة"
+					value={formatCurrency(avgInvoiceValue)}
+					icon={TrendingUp}
+					color="blue"
+					delay={0.4}
 				/>
 				<DashboardKpiCard
 					title="العملاء النشطون"
@@ -362,25 +379,18 @@ export default function DashboardPage() {
 						value: customersChange,
 						label: "مقارنة بالشهر السابق",
 					}}
-					delay={0.3}
-				/>
-				<DashboardKpiCard
-					title="إجمالي الفواتير"
-					value={stats.totalInvoices}
-					icon={FileText}
-					color="purple"
-					trend={{
-						value: invoicesChange,
-						label: "هذا الشهر",
-					}}
-					delay={0.4}
-				/>
-				<DashboardKpiCard
-					title="متوسط قيمة الفاتورة"
-					value={formatCurrency(avgInvoiceValue)}
-					icon={TrendingUp}
-					color="indigo"
 					delay={0.5}
+				/>
+				<DashboardKpiCard
+					title="فواتير متأخرة"
+					value={stats.overdueInvoices}
+					icon={Clock}
+					color="orange"
+					trend={{
+						value: overdueChange,
+						label: "مقارنة بالشهر السابق",
+					}}
+					delay={0.6}
 				/>
 			</div>
 
@@ -460,20 +470,6 @@ export default function DashboardPage() {
 			<InvoiceCreationModal
 				isOpen={showInvoiceModal}
 				onClose={closeInvoiceModal}
-				onSuccess={() => loadDashboardData()}
-			/>
-
-			{/* Product Modal */}
-			<QuickProductModal
-				isOpen={showProductModal}
-				onClose={closeProductModal}
-				onSuccess={() => loadDashboardData()}
-			/>
-
-			{/* Client Modal */}
-			<QuickClientModal
-				isOpen={showClientModal}
-				onClose={closeClientModal}
 				onSuccess={() => loadDashboardData()}
 			/>
 		</div>

@@ -20,7 +20,7 @@ export default function AboutPage() {
 					>
 						المطور خلف بيلفورا
 					</TextAnimate>
-					<p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+					<p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">image.png
 						منتج تم تطويره بالكامل بواسطة مطوّر واحد يحب التفاصيل الصغيرة
 						ويؤمن أن التجربة الجميلة تبدأ من الشاشة الأولى حتى آخر فاتورة.
 					</p>

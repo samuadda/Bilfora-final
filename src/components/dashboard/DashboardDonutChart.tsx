@@ -35,7 +35,7 @@ export default function DashboardDonutChart({
 	return (
 		<div className="flex flex-col h-full">
 			<div className="flex-1 min-h-[280px] relative">
-				<ResponsiveContainer width="100%" height="100%">
+				<ResponsiveContainer width="100%" height={280}>
 					<PieChart>
 						<Pie
 							data={data}
@@ -46,9 +46,11 @@ export default function DashboardDonutChart({
 							paddingAngle={4}
 							dataKey="value"
 							cornerRadius={6}
+							stroke="#fff"
+							strokeWidth={2}
 						>
 							{data.map((entry, index) => (
-								<Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
+								<Cell key={`cell-${index}`} fill={entry.color} strokeWidth={2} stroke="#fff" />
 							))}
 						</Pie>
 						<Tooltip content={<CustomTooltip />} />
@@ -61,17 +63,24 @@ export default function DashboardDonutChart({
 					</div>
 				</div>
 			</div>
-			<div className="mt-4">
-				<Legend
-					verticalAlign="bottom"
-					height={36}
-					iconType="circle"
-					formatter={(value) => (
-						<span className="text-sm font-medium text-gray-600 mr-2">
-							{value}
-						</span>
-					)}
-				/>
+			<div className="mt-6 pt-4 border-t border-gray-100">
+				<div className="grid grid-cols-2 gap-3">
+					{data.map((item, index) => {
+						const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+						return (
+							<div key={index} className="flex items-center gap-2">
+								<div 
+									className="w-3 h-3 rounded-full flex-shrink-0" 
+									style={{ backgroundColor: item.color }}
+								/>
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium text-gray-700 truncate">{item.name}</p>
+									<p className="text-xs text-gray-500">{item.value} ({percentage}%)</p>
+								</div>
+							</div>
+						);
+					})}
+				</div>
 			</div>
 		</div>
 	);
