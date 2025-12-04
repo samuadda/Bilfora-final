@@ -3,6 +3,7 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import { InvoiceWithClientAndItems, Client, InvoiceItem } from "@/types/database";
 import { baseStyles as s, s as safeString, formatCurrency, formatDate } from "./sharedStyles";
+import { convertToHijri } from "@/lib/dateConvert";
 
 interface SellerInfo {
 	name: string;
@@ -62,12 +63,26 @@ export function InvoiceStandardPDF({
 							<Text style={s.invoiceDetailRow}>
 								رقم الفاتورة: {safeString(invoice.invoice_number || invoice.id)}
 							</Text>
-							<Text style={s.invoiceDetailRow}>
-								تاريخ الإصدار: {formatDate(invoice.issue_date)}
-							</Text>
-							<Text style={s.invoiceDetailRow}>
-								تاريخ الاستحقاق: {formatDate(invoice.due_date)}
-							</Text>
+							<View>
+								<Text style={s.invoiceDetailRow}>
+									تاريخ الإصدار: {formatDate(invoice.issue_date)}
+								</Text>
+								{invoice.issue_date && (
+									<Text style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>
+										الموافق: {convertToHijri(invoice.issue_date).formattedHijri}
+									</Text>
+								)}
+							</View>
+							<View>
+								<Text style={s.invoiceDetailRow}>
+									تاريخ الاستحقاق: {formatDate(invoice.due_date)}
+								</Text>
+								{invoice.due_date && (
+									<Text style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>
+										الموافق: {convertToHijri(invoice.due_date).formattedHijri}
+									</Text>
+								)}
+							</View>
 							{qrDataUrl && (
 								<View style={{ marginTop: 8, alignItems: "flex-end" }}>
 									<Image src={qrDataUrl} style={{ width: 80, height: 80 }} />

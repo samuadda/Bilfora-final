@@ -55,7 +55,7 @@ export default function DashboardRevenueChart({
 			<ResponsiveContainer width="100%" height="100%">
 				<LineChart
 					data={data}
-					margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+					margin={{ top: 10, right: 10, left: -20, bottom: 30 }}
 				>
 					<defs>
 						<linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
@@ -72,8 +72,12 @@ export default function DashboardRevenueChart({
 						dataKey="name"
 						axisLine={false}
 						tickLine={false}
-						tick={{ fill: "#9ca3af", fontSize: 12 }}
-						dy={15}
+						tick={{ fill: "#6b7280", fontSize: 12, fontWeight: 500 }}
+						dy={10}
+						angle={0}
+						textAnchor="middle"
+						interval={0}
+						height={50}
 					/>
 					<YAxis
 						axisLine={false}

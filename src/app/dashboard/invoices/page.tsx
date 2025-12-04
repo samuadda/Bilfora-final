@@ -78,6 +78,8 @@ const formatCurrency = (amount: number) =>
 		maximumFractionDigits: 0,
 	}).format(amount);
 
+import { convertToHijri } from "@/lib/dateConvert";
+
 const formatDate = (dateString: string) => {
 	const date = new Date(dateString);
 	return date.toLocaleDateString("en-GB");
@@ -1092,6 +1094,9 @@ export default function InvoicesPage() {
 															invoice.created_at
 														)}
 													</span>
+													<span className="text-gray-500 text-xs">
+														{convertToHijri(invoice.created_at).formattedHijri}
+													</span>
 												</div>
 											</div>
 										</td>
@@ -1101,6 +1106,9 @@ export default function InvoicesPage() {
 													{formatDate(
 														invoice.due_date
 													)}
+												</span>
+												<span className="text-gray-500 text-xs">
+													{convertToHijri(invoice.due_date).formattedHijri}
 												</span>
 												{dueDateInfo && (
 													<span

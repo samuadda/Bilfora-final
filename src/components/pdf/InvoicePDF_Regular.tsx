@@ -8,6 +8,7 @@ import {
 	formatCurrency,
 	formatDate,
 } from "./sharedStyles";
+import { convertToHijri } from "@/lib/dateConvert";
 
 interface SellerInfo {
 	name: string;
@@ -46,12 +47,26 @@ export function InvoicePDF_Regular({
 						<Text style={s.invoiceMeta}>
 							رقم الفاتورة: {safeText(invoice.invoice_number || invoice.id)}
 						</Text>
-						<Text style={s.invoiceMeta}>
-							تاريخ الإصدار: {formatDate(invoice.issue_date)}
-						</Text>
-						<Text style={s.invoiceMeta}>
-							تاريخ الاستحقاق: {formatDate(invoice.due_date)}
-						</Text>
+						<View style={{ marginBottom: 2 }}>
+							<Text style={s.invoiceMeta}>
+								تاريخ الإصدار: {formatDate(invoice.issue_date)}
+							</Text>
+							{invoice.issue_date && (
+								<Text style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>
+									الموافق: {convertToHijri(invoice.issue_date).formattedHijri}
+								</Text>
+							)}
+						</View>
+						<View style={{ marginBottom: 2 }}>
+							<Text style={s.invoiceMeta}>
+								تاريخ الاستحقاق: {formatDate(invoice.due_date)}
+							</Text>
+							{invoice.due_date && (
+								<Text style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>
+									الموافق: {convertToHijri(invoice.due_date).formattedHijri}
+								</Text>
+							)}
+						</View>
 					</View>
 				</View>
 

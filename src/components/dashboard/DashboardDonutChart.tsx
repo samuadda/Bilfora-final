@@ -17,12 +17,50 @@ export default function DashboardDonutChart({
 	data,
 	total,
 }: DashboardDonutChartProps) {
-	const CustomTooltip = ({ active, payload }: any) => {
+	const CustomTooltip = ({ active, payload, coordinate }: any) => {
 		if (active && payload && payload.length) {
 			const data = payload[0];
 			const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : 0;
+			
+			// Chart dimensions (280px container)
+			const chartWidth = 280;
+			const chartHeight = 280;
+			const centerX = chartWidth / 2;
+			const centerY = chartHeight / 2;
+			const innerRadius = 70;
+			
+			// Get mouse coordinates
+			const mouseX = coordinate?.x ?? centerX;
+			const mouseY = coordinate?.y ?? centerY;
+			
+			// Calculate distance from center
+			const dx = mouseX - centerX;
+			const dy = mouseY - centerY;
+			const distance = Math.sqrt(dx * dx + dy * dy);
+			
+			// If tooltip is too close to center, position it outside the donut ring
+			let tooltipX = mouseX;
+			let tooltipY = mouseY;
+			
+			if (distance < innerRadius + 30) {
+				// Calculate angle and position tooltip outside the ring
+				const angle = Math.atan2(dy, dx);
+				const outerRadius = 95;
+				tooltipX = centerX + Math.cos(angle) * (outerRadius + 50);
+				tooltipY = centerY + Math.sin(angle) * (outerRadius + 50);
+			}
+			
 			return (
-				<div className="bg-gray-900 text-white p-3 rounded-xl shadow-xl border border-gray-800 text-sm">
+				<div 
+					className="bg-gray-900 text-white p-3 rounded-xl shadow-xl border border-gray-800 text-sm pointer-events-none"
+					style={{
+						position: 'absolute',
+						left: `${tooltipX}px`,
+						top: `${tooltipY}px`,
+						transform: 'translate(-50%, -50%)',
+						zIndex: 50,
+					}}
+				>
 					<p className="font-bold mb-1">{data.name}</p>
 					<p className="font-medium">{data.value} فاتورة</p>
 					<p className="text-xs opacity-70 mt-1">{percentage}% من الإجمالي</p>
@@ -53,11 +91,16 @@ export default function DashboardDonutChart({
 								<Cell key={`cell-${index}`} fill={entry.color} strokeWidth={2} stroke="#fff" />
 							))}
 						</Pie>
-						<Tooltip content={<CustomTooltip />} />
+						<Tooltip 
+							content={<CustomTooltip />}
+							cursor={{ fill: 'transparent' }}
+							allowEscapeViewBox={{ x: true, y: true }}
+							wrapperStyle={{ outline: 'none' }}
+						/>
 					</PieChart>
 				</ResponsiveContainer>
-				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-					<div className="text-center">
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
+					<div className="text-center bg-white rounded-full px-6 py-3 shadow-sm border border-gray-100">
 						<p className="text-3xl font-extrabold text-gray-900">{total}</p>
 						<p className="text-xs text-gray-500 mt-1">إجمالي الفواتير</p>
 					</div>

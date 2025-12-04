@@ -8,6 +8,7 @@ import {
 	formatCurrency,
 	formatDateTime,
 } from "./sharedStyles";
+import { convertToHijri } from "@/lib/dateConvert";
 
 interface SellerInfo {
 	name: string;
@@ -51,9 +52,16 @@ export function InvoicePDF_Simplified({
 					<Text style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>
 						رقم الفاتورة: {safeText(invoice.invoice_number || invoice.id)}
 					</Text>
-					<Text style={{ fontSize: 10, color: "#6B7280" }}>
-						تاريخ الإصدار: {formatDateTime(invoice.issue_date)}
-					</Text>
+					<View style={{ marginBottom: 2 }}>
+						<Text style={{ fontSize: 10, color: "#6B7280" }}>
+							تاريخ الإصدار: {formatDateTime(invoice.issue_date)}
+						</Text>
+						{invoice.issue_date && (
+							<Text style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>
+								الموافق: {convertToHijri(invoice.issue_date).formattedHijri}
+							</Text>
+						)}
+					</View>
 				</View>
 
 				{/* Seller Information */}

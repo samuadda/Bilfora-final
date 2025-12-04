@@ -28,11 +28,11 @@ export default function DashboardRecentActivity({
 	formatTimeAgo,
 }: DashboardRecentActivityProps) {
 	return (
-		<div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col">
-			<div className="p-6 border-b border-gray-100 flex items-center justify-between">
+		<div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
+			<div className="p-5 sm:p-6 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
 				<div>
-					<h3 className="text-xl font-bold text-[#012d46]">النشاطات الأخيرة</h3>
-					<p className="text-sm text-gray-500 mt-1">آخر التحديثات على حسابك</p>
+					<h3 className="text-lg font-bold text-[#012d46]">النشاطات الأخيرة</h3>
+					<p className="text-xs text-gray-500 mt-1">آخر التحديثات على حسابك</p>
 				</div>
 			</div>
 

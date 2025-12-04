@@ -3,6 +3,7 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import { InvoiceWithClientAndItems, Client, InvoiceItem } from "@/types/database";
 import { baseStyles as s, s as safeString, formatCurrency, formatDate } from "./sharedStyles";
+import { convertToHijri } from "@/lib/dateConvert";
 
 interface SellerInfo {
 	name: string;
@@ -46,9 +47,16 @@ export function InvoiceSimplifiedPDF({
 					<Text style={{ fontSize: 12, color: "#6B7280" }}>
 						رقم الفاتورة: {safeString(invoice.invoice_number || invoice.id)}
 					</Text>
-					<Text style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>
-						تاريخ الإصدار: {formatDate(invoice.issue_date)}
-					</Text>
+					<View style={{ marginTop: 4 }}>
+						<Text style={{ fontSize: 10, color: "#6B7280" }}>
+							تاريخ الإصدار: {formatDate(invoice.issue_date)}
+						</Text>
+						{invoice.issue_date && (
+							<Text style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>
+								الموافق: {convertToHijri(invoice.issue_date).formattedHijri}
+							</Text>
+						)}
+					</View>
 				</View>
 
 				{/* Seller Info */}

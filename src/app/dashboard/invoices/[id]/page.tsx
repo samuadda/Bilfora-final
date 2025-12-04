@@ -9,8 +9,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { InvoicePDFRenderer } from "@/components/pdf/InvoicePDFRenderer";
 import { generateZatcaTLVBase64 } from "@/components/pdf/zatcaQr";
-// @ts-expect-error - qrcode types may not be available
-import QRCode from "qrcode";
+import { convertToHijri } from "@/lib/dateConvert";
 
 // ------- Page component ----------
 
@@ -73,6 +72,8 @@ export default function InvoiceDetailPage() {
 	// Generate QR code for tax invoices
 	useEffect(() => {
 		async function buildQr() {
+			// Only run on client side
+			if (typeof window === "undefined") return;
 			if (!invoice) return;
 
 			// Handle migration from old "type" to new "invoice_type"
@@ -92,6 +93,9 @@ export default function InvoiceDetailPage() {
 			}
 
 			try {
+				// Dynamic import of QRCode - only loads on client side
+				const QRCode = (await import("qrcode")).default;
+
 				const invoiceTotal = (invoice.total_amount ?? 0).toFixed(2);
 				const vatTotal = (invoice.vat_amount ?? 0).toFixed(2);
 
@@ -160,7 +164,8 @@ export default function InvoiceDetailPage() {
 
 	const formatDate = (dateString?: string) => {
 		if (!dateString) return "-";
-		return new Date(dateString).toLocaleDateString("ar-SA");
+		const date = new Date(dateString);
+		return date.toLocaleDateString("en-GB");
 	};
 
 	// Handle migration from old "type" to new "invoice_type"
@@ -438,13 +443,27 @@ export default function InvoiceDetailPage() {
 										<span className="font-medium">
 											تاريخ الإصدار:
 										</span>{" "}
-										{formatDate(invoice.issue_date)}
+										<div className="flex flex-col gap-0.5 mt-1">
+											<span>{formatDate(invoice.issue_date)}</span>
+											{invoice.issue_date && (
+												<span className="text-gray-500 text-xs">
+													الموافق: {convertToHijri(invoice.issue_date).formattedHijri}
+												</span>
+											)}
+										</div>
 									</p>
 									<p>
 										<span className="font-medium">
 											تاريخ الاستحقاق:
 										</span>{" "}
-										{formatDate(invoice.due_date)}
+										<div className="flex flex-col gap-0.5 mt-1">
+											<span>{formatDate(invoice.due_date)}</span>
+											{invoice.due_date && (
+												<span className="text-gray-500 text-xs">
+													الموافق: {convertToHijri(invoice.due_date).formattedHijri}
+												</span>
+											)}
+										</div>
 									</p>
 									<p>
 										<span className="font-medium">
