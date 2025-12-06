@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, AlertCircle, Trash2, Plus, X, Calendar, User, FileText, Percent, Info, ChevronDown } from "lucide-react";
+import { Loader2, AlertCircle, Trash2, Plus, X, Calendar, User, FileText, Percent, Info, ChevronDown, Phone, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
 	Client,
@@ -54,6 +54,7 @@ export default function InvoiceCreationModal({
 		email: "",
 		phone: "",
 		company_name: "",
+		tax_number: "",
 	});
 	const [invoiceFormData, setInvoiceFormData] = useState<CreateInvoiceInput>({
 		client_id: "",
@@ -263,6 +264,7 @@ export default function InvoiceCreationModal({
 			email: "",
 			phone: "",
 			company_name: "",
+			tax_number: "",
 		});
 		setShowNewCustomerForm(false);
 		setError(null);
@@ -403,6 +405,7 @@ export default function InvoiceCreationModal({
 				email: "",
 				phone: "",
 				company_name: "",
+				tax_number: "",
 			});
 		}
 	};
@@ -424,8 +427,12 @@ export default function InvoiceCreationModal({
 			} = await supabase.auth.getUser();
 			if (!user) return;
 
-			if (!newCustomerData.name || !newCustomerData.email) {
-				setError("الاسم والبريد الإلكتروني مطلوبان");
+			if (!newCustomerData.name?.trim()) {
+				setError("اسم العميل مطلوب");
+				return;
+			}
+			if (!newCustomerData.phone?.trim()) {
+				setError("رقم الجوال مطلوب");
 				return;
 			}
 
@@ -433,10 +440,11 @@ export default function InvoiceCreationModal({
 				.from("clients")
 				.insert({
 					user_id: user.id,
-					name: newCustomerData.name,
-					email: newCustomerData.email,
-					phone: newCustomerData.phone || null,
-					company_name: newCustomerData.company_name || null,
+					name: newCustomerData.name.trim(),
+					email: newCustomerData.email?.trim() || null,
+					phone: newCustomerData.phone.trim(),
+					company_name: newCustomerData.company_name?.trim() || null,
+					tax_number: newCustomerData.tax_number?.trim() || null,
 					status: "active",
 				})
 				.select()
@@ -460,6 +468,7 @@ export default function InvoiceCreationModal({
 				email: "",
 				phone: "",
 				company_name: "",
+				tax_number: "",
 			});
 		} catch (err) {
 			console.error("Unexpected error creating customer:", err);
@@ -559,52 +568,92 @@ export default function InvoiceCreationModal({
                                         <motion.div 
                                             initial={{ opacity: 0, y: -10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm"
+                                            className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4"
                                         >
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-medium text-gray-500">اسم العميل *</label>
-                                                <input
-                                                    name="name"
-                                                    value={newCustomerData.name}
-                                                    onChange={handleNewCustomerChange}
-                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
-                                                    placeholder="الاسم الكامل"
-                                                    required
-                                                />
+                                            {/* Row 1: Name & Phone (Required) */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-gray-700">
+                                                        الاسم الكامل <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        name="name"
+                                                        value={newCustomerData.name}
+                                                        onChange={handleNewCustomerChange}
+                                                        className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                        placeholder="مثال: محمد السعدي"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-gray-700">
+                                                        رقم الجوال <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <div className="relative">
+                                                        <Phone className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                                        <input
+                                                            name="phone"
+                                                            value={newCustomerData.phone}
+                                                            onChange={handleNewCustomerChange}
+                                                            className="w-full pr-9 pl-4 rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm py-2"
+                                                            placeholder="05xxxxxxxx"
+                                                            dir="ltr"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-medium text-gray-500">البريد الإلكتروني *</label>
-                                                <input
-                                                    name="email"
-                                                    type="email"
-                                                    value={newCustomerData.email}
-                                                    onChange={handleNewCustomerChange}
-                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
-                                                    placeholder="example@domain.com"
-                                                    required
-                                                />
+
+                                            {/* Row 2: Email (Optional) */}
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-medium text-gray-700">
+                                                    البريد الإلكتروني <span className="text-gray-400 font-normal">(اختياري)</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                                    <input
+                                                        name="email"
+                                                        type="email"
+                                                        value={newCustomerData.email}
+                                                        onChange={handleNewCustomerChange}
+                                                        className="w-full pr-9 pl-4 rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm py-2"
+                                                        placeholder="example@domain.com"
+                                                        dir="ltr"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-medium text-gray-500">رقم الهاتف</label>
-                                                <input
-                                                    name="phone"
-                                                    value={newCustomerData.phone}
-                                                    onChange={handleNewCustomerChange}
-                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
-                                                    placeholder="05xxxxxxxx"
-                                                />
+
+                                            {/* Row 3: Company & Tax (Optional) */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-gray-700">
+                                                        اسم الشركة <span className="text-gray-400 font-normal">(اختياري)</span>
+                                                    </label>
+                                                    <input
+                                                        name="company_name"
+                                                        value={newCustomerData.company_name}
+                                                        onChange={handleNewCustomerChange}
+                                                        className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                        placeholder="مثال: شركة الريّان"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-gray-700">
+                                                        الرقم الضريبي <span className="text-gray-400 font-normal">(اختياري)</span>
+                                                    </label>
+                                                    <input
+                                                        name="tax_number"
+                                                        value={newCustomerData.tax_number}
+                                                        onChange={handleNewCustomerChange}
+                                                        className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
+                                                        placeholder="مثال: 310xxxxxxx"
+                                                        dir="ltr"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-medium text-gray-500">اسم الشركة</label>
-                                                <input
-                                                    name="company_name"
-                                                    value={newCustomerData.company_name}
-                                                    onChange={handleNewCustomerChange}
-                                                    className="w-full rounded-xl border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm px-4 py-2"
-                                                    placeholder="اسم الشركة (اختياري)"
-                                                />
-                                            </div>
-                                            <div className="md:col-span-2 flex justify-end pt-2">
+
+                                            {/* Save Button */}
+                                            <div className="flex justify-end pt-2">
                                                 <button
                                                     type="button"
                                                     onClick={handleCreateNewCustomer}

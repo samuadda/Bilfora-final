@@ -49,7 +49,7 @@ type AdvancedFilter =
 
 const clientSchema = z.object({
 	name: z.string().min(2, "اسم العميل قصير جداً"),
-	email: z.string().email("البريد الإلكتروني غير صالح"),
+	email: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
 	phone: z.string().min(9, "رقم الجوال غير صالح"),
 	company_name: z.string().nullable().optional(),
 	tax_number: z.string().nullable().optional(),
@@ -870,38 +870,68 @@ export default function ClientsPage() {
 							initial={{ opacity: 0, scale: 0.95, y: 20 }}
 							animate={{ opacity: 1, scale: 1, y: 0 }}
 							exit={{ opacity: 0, scale: 0.95, y: 20 }}
-							className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl z-10 overflow-hidden"
+							className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl z-10 overflow-hidden max-h-[90vh] flex flex-col"
 						>
-							<div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-								<h2 className="text-xl font-bold text-gray-900">
-									{editingClient ? "تعديل بيانات العميل" : "إضافة عميل جديد"}
-								</h2>
-								<button
-									onClick={() => setShowModal(false)}
-									className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
-								>
-									<XCircle size={24} />
-								</button>
+							<div className="p-6 border-b border-gray-100 bg-gray-50/50">
+								<div className="flex items-center justify-between">
+									<h2 className="text-xl font-bold text-gray-900">
+										{editingClient ? "تعديل بيانات العميل" : "إضافة عميل جديد"}
+									</h2>
+									<button
+										onClick={() => setShowModal(false)}
+										className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
+									>
+										<XCircle size={24} />
+									</button>
+								</div>
+								{!editingClient && (
+									<p className="text-sm text-gray-500 mt-1">
+										أضِف بيانات العميل الجديد لبدء إنشاء الفواتير بسهولة.
+									</p>
+								)}
 							</div>
 
-							<form onSubmit={handleSubmit} className="p-8 space-y-6">
+							<form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto">
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									{/* Name - Required */}
 									<div className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">اسم العميل *</label>
+										<label className="text-sm font-medium text-gray-700">
+											الاسم الكامل <span className="text-red-500">*</span>
+										</label>
+										<input
+											name="name"
+											value={formData.name || ""}
+											onChange={handleInputChange}
+											className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
+											placeholder="مثال: محمد السعدي"
+											required
+										/>
+									</div>
+
+									{/* Phone - Required */}
+									<div className="space-y-2">
+										<label className="text-sm font-medium text-gray-700">
+											رقم الجوال <span className="text-red-500">*</span>
+										</label>
 										<div className="relative">
-											<Users className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+											<Phone className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
 											<input
-												name="name"
-												value={formData.name || ""}
+												name="phone"
+												value={formData.phone || ""}
 												onChange={handleInputChange}
 												className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="الاسم الكامل"
+												placeholder="05xxxxxxxx"
+												dir="ltr"
 												required
 											/>
 										</div>
 									</div>
+
+									{/* Email - Optional */}
 									<div className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">البريد الإلكتروني *</label>
+										<label className="text-sm font-medium text-gray-700">
+											البريد الإلكتروني <span className="text-gray-400 font-normal">(اختياري)</span>
+										</label>
 										<div className="relative">
 											<Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
 											<input
@@ -911,62 +941,41 @@ export default function ClientsPage() {
 												onChange={handleInputChange}
 												className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
 												placeholder="example@domain.com"
-												required
+												dir="ltr"
 											/>
 										</div>
 									</div>
+
+									{/* Company Name - Optional */}
 									<div className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">رقم الهاتف *</label>
-										<div className="relative">
-											<Phone className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-											<input
-												name="phone"
-												value={formData.phone || ""}
-												onChange={handleInputChange}
-												className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="05xxxxxxxx"
-												required
-											/>
-										</div>
+										<label className="text-sm font-medium text-gray-700">
+											اسم الشركة <span className="text-gray-400 font-normal">(اختياري)</span>
+										</label>
+										<input
+											name="company_name"
+											value={formData.company_name || ""}
+											onChange={handleInputChange}
+											className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
+											placeholder="مثال: شركة الريّان"
+										/>
 									</div>
+
+									{/* Tax Number - Optional */}
 									<div className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">اسم الشركة</label>
-										<div className="relative">
-											<Building2 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-											<input
-												name="company_name"
-												value={formData.company_name || ""}
-												onChange={handleInputChange}
-												className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="اختياري"
-											/>
-										</div>
+										<label className="text-sm font-medium text-gray-700">
+											الرقم الضريبي <span className="text-gray-400 font-normal">(اختياري)</span>
+										</label>
+										<input
+											name="tax_number"
+											value={formData.tax_number || ""}
+											onChange={handleInputChange}
+											className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
+											placeholder="مثال: 310xxxxxxx"
+											dir="ltr"
+										/>
 									</div>
-									<div className="space-y-2">
-										<label className="text-sm font-medium text-gray-700">الرقم الضريبي</label>
-										<div className="relative">
-											<input
-												name="tax_number"
-												value={formData.tax_number || ""}
-												onChange={handleInputChange}
-												className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="اختياري"
-											/>
-										</div>
-									</div>
-									<div className="space-y-2 md:col-span-2">
-										<label className="text-sm font-medium text-gray-700">العنوان</label>
-										<div className="relative">
-											<MapPin className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-											<input
-												name="address"
-												value={formData.address || ""}
-												onChange={handleInputChange}
-												className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-												placeholder="المدينة، الحي، الشارع"
-											/>
-										</div>
-									</div>
+
+									{/* Status */}
 									<div className="space-y-2">
 										<label className="text-sm font-medium text-gray-700">الحالة</label>
 										<div className="relative">
@@ -982,15 +991,36 @@ export default function ClientsPage() {
 											<ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
 										</div>
 									</div>
+
+									{/* Address - Optional */}
 									<div className="space-y-2 md:col-span-2">
-										<label className="text-sm font-medium text-gray-700">ملاحظات</label>
+										<label className="text-sm font-medium text-gray-700">
+											العنوان <span className="text-gray-400 font-normal">(اختياري)</span>
+										</label>
+										<div className="relative">
+											<MapPin className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+											<input
+												name="address"
+												value={formData.address || ""}
+												onChange={handleInputChange}
+												className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
+												placeholder="مثال: الرياض، حي النخيل، شارع الملك فهد"
+											/>
+										</div>
+									</div>
+
+									{/* Notes - Optional */}
+									<div className="space-y-2 md:col-span-2">
+										<label className="text-sm font-medium text-gray-700">
+											ملاحظات <span className="text-gray-400 font-normal">(اختياري)</span>
+										</label>
 										<textarea
 											name="notes"
 											value={formData.notes || ""}
 											onChange={handleInputChange}
 											rows={3}
 											className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#7f2dfb] focus:ring-[#7f2dfb] text-sm"
-											placeholder="أي ملاحظات إضافية..."
+											placeholder="أي ملاحظات إضافية عن العميل..."
 										/>
 									</div>
 								</div>
@@ -1009,7 +1039,7 @@ export default function ClientsPage() {
 										className="px-6 py-2.5 rounded-xl bg-[#7f2dfb] text-white font-medium hover:bg-[#6a1fd8] shadow-lg shadow-purple-200 transition-colors text-sm flex items-center gap-2"
 									>
 										{saving && <Loader2 size={16} className="animate-spin" />}
-										{saving ? "جاري الحفظ..." : "حفظ العميل"}
+										{saving ? "جاري الحفظ..." : (editingClient ? "حفظ التعديلات" : "إضافة العميل")}
 									</button>
 								</div>
 							</form>

@@ -44,6 +44,7 @@ export default function DashboardPage() {
 	const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 	const [showClientModal, setShowClientModal] = useState(false);
 	const [showProductModal, setShowProductModal] = useState(false);
+	const [accountCreatedYear, setAccountCreatedYear] = useState(now.getFullYear());
 
 	// Format currency helper
 	const formatCurrency = (amount: number) =>
@@ -70,14 +71,20 @@ export default function DashboardPage() {
 				return;
 			}
 
-			// Get user profile for name
+			// Get user profile for name and creation date
 			const { data: profile } = await supabase
 				.from("profiles")
-				.select("full_name")
+				.select("full_name, created_at")
 				.eq("id", user.id)
 				.single();
 
-			if (profile) setUserName(profile.full_name);
+			if (profile) {
+				setUserName(profile.full_name);
+				if (profile.created_at) {
+					const createdYear = new Date(profile.created_at).getFullYear();
+					setAccountCreatedYear(createdYear);
+				}
+			}
 
 			// Load all data for selected month
 			const [monthlyStats, dailyRev, recent] = await Promise.all([
@@ -123,11 +130,12 @@ export default function DashboardPage() {
 		}));
 	}, [selectedYear]);
 
-	// Generate year options (current year and 2 years back)
+	// Generate year options (from account creation year to current year)
 	const yearOptions = useMemo(() => {
 		const currentYear = now.getFullYear();
-		return Array.from({ length: 3 }, (_, i) => currentYear - i);
-	}, []);
+		const yearsCount = currentYear - accountCreatedYear + 1;
+		return Array.from({ length: yearsCount }, (_, i) => currentYear - i);
+	}, [accountCreatedYear]);
 
 	const monthName = useMemo(() => {
 		const months = [
