@@ -2,34 +2,54 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TextAnimate } from "@/components/landing-page/text-animate";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, HelpCircle, Shield, FileText, CreditCard, Lock, Download, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { Section, Container, Heading, Text, Button } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 const faqs = [
   {
     question: "هل بيلفورا مجاني؟",
     answer:
-      "نعم، توجد خطة مجانية تتيح لك إنشاء عدد محدد من الفواتير شهرياً، وهي مثالية للمستقلين في بداية مشوارهم.",
+      "نعم، توجد خطة مجانية تتيح لك إنشاء 5 فواتير شهرياً، وهي مثالية للمستقلين في بداية مشوارهم. يمكنك الترقية في أي وقت عندما تحتاج إلى المزيد من الفواتير.",
+    icon: HelpCircle,
   },
   {
     question: "هل الفواتير معتمدة من هيئة الزكاة والضريبة؟",
     answer:
-      "نعم، جميع الفواتير الصادرة من بيلفورا متوافقة مع متطلبات هيئة الزكاة والضريبة والجمارك في المملكة العربية السعودية (فاتورة إلكترونية).",
+      "نعم، جميع الفواتير الصادرة من بيلفورا متوافقة مع متطلبات هيئة الزكاة والضريبة والجمارك في المملكة العربية السعودية. الفواتير تحتوي على جميع البيانات المطلوبة قانونياً وتكون جاهزة للطباعة أو الإرسال الإلكتروني.",
+    icon: Shield,
   },
   {
     question: "هل يمكنني تخصيص شكل الفاتورة؟",
     answer:
-      "بالتأكيد! يمكنك إضافة شعارك، تغيير الألوان، وتعديل بعض النصوص لتناسب هوية علامتك التجارية.",
+      "بالتأكيد! يمكنك إضافة شعارك، تغيير الألوان، وتعديل بعض النصوص لتناسب هوية علامتك التجارية. في الباقة الاحترافية، يمكنك إزالة شعار بيلفورا تماماً.",
+    icon: FileText,
   },
   {
     question: "كيف يمكنني استلام أموالي؟",
     answer:
-      "حالياً، بيلفورا يساعدك في إصدار الفاتورة وإرسالها للعميل. الدفع يتم بينك وبين العميل مباشرة عبر وسائل الدفع التي تحددها في الفاتورة (تحويل بنكي، STC Pay، إلخ).",
+      "بيلفورا يساعدك في إصدار الفاتورة وإرسالها للعميل. الدفع يتم بينك وبين العميل مباشرة عبر وسائل الدفع التي تحددها في الفاتورة (تحويل بنكي، STC Pay، Apple Pay، إلخ). يمكنك أيضاً إضافة رابط دفع في الفاتورة.",
+    icon: CreditCard,
   },
   {
     question: "هل بياناتي آمنة؟",
     answer:
-      "نحن نأخذ أمان بياناتك بجدية تامة. جميع البيانات مشفرة ومحفوظة في خوادم آمنة مع نسخ احتياطية دورية.",
+      "نحن نأخذ أمان بياناتك بجدية تامة. جميع البيانات مشفرة باستخدام SSL ومحفوظة في خوادم آمنة مع نسخ احتياطية يومية. لا نشارك بياناتك مع أي طرف ثالث أبداً.",
+    icon: Lock,
+  },
+  {
+    question: "ماذا لو أردت التوقف عن الاستخدام؟",
+    answer:
+      "يمكنك تصدير جميع بياناتك (العملاء، الفواتير، الخدمات) في أي وقت بصيغة Excel أو PDF. لا نقفل حسابك أبداً - يمكنك العودة في أي وقت.",
+    icon: Download,
+  },
+  {
+    question: "هل يمكنني استخدامه بدون إنترنت؟",
+    answer:
+      "نعم، بيلفورا يعمل في وضع عدم الاتصال. يمكنك إنشاء الفواتير وتعديلها حتى بدون اتصال بالإنترنت، وسيتم مزامنة البيانات تلقائياً عند عودة الاتصال.",
+    icon: WifiOff,
   },
 ];
 
@@ -38,11 +58,13 @@ const AccordionItem = ({
   answer,
   isOpen,
   onClick,
+  icon: Icon,
 }: {
   question: string;
   answer: string;
   isOpen: boolean;
   onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
 }) => {
   return (
     <div className="border-b border-gray-200">
@@ -50,10 +72,14 @@ const AccordionItem = ({
         className="flex w-full items-center justify-between py-6 text-right text-lg font-medium transition-colors hover:text-[#7f2dfb]"
         onClick={onClick}
       >
-        <span>{question}</span>
+        <div className="flex items-center gap-3 flex-1">
+          <Icon className="h-5 w-5 text-[#7f2dfb] flex-shrink-0" />
+          <span className="text-right">{question}</span>
+        </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
+          className="flex-shrink-0 mr-2"
         >
           <ChevronDown className="h-5 w-5 text-gray-500" />
         </motion.div>
@@ -67,7 +93,7 @@ const AccordionItem = ({
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="pb-6 text-gray-600 leading-relaxed">{answer}</div>
+            <Text variant="body" color="muted" className="pb-6 leading-relaxed pr-8">{answer}</Text>
           </motion.div>
         )}
       </AnimatePresence>
@@ -79,32 +105,44 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="mx-auto max-w-4xl px-4 py-24 sm:py-32" id="faq">
-      <div className="text-center mb-16">
-        <TextAnimate
-          as="h2"
-          animation="blurIn"
-          once={true}
-          className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl"
-        >
-          الأسئلة الشائعة
-        </TextAnimate>
-        <p className="mt-4 text-lg leading-8 text-gray-600">
-          إجابات على الأسئلة التي قد تدور في ذهنك
-        </p>
-      </div>
+    <Section padding="large" className="max-w-4xl mx-auto" id="faq">
+      <Container>
+        <div className="text-center mb-16">
+          <TextAnimate
+            as="h2"
+            animation="blurIn"
+            once={true}
+            className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl"
+          >
+            الأسئلة الشائعة
+          </TextAnimate>
+          <Text variant="body-large" color="muted" className="mt-4 leading-8">
+            إجابات على الأسئلة التي قد تدور في ذهنك
+          </Text>
+        </div>
 
-      <div className="w-full">
-        {faqs.map((faq, index) => (
-          <AccordionItem
-            key={index}
-            question={faq.question}
-            answer={faq.answer}
-            isOpen={openIndex === index}
-            onClick={() => setOpenIndex(openIndex === index ? null : index)}
-          />
-        ))}
-      </div>
-    </section>
+        <div className="w-full">
+          {faqs.map((faq, index) => (
+            <AccordionItem
+              key={index}
+              question={faq.question}
+              answer={faq.answer}
+              isOpen={openIndex === index}
+              onClick={() => setOpenIndex(openIndex === index ? null : index)}
+              icon={faq.icon}
+            />
+          ))}
+        </div>
+
+        <div className="text-center mt-12">
+          <Text variant="body-large" className="mb-4 font-medium">لا تزال لديك أسئلة؟</Text>
+          <Link href="/contact">
+            <Button variant="primary" size="md" className="px-6">
+              تواصل معنا - نرد خلال ساعة
+            </Button>
+          </Link>
+        </div>
+      </Container>
+    </Section>
   );
 }

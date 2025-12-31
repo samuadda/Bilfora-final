@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import LoadingState from "@/components/LoadingState";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import { Heading, Text, Card, Button as UIButton, Input, Select } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 const statusConfig = {
 	active: { label: "نشط", className: "bg-green-50 text-green-700 border-green-100" },
@@ -507,22 +509,22 @@ export default function ClientsPage() {
 			{/* Header */}
 			<div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 				<div>
-					<h1 className="text-3xl font-bold text-[#012d46]">العملاء</h1>
-					<p className="text-gray-500 mt-2">إدارة قاعدة بيانات العملاء ومتابعة تفاصيلهم</p>
+					<Heading variant="h1">العملاء</Heading>
+					<Text variant="body-large" color="muted" className="mt-2">إدارة قاعدة بيانات العملاء ومتابعة تفاصيلهم</Text>
 				</div>
-				<motion.button
+				<motion.div
 					whileHover={{ scale: 1.02 }}
 					whileTap={{ scale: 0.98 }}
-					onClick={openAddModal}
-					className="inline-flex items-center gap-2 rounded-xl bg-[#7f2dfb] text-white px-6 py-3 text-base font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
 				>
-					<Plus size={20} strokeWidth={2.5} />
-					<span>إضافة عميل</span>
-				</motion.button>
+					<UIButton variant="primary" onClick={openAddModal} className="inline-flex items-center gap-2">
+						<Plus size={20} strokeWidth={2.5} />
+						<span>إضافة عميل</span>
+					</UIButton>
+				</motion.div>
 			</div>
 
 			{/* Stats Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+			<div className={cn("grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4", layout.gap.standard)}>
 				<StatsCard
 					title="إجمالي العملاء"
 					value={stats.total}
@@ -555,43 +557,45 @@ export default function ClientsPage() {
 
 			{/* Bulk Actions Bar */}
 			{hasSelected && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-				>
-					<div className="flex items-center gap-3">
+				<Card padding="standard" className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className={cn("flex items-center", layout.gap.standard)}
+					>
 						<div className="w-10 h-10 rounded-xl bg-purple-50 text-[#7f2dfb] flex items-center justify-center flex-shrink-0">
 							<Check size={20} />
 						</div>
 						<div>
-							<p className="font-bold text-gray-900 text-sm">
+							<Text variant="body-small" className="font-bold">
 								تم تحديد {selectedClientIds.size} عميل
-							</p>
-							<p className="text-xs text-gray-500 mt-0.5">
+							</Text>
+							<Text variant="body-xs" color="muted" className="mt-0.5">
 								اختر إجراءاً لتطبيقه على العملاء المحددين
-							</p>
+							</Text>
 						</div>
-					</div>
-					<div className="flex items-center gap-2 flex-wrap">
-						<button
-							type="button"
+					</motion.div>
+					<div className={cn("flex items-center flex-wrap", layout.gap.tight)}>
+						<UIButton
+							variant="ghost"
+							size="sm"
 							onClick={() => handleBulkStatusChange("active")}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
 						>
 							<CheckCircle2 size={16} />
 							تفعيل
-						</button>
-						<button
-							type="button"
+						</UIButton>
+						<UIButton
+							variant="ghost"
+							size="sm"
 							onClick={() => handleBulkStatusChange("inactive")}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
 						>
 							<XCircle size={16} />
 							تعطيل
-						</button>
+						</UIButton>
 						<button
 							type="button"
 							onClick={() => exportClients(true)}

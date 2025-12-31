@@ -1,6 +1,6 @@
 "use client";
 import Navbar from "@/components/landing-page/Navbar";
-import { ChevronLeft, ChevronUp, Star } from "lucide-react";
+import { ChevronLeft, ChevronUp, Star, Shield, Lock, CreditCard, Headphones } from "lucide-react";
 import Link from "next/link";
 import MainButton from "@/components/MainButton";
 import { TypewriterEffect } from "@/components/landing-page/typewriter-effect";
@@ -19,6 +19,8 @@ import { Pricing } from "@/components/landing-page/Pricing";
 import { FAQ } from "@/components/landing-page/FAQ";
 import { Logos } from "@/components/landing-page/Logos";
 import { useState, useEffect, useRef } from "react";
+import { Section, Container, Typography, Card, Button } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 function StatNumber({
 	value,
@@ -107,7 +109,7 @@ export default function Home() {
 		{
 			title: "أنشئ فاتورة خلال ثوانٍ",
 			description:
-				"ابدأ بإدخال بيانات العميل والخدمة وحدد الأسعار والضرائب، وسيولد بيلفورا فاتورة احترافية جاهزة للطباعة أو الإرسال بنقرة واحدة.",
+				"ابدأ بإدخال بيانات العميل والخدمة وحدد الأسعار والضرائب، وسيولد بيلفورا فاتورة احترافية متوافقة مع الزكاة والضريبة جاهزة للطباعة أو الإرسال بنقرة واحدة.",
 			content: (
 				<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--cyan-500),var(--emerald-500))] text-white text-2xl font-bold p-8 text-center rounded-xl">
 					أنشئ فاتورة خلال ثوانٍ
@@ -115,9 +117,9 @@ export default function Home() {
 			),
 		},
 		{
-			title: "إدارة العملاء والخدمات بسهولة",
+			title: "احفظ عملائك وخدماتك مرة واحدة",
 			description:
-				"احفظ قائمة عملائك وخدماتك مع الأسعار والضرائب المفضلة، واخترها بسرعة في كل فاتورة بدون إعادة إدخال البيانات.",
+				"احفظ قائمة عملائك وخدماتك مع الأسعار والضرائب المفضلة، واخترها بسرعة في كل فاتورة بدون إعادة إدخال البيانات. وفر الوقت وركز على عملك.",
 			content: (
 				<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--orange-500),var(--yellow-500))] text-white text-2xl font-bold p-8 text-center rounded-xl">
 					قاعدة بيانات ذكية
@@ -125,9 +127,9 @@ export default function Home() {
 			),
 		},
 		{
-			title: "تتبّع المدفوعات وإشعارات الاستحقاق",
+			title: "اعرف من دفع ومن لم يدفع بنظرة واحدة",
 			description:
-				"اعرف الفواتير المدفوعة والمتأخرة بنظرة واحدة، وأرسل تذكيرات بسيطة لعملائك برابط دفع أو نسخة PDF.",
+				"اعرف الفواتير المدفوعة والمتأخرة بنظرة واحدة، وأرسل تذكيرات تلقائية لعملائك المتأخرين برابط دفع أو نسخة PDF.",
 			content: (
 				<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--blue-500),var(--indigo-500))] text-white text-2xl font-bold p-8 text-center rounded-xl">
 					تتبّع المدفوعات
@@ -135,9 +137,9 @@ export default function Home() {
 			),
 		},
 		{
-			title: "قوالب عربية ومشاركة برابط",
+			title: "فواتير عربية احترافية مع شعارك",
 			description:
-				"اختر من قوالب عربية جميلة وشارك فاتورتك برابط مباشر أو حمّلها PDF مع شعارك وبيانات منشأتك.",
+				"اختر من قوالب عربية جميلة وشارك فاتورتك برابط مباشر أو حمّلها PDF مع شعارك وبيانات منشأتك. فواتير تجعل عملك يبدو احترافياً.",
 			content: (
 				<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(to_bottom_right,var(--pink-500),var(--rose-500))] text-white text-2xl font-bold p-8 text-center rounded-xl">
 					قوالب عربية جاهزة
@@ -264,7 +266,7 @@ export default function Home() {
 						<div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-[#7f2dfb] opacity-20 blur-[100px]"></div>
 					</div>
 
-					<div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8 relative z-20">
+					<Container className="relative z-20">
 						<div className="max-w-4xl mx-auto text-center">
 							<motion.div
 								initial={{ opacity: 0, y: -20 }}
@@ -282,16 +284,41 @@ export default function Home() {
 									cursorClassName="bg-[#ff5291]"
 								/>
 							</h1>
-							<TextAnimate
-								className="mt-8 text-lg text-gray-600 sm:text-2xl max-w-2xl mx-auto leading-relaxed"
-								animation="blurIn"
-								once={true}
-								delay={1}
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 1, duration: 0.5 }}
+								className="mt-8"
 							>
-								بيلفورا هي منصتك الذكية لإصدار الفواتير
-								الإلكترونية للمستقلين وأصحاب الأعمال. وفّر وقتك
-								ومجهودك وركز على شغفك.
-							</TextAnimate>
+								<Text variant="body-large" color="muted" className="sm:text-2xl max-w-2xl mx-auto leading-relaxed">
+									توقف عن إضاعة الوقت مع إكسل والفواتير اليدوية.
+									<br />
+									أنشئ فواتير احترافية متوافقة مع هيئة الزكاة والضريبة في أقل من دقيقتين
+									<br />
+									<span className="font-semibold text-gray-800">- بدون خبرة محاسبية.</span>
+								</Text>
+							</motion.div>
+
+							{/* Trust Badges */}
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 1.2, duration: 0.5 }}
+								className="flex items-center justify-center gap-6 mt-8 flex-wrap"
+							>
+								<div className="flex items-center gap-2 text-sm text-gray-600">
+									<Shield className="h-5 w-5 text-green-500" />
+									<span>متوافق مع هيئة الزكاة والضريبة</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm text-gray-600">
+									<Lock className="h-5 w-5 text-blue-500" />
+									<span>بياناتك مشفرة وآمنة 100%</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm text-gray-600">
+									<CreditCard className="h-5 w-5 text-purple-500" />
+									<span>بدون بطاقة ائتمان - جرب مجاناً</span>
+								</div>
+							</motion.div>
 
 							{/* CTA Buttons  */}
 							<motion.div
@@ -302,7 +329,7 @@ export default function Home() {
 							>
 								<Link href="/register">
 									<MainButton
-										text="جرب مجاناً الآن"
+										text="ابدأ مجاناً - بدون بطاقة ائتمان"
 										bgColor="bg-[#7f2dfb]"
 										textColor="text-white"
 										className="w-full sm:w-auto px-8 py-4 text-lg shadow-purple-200 shadow-xl hover:shadow-2xl transition-all hover:scale-105"
@@ -315,6 +342,16 @@ export default function Home() {
 									<span>تسجيل الدخول</span>
 									<ChevronLeft
 										size={20}
+										className="transition-transform group-hover:-translate-x-1"
+									/>
+								</Link>
+								<Link
+									href="/demo"
+									className="group flex items-center gap-2 text-gray-600 font-medium hover:text-[#7f2dfb] transition-colors text-sm"
+								>
+									<span>شاهد كيف يعمل</span>
+									<ChevronLeft
+										size={16}
 										className="transition-transform group-hover:-translate-x-1"
 									/>
 								</Link>
@@ -356,7 +393,7 @@ export default function Home() {
 								<span>من 500+ عميل سعيد</span>
 							</motion.div>
 						</div>
-					</div>
+					</Container>
 				</section>
 
 				<motion.div
@@ -367,6 +404,54 @@ export default function Home() {
 				>
 					<Logos />
 				</motion.div>
+
+				{/* Trust Signals Section */}
+				<Section
+					padding="small"
+					background="muted"
+					divider
+					className="border-y border-gray-200"
+				>
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						viewport={{ once: true, amount: 0.3 }}
+						transition={{ duration: 0.5, ease: "easeOut" }}
+					>
+						<Container>
+							<div className={cn("grid md:grid-cols-4", layout.gap.large)}>
+								<div className="text-center">
+									<Shield className="h-12 w-12 text-green-500 mx-auto mb-3" />
+									<Heading variant="h3-subsection" className="mb-1">متوافق مع الزكاة والضريبة</Heading>
+									<Text variant="body-small" color="muted">
+										جميع الفواتير تلتزم بالمتطلبات السعودية
+									</Text>
+								</div>
+								<div className="text-center">
+									<Lock className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+									<Heading variant="h3-subsection" className="mb-1">بياناتك آمنة 100%</Heading>
+									<Text variant="body-small" color="muted">
+										تشفير SSL ونسخ احتياطية يومية
+									</Text>
+								</div>
+								<div className="text-center">
+									<CreditCard className="h-12 w-12 text-purple-500 mx-auto mb-3" />
+									<Heading variant="h3-subsection" className="mb-1">جرب مجاناً</Heading>
+									<Text variant="body-small" color="muted">
+										بدون بطاقة ائتمان - ألغِ في أي وقت
+									</Text>
+								</div>
+								<div className="text-center">
+									<Headphones className="h-12 w-12 text-orange-500 mx-auto mb-3" />
+									<Heading variant="h3-subsection" className="mb-1">دعم بالعربية</Heading>
+									<Text variant="body-small" color="muted">
+										فريق دعم متاح 6 أيام في الأسبوع
+									</Text>
+								</div>
+							</div>
+						</Container>
+					</motion.div>
+				</Section>
 
 				{/* features */}
 				<motion.div
@@ -381,9 +466,9 @@ export default function Home() {
 				</motion.div>
 
 				{/* mock up */}
-				<section className="py-24 bg-gray-50 overflow-hidden">
-					<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-						<div className="flex flex-col items-center justify-center gap-10 mb-16 text-center">
+				<Section padding="large" background="muted" className="overflow-hidden">
+					<Container>
+						<div className={cn("flex flex-col items-center justify-center gap-10 mb-16 text-center")}>
 							<TextAnimate
 								as="h2"
 								animation="blurIn"
@@ -392,10 +477,10 @@ export default function Home() {
 							>
 								بلفرها من جوالك أو لابتوبك في ثوانٍ
 							</TextAnimate>
-							<p className="max-w-2xl text-lg text-gray-600">
+							<Text variant="body-large" color="muted" className="max-w-2xl">
 								تجربة استخدام سلسة ومتناسقة عبر جميع أجهزتك.
 								ابدأ الفاتورة من المكتب وأرسلها من المقهى.
-							</p>
+							</Text>
 						</div>
 						<motion.div
 							initial={{ opacity: 0, y: 50 }}
@@ -427,9 +512,9 @@ export default function Home() {
 								ease: "easeOut",
 								delay: 0.1,
 							}}
-							className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+							className={cn("mt-16 grid sm:grid-cols-2 lg:grid-cols-4", layout.gap.large)}
 						>
-							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+							<Card padding="standard" className="text-center">
 								<p className="text-3xl md:text-4xl font-extrabold text-[#7f2dfb] mb-1">
 									<StatNumber
 										value={10}
@@ -437,25 +522,25 @@ export default function Home() {
 										suffix="K"
 									/>
 								</p>
-								<p className="text-sm font-semibold text-slate-800">
+								<Text variant="body-small" className="font-semibold text-slate-800 mb-1">
 									فاتورة مُصدَرة
-								</p>
-								<p className="mt-1 text-xs text-slate-500">
-									تم إنشاؤها من خلال بيلفورا
-								</p>
-							</div>
-							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								</Text>
+								<Text variant="body-xs" color="muted">
+									من آلاف المستقلين السعداء
+								</Text>
+							</Card>
+							<Card padding="standard" className="text-center">
 								<p className="text-3xl md:text-4xl font-extrabold text-emerald-500 mb-1">
 									<StatNumber value={500} prefix="+" />
 								</p>
-								<p className="text-sm font-semibold text-slate-800">
+								<Text variant="body-small" className="font-semibold text-slate-800 mb-1">
 									منشأة ومستقل
-								</p>
-								<p className="mt-1 text-xs text-slate-500">
+								</Text>
+								<Text variant="body-xs" color="muted">
 									يعتمدون على بيلفورا يومياً
-								</p>
-							</div>
-							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								</Text>
+							</Card>
+							<Card padding="standard" className="text-center">
 								<p className="text-3xl md:text-4xl font-extrabold text-cyan-500 mb-1">
 									<StatNumber
 										value={3}
@@ -463,31 +548,32 @@ export default function Home() {
 										suffix="M"
 									/>
 								</p>
-								<p className="text-sm font-semibold text-slate-800">
+								<Text variant="body-small" className="font-semibold text-slate-800 mb-1">
 									SAR قيمة فواتير
-								</p>
-								<p className="mt-1 text-xs text-slate-500">
+								</Text>
+								<Text variant="body-xs" color="muted">
 									تمت معالجتها عبر المنصة
-								</p>
-							</div>
-							<div className="rounded-2xl bg-white shadow-sm border border-gray-100 px-5 py-6 text-center">
+								</Text>
+							</Card>
+							<Card padding="standard" className="text-center">
 								<p className="text-3xl md:text-4xl font-extrabold text-amber-500 mb-1">
 									<StatNumber value={90} suffix="%" />
 								</p>
-								<p className="text-sm font-semibold text-slate-800">
+								<Text variant="body-small" className="font-semibold text-slate-800 mb-1">
 									توفّر في الوقت
-								</p>
-								<p className="mt-1 text-xs text-slate-500">
+								</Text>
+								<Text variant="body-xs" color="muted">
 									عند إنشاء وإرسال الفواتير
-								</p>
-							</div>
+								</Text>
+							</Card>
 						</motion.div>
-					</div>
-				</section>
+					</Container>
+				</Section>
 
 				{/* how does it work ? */}
-				<div
-					className="py-24 bg-gradient-to-b from-white to-gray-50"
+				<Section
+					padding="large"
+					className="bg-gradient-to-b from-white to-gray-50"
 					id="how-to"
 				>
 					<div className="text-center mb-16">
@@ -499,12 +585,12 @@ export default function Home() {
 						>
 							كيف تبلفرها ؟
 						</TextAnimate>
-						<p className="mt-4 text-lg text-gray-600">
-							خطوات بسيطة تفصلك عن فاتورتك الأولى
-						</p>
+						<Text variant="body-large" color="muted" className="mt-4">
+							من التسجيل إلى فاتورتك الأولى - أقل من دقيقتين
+						</Text>
 					</div>
 					<ElegantFeatures content={content} />
-				</div>
+				</Section>
 
 				<motion.div
 					initial={{ opacity: 0, y: 30 }}
@@ -516,21 +602,25 @@ export default function Home() {
 				</motion.div>
 
 				{/* Reviews */}
-				<motion.div
-					className="relative flex w-full flex-col items-center justify-center py-24 bg-slate-50 overflow-hidden"
-					initial={{ opacity: 0, y: 30 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true, amount: 0.3 }}
-					transition={{ duration: 0.6, ease: "easeOut" }}
+				<Section
+					padding="large"
+					background="muted"
+					className="relative overflow-hidden"
 				>
-					<div className="mb-12 text-center">
-						<h2 className="text-4xl font-bold md:text-5xl text-[#012d46] mb-4">
+					<motion.div
+						initial={{ opacity: 0, y: 30 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						viewport={{ once: true, amount: 0.3 }}
+						transition={{ duration: 0.6, ease: "easeOut" }}
+						className="mb-12 text-center"
+					>
+						<Heading variant="h2" className="mb-4">
 							تجارب أصدقائنا
-						</h2>
-						<p className="text-lg text-gray-600">
+						</Heading>
+						<Text variant="body-large" color="muted">
 							قصص نجاح من أشخاص مثلك يستخدمون بيلفورا يومياً
-						</p>
-					</div>
+						</Text>
+					</motion.div>
 					<Marquee pauseOnHover className="[--duration:40s]">
 						{firstRow.map((review) => (
 							<ReviewCard key={review.username} {...review} />
@@ -547,7 +637,7 @@ export default function Home() {
 					</Marquee>
 					<div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-slate-50"></div>
 					<div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-slate-50"></div>
-				</motion.div>
+				</Section>
 
 				<motion.div
 					initial={{ opacity: 0, y: 30 }}
@@ -565,7 +655,7 @@ export default function Home() {
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true, amount: 0.4 }}
 						transition={{ duration: 0.6, ease: "easeOut" }}
-						className="max-w-6xl mx-auto px-4 relative flex flex-col justify-center mb-24 items-center gap-8 text-center py-16 lg:py-24 rounded-3xl bg-gradient-to-br from-[#7f2dfb] to-indigo-600 overflow-hidden shadow-2xl mx-4 lg:mx-auto"
+						className="max-w-6xl mx-auto px-4 relative flex flex-col justify-center mb-24 items-center gap-8 text-center py-16 lg:py-24 rounded-3xl bg-[#7f2dfb] overflow-hidden shadow-2xl mx-4 lg:mx-auto"
 					>
 						<Ripple
 							mainCircleSize={500}
@@ -574,21 +664,39 @@ export default function Home() {
 							className="absolute inset-0 z-0 text-white"
 						/>
 						<h1 className="relative z-10 text-3xl md:text-5xl text-white font-bold max-w-4xl leading-tight">
-							لا تضيع وقتك مع إكسل أو الفواتير اليدوية
+							وفر 10 ساعات شهرياً - ركز على ما تحب بدلاً من الفواتير
 							<br />
 							<span className="text-purple-200">
-								جرب بيلفورا مجاناً اليوم
+								أنشئ فاتورتك الأولى في دقيقتين - بدون خبرة محاسبية
 							</span>
 						</h1>
 						<p className="relative z-10 text-lg text-purple-100 max-w-2xl">
-							انضم للآلاف من المستقلين الذين ينظمون أعمالهم بذكاء.
-							بدون بطاقة ائتمان.
+							انضم لـ <span className="font-semibold text-white">500+ مستقل سعودي</span> يستخدمون بيلفورا يومياً.
+							<br />
+							<span className="font-semibold text-white">بدون بطاقة ائتمان - ألغِ في أي وقت</span>
 						</p>
-						<Link href="/register" className="relative z-10">
-							<button className="px-10 py-4 rounded-full text-[#7f2dfb] font-bold text-lg bg-white cursor-pointer hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
-								ابدأ الآن مجاناً
-							</button>
-						</Link>
+						<div className="relative z-10 flex flex-col sm:flex-row gap-4">
+							<Link href="/register">
+								<Button
+									variant="secondary"
+									size="lg"
+									pill
+									className="px-10 bg-white text-[#7f2dfb] hover:shadow-lg transform hover:-translate-y-1"
+								>
+									ابدأ مجاناً الآن
+								</Button>
+							</Link>
+							<Link href="/demo">
+								<Button
+									variant="ghost"
+									size="lg"
+									pill
+									className="px-10 text-white bg-white/10 border border-white/20 hover:bg-white/20 transform hover:-translate-y-1"
+								>
+									شاهد عرض توضيحي
+								</Button>
+							</Link>
+						</div>
 					</motion.div>
 
 					{/* Main Footer */}
@@ -757,11 +865,15 @@ export default function Home() {
 										<input
 											type="email"
 											placeholder="بريدك الإلكتروني"
-											className="flex-1 px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#7f2dfb] focus:border-transparent transition-all"
+											className="flex-1 px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#7f2dfb] focus:border-transparent transition-all"
 										/>
-										<button className="px-6 py-2.5 bg-[#7f2dfb] text-white rounded-lg hover:bg-[#6a1fd8] transition-colors font-medium">
+										<Button
+											variant="primary"
+											size="md"
+											className="px-6"
+										>
 											اشترك
-										</button>
+										</Button>
 									</div>
 								</div>
 							</div>

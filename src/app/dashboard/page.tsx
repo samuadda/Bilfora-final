@@ -17,6 +17,9 @@ import RecentInvoicesList from "@/components/dashboard/RecentInvoicesList";
 import { useInvoiceStats, MonthlyStats, DailyRevenue } from "@/hooks/useInvoiceStats";
 import { InvoiceWithClientAndItems } from "@/types/database";
 import Link from "next/link";
+import { Heading, Text, Card, Button, Select } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
 	const router = useRouter();
@@ -170,25 +173,25 @@ export default function DashboardPage() {
 	if (loading) return <LoadingState message="جاري تحميل لوحة التحكم..." />;
 
 	return (
-		<div className="space-y-6 pb-6">
+		<div className={cn("space-y-6 pb-6")}>
 			{/* Header with Month Selector */}
 			<motion.div
 				initial={{ opacity: 0, y: -10 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6 }}
-				className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+				className={cn("flex flex-col md:flex-row md:items-center md:justify-between", layout.gap.standard)}
 			>
 				<div>
-					<h1 className="text-3xl font-bold text-[#012d46]">
+					<Heading variant="h1">
 						مرحباً، {userName || "شريك النجاح"} 👋
-					</h1>
-					<p className="text-gray-500 mt-2 text-lg">
+					</Heading>
+					<Text variant="body-large" color="muted" className="mt-2">
 						إليك نظرة عامة على أداء أعمالك هذا الشهر
-					</p>
+					</Text>
 				</div>
-				<div className="flex items-center gap-3">
+				<div className={cn("flex items-center", layout.gap.standard)}>
 					{/* Month Selector */}
-					<div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+					<Card padding="small" className="flex items-center gap-2">
 						<Calendar className="text-gray-400" size={18} />
 						<select
 							value={selectedMonth}
@@ -212,7 +215,7 @@ export default function DashboardPage() {
 								</option>
 							))}
 						</select>
-					</div>
+					</Card>
 					<DashboardQuickActions 
 						onCreateInvoice={openInvoiceModal}
 						onCreateClient={openClientModal}
@@ -225,39 +228,41 @@ export default function DashboardPage() {
 			<MonthlyStatsCards stats={stats} formatCurrency={formatCurrency} />
 
 			{/* Chart and Summary Row */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<div className={cn("grid grid-cols-1 lg:grid-cols-3", layout.gap.large)}>
 				{/* Revenue Chart */}
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.5 }}
-					className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm"
+					className="lg:col-span-2"
 				>
-					<div className="flex items-center justify-between mb-4">
-						<div>
-							<h3 className="text-lg font-bold text-[#012d46]">
-								الإيرادات اليومية - {monthName} {selectedYear}
-							</h3>
-							<p className="text-xs text-gray-500 mt-1">توزيع الإيرادات على أيام الشهر</p>
-						</div>
-						<div className="flex items-center gap-3 text-xs">
-							<div className="flex items-center gap-1.5">
-								<div className="w-2 h-2 rounded-full bg-[#7f2dfb]"></div>
-								<span className="text-gray-600">الإجمالي</span>
+					<Card>
+						<div className="flex items-center justify-between mb-4">
+							<div>
+								<Heading variant="h3-subsection">
+									الإيرادات اليومية - {monthName} {selectedYear}
+								</Heading>
+								<Text variant="body-xs" color="muted" className="mt-1">توزيع الإيرادات على أيام الشهر</Text>
 							</div>
-							<div className="flex items-center gap-1.5">
-								<div className="w-2 h-2 rounded-full bg-green-500"></div>
-								<span className="text-gray-600">المحصل</span>
+							<div className={cn("flex items-center text-xs", layout.gap.standard)}>
+								<div className={cn("flex items-center", layout.gap.tight)}>
+									<div className="w-2 h-2 rounded-full bg-[#7f2dfb]"></div>
+									<Text variant="body-xs" color="muted">الإجمالي</Text>
+								</div>
+								<div className={cn("flex items-center", layout.gap.tight)}>
+									<div className="w-2 h-2 rounded-full bg-green-500"></div>
+									<Text variant="body-xs" color="muted">المحصل</Text>
+								</div>
 							</div>
 						</div>
-					</div>
-					{dailyRevenue.length > 0 ? (
-						<MonthlyRevenueChart data={dailyRevenue} />
-					) : (
-						<div className="h-[280px] flex items-center justify-center text-gray-400">
-							<p className="text-sm">لا توجد بيانات لهذا الشهر</p>
-						</div>
-					)}
+						{dailyRevenue.length > 0 ? (
+							<MonthlyRevenueChart data={dailyRevenue} />
+						) : (
+							<div className="h-[280px] flex items-center justify-center text-gray-400">
+								<Text variant="body-small">لا توجد بيانات لهذا الشهر</Text>
+							</div>
+						)}
+					</Card>
 				</motion.div>
 
 				{/* Quick Summary */}
@@ -265,52 +270,52 @@ export default function DashboardPage() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.6 }}
-					className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all duration-300"
 				>
-					<h3 className="text-lg font-bold text-[#012d46] mb-5">ملخص سريع</h3>
-					<div className="space-y-3">
+					<Card hover>
+						<Heading variant="h3-subsection" className="mb-5">ملخص سريع</Heading>
+					<div className={layout.stack.standard}>
 						<div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-100 hover:bg-purple-100 transition-colors group">
-							<div className="flex items-center gap-3">
+							<div className={cn("flex items-center", layout.gap.standard)}>
 								<div className="p-2 bg-purple-100 rounded-lg group-hover:scale-105 transition-transform">
 									<FileText className="text-[#7f2dfb]" size={18} strokeWidth={2.5} />
 								</div>
-								<span className="text-sm text-gray-700 font-medium">عدد الفواتير</span>
+								<Text variant="body-small" className="font-medium">عدد الفواتير</Text>
 							</div>
-							<span className="text-sm font-bold text-gray-900">{stats.totalInvoices}</span>
+							<Text variant="body-small" className="font-bold">{stats.totalInvoices}</Text>
 						</div>
 						<div className="flex items-center justify-between p-3 bg-green-50 rounded-xl border border-green-100 hover:bg-green-100 transition-colors group">
-							<div className="flex items-center gap-3">
+							<div className={cn("flex items-center", layout.gap.standard)}>
 								<div className="p-2 bg-green-100 rounded-lg group-hover:scale-105 transition-transform">
 									<TrendingUp className="text-green-600" size={18} strokeWidth={2.5} />
 								</div>
-								<span className="text-sm text-gray-700 font-medium">معدل التحصيل</span>
+								<Text variant="body-small" className="font-medium">معدل التحصيل</Text>
 							</div>
-							<span className="text-sm font-bold text-gray-900">
+							<Text variant="body-small" className="font-bold">
 								{stats.totalInvoices > 0
 									? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(1)
 									: 0}%
-							</span>
+							</Text>
 						</div>
 						<div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors group">
-							<div className="flex items-center gap-3">
+							<div className={cn("flex items-center", layout.gap.standard)}>
 								<div className="p-2 bg-blue-100 rounded-lg group-hover:scale-105 transition-transform">
 									<DollarSign className="text-blue-600" size={18} strokeWidth={2.5} />
 								</div>
-								<span className="text-sm text-gray-700 font-medium">متوسط الفاتورة</span>
+								<Text variant="body-small" className="font-medium">متوسط الفاتورة</Text>
 							</div>
-							<span className="text-sm font-bold text-gray-900">
+							<Text variant="body-small" className="font-bold">
 								{stats.totalInvoices > 0
 									? formatCurrency(stats.totalInvoiced / stats.totalInvoices)
 									: formatCurrency(0)}
-							</span>
+							</Text>
 						</div>
 					</div>
 					{stats.overdueCount > 0 && (
 						<div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center gap-2">
 							<AlertCircle className="text-orange-600 flex-shrink-0" size={16} />
-							<span className="text-xs font-medium text-orange-800">
+							<Text variant="body-xs" className="font-medium text-orange-800">
 								{stats.overdueCount} فاتورة متأخرة تحتاج متابعة
-							</span>
+							</Text>
 						</div>
 					)}
 				</motion.div>
@@ -332,12 +337,11 @@ export default function DashboardPage() {
 				transition={{ delay: 0.8 }}
 				className="flex justify-center pt-2"
 			>
-				<Link
-					href={analyticsUrl}
-					className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-				>
-					<span>عرض التحليلات التفصيلية</span>
-					<ArrowRight size={16} />
+				<Link href={analyticsUrl}>
+					<Button variant="secondary" className="inline-flex items-center gap-2">
+						<span>عرض التحليلات التفصيلية</span>
+						<ArrowRight size={16} />
+					</Button>
 				</Link>
 			</motion.div>
 

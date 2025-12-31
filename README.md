@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 🎨 UI System
+
+This project uses a unified UI system with design tokens and standardized components. 
+
+**📚 Documentation:** See `docs/README.md` for complete documentation index.
+
+**🚀 Quick Start:** See `docs/QUICK_START.md` for immediate usage examples.
+
+**📖 Full Details:** See `docs/REFACTORING_COMPLETE.md` for what has been refactored.
+
 ## Getting Started
 
 First, run the development server:

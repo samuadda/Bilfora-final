@@ -30,6 +30,8 @@ import { Invoice, InvoiceStatus, InvoiceWithClientAndItems } from "@/types/datab
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import LoadingState from "@/components/LoadingState";
+import { Heading, Text, Card, Button } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 import AnalyticsFiltersComponent, { AnalyticsFilters } from "@/components/filters/AnalyticsFilters";
 import KPICard from "@/components/analytics/KPICard";
 import EnhancedChart from "@/components/charts/EnhancedChart";
@@ -607,12 +609,9 @@ export default function AnalyticsPage() {
 				<div className="text-center">
 					<AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
 					<p className="text-red-600 mb-4">{error}</p>
-					<button
-						onClick={loadAnalyticsData}
-						className="px-6 py-2 bg-[#7f2dfb] text-white rounded-xl hover:bg-[#6a1fd8] transition-colors font-bold"
-					>
+					<Button variant="primary" onClick={loadAnalyticsData}>
 						إعادة المحاولة
-					</button>
+					</Button>
 				</div>
 			</div>
 		);
@@ -628,12 +627,12 @@ export default function AnalyticsPage() {
 	return (
 		<div ref={pageRef} className="space-y-8 pb-12">
 			{/* Header with Filters and Export */}
-			<div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+			<div className={cn("flex flex-col md:flex-row items-center justify-between", layout.gap.standard)}>
 				<div>
-					<h1 className="text-3xl font-bold text-[#012d46]">تقارير الأداء</h1>
-					<p className="text-gray-500 mt-2 text-lg">تحليلات مفصلة لنمو أعمالك</p>
+					<Heading variant="h1">تقارير الأداء</Heading>
+					<Text variant="body-large" color="muted" className="mt-2">تحليلات مفصلة لنمو أعمالك</Text>
 				</div>
-				<div className="flex items-center gap-3">
+				<div className={cn("flex items-center", layout.gap.standard)}>
 					<AnalyticsFiltersComponent
 						filters={filters}
 						onFiltersChange={setFilters}
@@ -647,7 +646,7 @@ export default function AnalyticsPage() {
 			</div>
 
 			{/* Enhanced KPI Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+			<div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4", layout.gap.standard)}>
 				<KPICard
 					title="إجمالي الإيرادات"
 					value={formatCurrency(stats.totalRevenue)}

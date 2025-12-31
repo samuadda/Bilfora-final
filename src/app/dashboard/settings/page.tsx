@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Heading, Text, Card, Button } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 interface InvoiceItem {
 	id: string;
@@ -118,7 +120,7 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col gap-2"
             >
-                <h1 className="text-3xl font-bold text-[#012d46]">الإعدادات</h1>
+                <Heading variant="h1">الإعدادات</Heading>
                 <p className="text-gray-500">تحكم في إعدادات حسابك، الأمان، والفوترة</p>
             </motion.div>
 

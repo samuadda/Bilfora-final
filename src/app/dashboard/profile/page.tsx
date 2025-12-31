@@ -25,6 +25,9 @@ import {
 } from "@/types/database";
 import { motion } from "framer-motion";
 import LoadingState from "@/components/LoadingState";
+import { Heading, Text, Card, Button, Input, Field, FormRow } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -449,10 +452,10 @@ export default function ProfilePage() {
                         </div>
 					</div>
 					<div className="flex-1">
-						<h1 className="text-2xl md:text-3xl font-bold text-[#012d46]">
+						<Heading variant="h1" className="text-2xl md:text-3xl">
 							{profile?.full_name || "الملف الشخصي"}
-						</h1>
-						<p className="text-gray-500 mt-1">
+						</Heading>
+						<Text variant="body-small" color="muted" className="mt-1">
 							{profile?.account_type === "business" ? "حساب أعمال" : "حساب فردي"}
 						</p>
                         <div className="mt-3 max-w-[200px]">

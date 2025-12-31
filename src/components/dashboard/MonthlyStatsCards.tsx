@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { DollarSign, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { MonthlyStats } from "@/hooks/useInvoiceStats";
+import { Card, Text, Heading } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 interface MonthlyStatsCardsProps {
 	stats: MonthlyStats;
@@ -52,7 +54,7 @@ export default function MonthlyStatsCards({
 	};
 
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+		<div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${layout.gap.standard}`}>
 			{cards.map((card) => {
 				const Icon = card.icon;
 				return (
@@ -61,21 +63,22 @@ export default function MonthlyStatsCards({
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: card.delay, duration: 0.5 }}
-						className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
 					>
-						<div className="flex items-center justify-between mb-4">
-							<div
-								className={`p-2.5 rounded-xl ${colors[card.color as keyof typeof colors]}`}
-							>
-								<Icon size={20} strokeWidth={2.5} />
+						<Card hover>
+							<div className="flex items-center justify-between mb-4">
+								<div
+									className={`p-2.5 rounded-xl ${colors[card.color as keyof typeof colors]}`}
+								>
+									<Icon size={20} strokeWidth={2.5} />
+								</div>
 							</div>
-						</div>
-						<div>
-							<p className="text-gray-600 text-sm font-medium mb-1">{card.title}</p>
-							<h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-								{card.value}
-							</h3>
-						</div>
+							<div>
+								<Text variant="body-small" color="muted" className="mb-1 font-medium">{card.title}</Text>
+								<Heading variant="h3" className="tracking-tight">
+									{card.value}
+								</Heading>
+							</div>
+						</Card>
 					</motion.div>
 				);
 			})}

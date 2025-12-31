@@ -10,32 +10,56 @@ import {
     Layout,
     CheckCircle2,
     FileText,
-    CreditCard
+    CreditCard,
+    Shield
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Section, Container, Heading, Text, Button } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 export const Features = () => {
     return (
-        <section className="mx-auto mt-20 max-w-7xl px-4 py-12 text-slate-800" id="features">
-            <div className="mb-12 flex flex-col items-center text-center gap-4">
-          <TextAnimate
-                    as="h2"
-                    animation="blurIn"
-                    once={true}
-                    className="max-w-2xl text-4xl font-bold md:text-5xl lg:text-6xl text-[#012d46] leading-tight"
-                >
-                    كل ما تحتاجه لإدارة فواتيرك باحترافية
-                </TextAnimate>
-                <p className="max-w-xl text-lg text-gray-600">
-                    أدوات قوية مصممة خصيصاً للمستقلين والشركات الصغيرة لتسهيل الأعمال المالية
-                </p>
-            </div>
+        <Section className="mt-20" id="features">
+            <Container>
+                <div className={cn("mb-12 flex flex-col items-center text-center", layout.gap.standard)}>
+                    <TextAnimate
+                        as="h2"
+                        animation="blurIn"
+                        once={true}
+                        className="max-w-2xl text-4xl font-bold md:text-5xl lg:text-6xl text-[#012d46] leading-tight"
+                    >
+                        كل ما تحتاجه لإدارة فواتيرك باحترافية
+                    </TextAnimate>
+                    <Text variant="body-large" color="muted" className="max-w-xl">
+                        أدوات قوية مصممة خصيصاً للمستقلين والشركات الصغيرة لتسهيل الأعمال المالية
+                    </Text>
+                </div>
 
-            <div className="grid grid-cols-12 gap-6">
-                {/* Feature 1: Mobile & Desktop */}
-                <BounceCard className="col-span-12 md:col-span-4 bg-gradient-to-br from-violet-100 to-indigo-100 border-none">
-                    <CardTitle>متوفر على كل الأجهزة</CardTitle>
+                <div className={cn("grid grid-cols-12", layout.gap.large)}>
+                {/* Feature 1: VAT Compliance - Primary Feature */}
+                <BounceCard className="col-span-12 md:col-span-6 bg-gradient-to-br from-green-50 to-emerald-50 border-none">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                        <Shield className="h-6 w-6 text-green-600" />
+                        <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">معتمد</span>
+                    </div>
+                    <CardTitle>متوافق 100% مع هيئة الزكاة والضريبة</CardTitle>
+                    <p className="text-gray-600 mt-3 text-center text-sm relative z-10">
+                        لا تقلق من الأخطاء. جميع الفواتير تلتزم بالمتطلبات السعودية تلقائياً.
+                    </p>
+                    <div className="absolute bottom-0 left-0 right-0 flex justify-center translate-y-12 transition-transform duration-500 group-hover:translate-y-4">
+                         <div className="relative">
+                            <Shield className="w-32 h-32 text-green-500 opacity-20" strokeWidth={1.5} />
+                         </div>
+                    </div>
+                </BounceCard>
+
+                {/* Feature 2: Mobile & Desktop */}
+                <BounceCard className="col-span-12 md:col-span-6 bg-gradient-to-br from-violet-100 to-indigo-100 border-none">
+                    <CardTitle>أنشئ فاتورة من أي مكان</CardTitle>
+                    <p className="text-gray-600 mt-3 text-center text-sm relative z-10">
+                        مكتبك، مقهى، أو حتى من سيارتك - كل الأجهزة متاحة
+                    </p>
                     <div className="absolute bottom-0 left-0 right-0 flex justify-center translate-y-12 transition-transform duration-500 group-hover:translate-y-4">
                          <div className="relative">
                             <Smartphone className="w-24 h-48 text-slate-800 absolute -right-6 bottom-0 z-10 fill-white" strokeWidth={1.5} />
@@ -44,9 +68,12 @@ export const Features = () => {
                     </div>
                 </BounceCard>
 
-                {/* Feature 2: Design & Customization */}
+                {/* Feature 3: Design & Customization */}
                 <BounceCard className="col-span-12 md:col-span-8 bg-gradient-to-br from-amber-50 to-orange-50 border-none">
-                    <CardTitle>تصاميم احترافية قابلة للتخصيص</CardTitle>
+                    <CardTitle>فواتير تجعل عملك يبدو احترافياً</CardTitle>
+                    <p className="text-gray-600 mt-3 text-center text-sm relative z-10">
+                        أضف شعارك وألوان علامتك التجارية - قوالب عربية جاهزة
+                    </p>
                     <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-12 rounded-t-2xl bg-white shadow-2xl p-6 transition-transform duration-500 group-hover:translate-y-6">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
@@ -65,9 +92,12 @@ export const Features = () => {
                     </div>
                 </BounceCard>
 
-                {/* Feature 3: Clean UI */}
-                <BounceCard className="col-span-12 md:col-span-8 bg-gradient-to-br from-emerald-50 to-green-50 border-none">
-                    <CardTitle>واجهة سهلة وبسيطة</CardTitle>
+                {/* Feature 4: Clean UI */}
+                <BounceCard className="col-span-12 md:col-span-4 bg-gradient-to-br from-emerald-50 to-green-50 border-none">
+                    <CardTitle>وفر 5 ساعات أسبوعياً</CardTitle>
+                    <p className="text-gray-600 mt-3 text-center text-sm relative z-10">
+                        ركز على عملك بدلاً من الفواتير - واجهة بسيطة وسريعة
+                    </p>
                     <div className="absolute bottom-0 right-10 top-24 w-full translate-x-12 rounded-tl-2xl bg-white shadow-xl p-6 transition-transform duration-500 group-hover:translate-x-8 border border-slate-100">
                         <div className="flex gap-4">
                              <div className="w-1/4 space-y-3 pt-4">
@@ -95,9 +125,12 @@ export const Features = () => {
                     </div>
                 </BounceCard>
 
-                {/* Feature 4: For Freelancers */}
+                {/* Feature 5: For Freelancers */}
                 <BounceCard className="col-span-12 md:col-span-4 bg-gradient-to-br from-pink-50 to-rose-50 border-none">
-                    <CardTitle>صمم للمستقلين</CardTitle>
+                    <CardTitle>احفظ عملائك وخدماتك مرة واحدة</CardTitle>
+                    <p className="text-gray-600 mt-3 text-center text-sm relative z-10">
+                        استخدمها في كل فاتورة بدون إعادة كتابة - قاعدة بيانات ذكية
+                    </p>
                     <div className="absolute bottom-0 left-0 right-0 top-32 flex flex-col items-center justify-start pt-8 transition-transform duration-500 group-hover:-translate-y-2">
                          <div className="relative">
                             <div className="absolute -left-12 top-0 bg-white p-3 rounded-xl shadow-lg transform -rotate-12 z-10">
@@ -114,17 +147,15 @@ export const Features = () => {
                 </BounceCard>
             </div>
 
-            <div className="mt-12 flex justify-center">
-                <Link href="/register">
-                    <MainButton
-                        text="ابدأ تجربتك المجانية"
-                        bgColor="bg-[#012d46]"
-                        textColor="text-white"
-                        className="px-8 py-3 text-lg"
-                    />
-                </Link>
-            </div>
-        </section>
+                <div className="mt-12 flex justify-center">
+                    <Link href="/register">
+                        <Button variant="primary" size="lg" className="px-8">
+                            ابدأ مجاناً - بدون بطاقة ائتمان
+                        </Button>
+                    </Link>
+                </div>
+            </Container>
+        </Section>
     );
 };
 

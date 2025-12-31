@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, LucideIcon } from "lucide-react";
+import { Card, Text, Heading } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 interface StatsCardProps {
     title: string;
@@ -27,28 +29,32 @@ export function StatsCard({ title, value, icon: Icon, trend, color, delay = 0, i
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, duration: 0.5 }}
-            className={cn(
-                "bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group",
-                isWarning && "border-orange-200 bg-orange-50/30"
-            )}
         >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-50 to-transparent rounded-bl-full -mr-8 -mt-8 opacity-50 transition-transform group-hover:scale-110" />
-            
-            <div className="flex justify-between items-start mb-6 relative">
-                <div className={cn("p-4 rounded-2xl shadow-sm transition-transform group-hover:scale-105 duration-300", colors[color])}>
-                    <Icon size={28} strokeWidth={2} />
-                </div>
-                {trend && (
-                    <span className="flex items-center text-green-600 bg-green-50 px-2.5 py-1 rounded-xl text-xs font-bold border border-green-100">
-                        {trend}
-                        <ArrowUpRight size={14} className="mr-1" />
-                    </span>
+            <Card
+                hover
+                className={cn(
+                    "relative overflow-hidden group hover:-translate-y-1",
+                    isWarning && "border-orange-200 bg-orange-50/30"
                 )}
-            </div>
-            <div className="relative">
-                <p className="text-gray-500 text-sm font-bold mb-1 opacity-80">{title}</p>
-                <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{value}</h3>
-            </div>
+            >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-50 to-transparent rounded-bl-full -mr-8 -mt-8 opacity-50 transition-transform group-hover:scale-110" />
+                
+                <div className="flex justify-between items-start mb-6 relative">
+                    <div className={cn("p-4 rounded-2xl shadow-sm transition-transform group-hover:scale-105 duration-300", colors[color])}>
+                        <Icon size={28} strokeWidth={2} />
+                    </div>
+                    {trend && (
+                        <span className="flex items-center text-green-600 bg-green-50 px-2.5 py-1 rounded-xl text-xs font-bold border border-green-100">
+                            {trend}
+                            <ArrowUpRight size={14} className="mr-1" />
+                        </span>
+                    )}
+                </div>
+                <div className="relative">
+                    <Text variant="body-small" color="muted" className="mb-1 font-bold opacity-80">{title}</Text>
+                    <Heading variant="h3" className="text-3xl font-extrabold tracking-tight">{value}</Heading>
+                </div>
+            </Card>
         </motion.div>
     );
 }

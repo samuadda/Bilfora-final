@@ -37,6 +37,8 @@ import InvoiceCreationModal from "@/components/InvoiceCreationModal";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import LoadingState from "@/components/LoadingState";
+import { Heading, Text, Card, Button, Input, Select } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 const statusConfig = {
 	draft: {
@@ -595,30 +597,34 @@ export default function InvoicesPage() {
 	}
 
 	return (
-		<div className="space-y-8 pb-10">
+		<div className={cn("space-y-8 pb-10", layout.stack.large)}>
 			{/* Header */}
-			<div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+			<div className={cn("flex flex-col md:flex-row items-start md:items-center justify-between", layout.gap.large)}>
 				<div>
-					<h1 className="text-3xl font-bold text-[#012d46]">
+					<Heading variant="h1">
 						الفواتير
-					</h1>
-					<p className="text-gray-500 mt-2 text-lg">
+					</Heading>
+					<Text variant="body-large" color="muted" className="mt-2">
 						إدارة ومتابعة فواتير العملاء
-					</p>
+					</Text>
 				</div>
-				<motion.button
+				<motion.div
 					whileHover={{ scale: 1.02 }}
 					whileTap={{ scale: 0.98 }}
-					onClick={() => setShowInvoiceModal(true)}
-					className="inline-flex items-center gap-2 rounded-xl bg-[#7f2dfb] text-white px-6 py-3 text-base font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
 				>
-					<Plus size={20} strokeWidth={2.5} />
-					<span>إنشاء فاتورة جديدة</span>
-				</motion.button>
+					<Button
+						variant="primary"
+						onClick={() => setShowInvoiceModal(true)}
+						className="inline-flex items-center gap-2"
+					>
+						<Plus size={20} strokeWidth={2.5} />
+						<span>إنشاء فاتورة جديدة</span>
+					</Button>
+				</motion.div>
 			</div>
 
 			{/* Stats Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
+			<div className={cn("grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5", layout.gap.standard)}>
 				<StatsCard
 					title="إجمالي الفواتير"
 					value={stats.total}
@@ -654,91 +660,94 @@ export default function InvoicesPage() {
 
 			{/* Bulk Actions Bar */}
 			{hasSelected && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-				>
-					<div className="flex items-center gap-3">
+				<Card padding="standard" className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className="flex items-center gap-3"
+					>
 						<div className="w-10 h-10 rounded-xl bg-purple-50 text-[#7f2dfb] flex items-center justify-center flex-shrink-0">
 							<Check size={20} />
 						</div>
 						<div>
-							<p className="font-bold text-gray-900 text-sm">
+							<Text variant="body-small" className="font-bold">
 								تم تحديد {selectedInvoiceIds.size} فاتورة
-							</p>
-							<p className="text-xs text-gray-500 mt-0.5">
+							</Text>
+							<Text variant="body-xs" color="muted" className="mt-0.5">
 								اختر إجراءاً لتطبيقه على الفواتير المحددة
-							</p>
+							</Text>
 						</div>
-					</div>
-					<div className="flex items-center gap-2 flex-wrap">
-						<button
-							type="button"
+					</motion.div>
+					<div className={cn("flex items-center flex-wrap", layout.gap.tight)}>
+						<Button
+							variant="ghost"
+							size="sm"
 							onClick={() => handleBulkStatusChange("paid")}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
 						>
 							<CheckCircle size={16} />
 							تحديد كـ مدفوعة
-						</button>
-						<button
-							type="button"
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onClick={() => handleBulkStatusChange("sent")}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
 						>
 							<Send size={16} />
 							تحديد كـ مرسلة
-						</button>
-						<button
-							type="button"
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onClick={() => setShowBulkDeleteDialog(true)}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
 						>
 							<Trash2 size={16} />
 							حذف
-						</button>
-						<button
-							type="button"
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onClick={() => setSelectedInvoiceIds(new Set())}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium transition-colors"
+							className="bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
 						>
 							<XCircle size={16} />
 							إلغاء
-						</button>
+						</Button>
 					</div>
-				</motion.div>
+				</Card>
 			)}
 
 			{/* Filters & Search */}
-			<div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-				<div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+			<Card padding="standard">
+				<div className={cn("flex flex-col lg:flex-row items-start lg:items-center justify-between", layout.gap.standard)}>
 					<div className="relative w-full lg:w-96">
 						<Search
 							className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
 							size={20}
 						/>
-						<input
+						<Input
 							type="text"
 							placeholder="البحث برقم الفاتورة، اسم العميل..."
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full pr-12 pl-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb] transition-all"
+							className="pr-12 bg-gray-50"
 						/>
 					</div>
 
-					<div className="flex flex-wrap gap-3 w-full lg:w-auto">
+					<div className={cn("flex flex-wrap w-full lg:w-auto", layout.gap.standard)}>
 						<div className="relative flex-1 lg:flex-none min-w-[140px]">
-							<select
+							<Select
 								value={statusFilter}
 								onChange={(e) =>
 									setStatusFilter(
 										e.target.value as InvoiceStatus | "all"
 									)
 								}
-								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
 							>
 								<option value="all">جميع الحالات</option>
 								<option value="draft">مسودة</option>
@@ -746,14 +755,10 @@ export default function InvoicesPage() {
 								<option value="paid">مدفوعة</option>
 								<option value="cancelled">ملغية</option>
 								<option value="overdue">متأخرة</option>
-							</select>
-							<ChevronDown
-								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-								size={16}
-							/>
+							</Select>
 						</div>
 						<div className="relative flex-1 lg:flex-none min-w-[140px]">
-							<select
+							<Select
 								value={documentKindFilter}
 								onChange={(e) =>
 									setDocumentKindFilter(
@@ -763,43 +768,32 @@ export default function InvoicesPage() {
 											| "credit_note"
 									)
 								}
-								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
 							>
 								<option value="all">الكل</option>
 								<option value="invoice">فواتير</option>
 								<option value="credit_note">
 									إشعارات دائنة
 								</option>
-							</select>
-							<ChevronDown
-								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-								size={16}
-							/>
+							</Select>
 						</div>
 						<div className="relative flex-1 lg:flex-none min-w-[140px]">
-							<select
+							<Select
 								value={dateFilter}
 								onChange={(e) => setDateFilter(e.target.value)}
-								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
 							>
 								<option value="all">كل الوقت</option>
 								<option value="today">اليوم</option>
 								<option value="week">هذا الأسبوع</option>
 								<option value="month">هذا الشهر</option>
-							</select>
-							<ChevronDown
-								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-								size={16}
-							/>
+							</Select>
 						</div>
 						{uniqueClients.length > 0 && (
 							<div className="relative flex-1 lg:flex-none min-w-[140px]">
-								<select
+								<Select
 									value={clientFilter}
 									onChange={(e) =>
 										setClientFilter(e.target.value)
 									}
-									className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
 								>
 									<option value="all">كل العملاء</option>
 									{uniqueClients.map((client) => (
@@ -807,22 +801,17 @@ export default function InvoicesPage() {
 											{client}
 										</option>
 									))}
-								</select>
-								<ChevronDown
-									className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-									size={16}
-								/>
+								</Select>
 							</div>
 						)}
 						<div className="relative flex-1 lg:flex-none min-w-[140px]">
-							<select
+							<Select
 								value={amountFilter}
 								onChange={(e) =>
 									setAmountFilter(
 										e.target.value as AmountFilter
 									)
 								}
-								className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f2dfb]/20 focus:border-[#7f2dfb]"
 							>
 								<option value="all">كل المبالغ</option>
 								<option value="under-1000">أقل من 1,000</option>
@@ -830,26 +819,23 @@ export default function InvoicesPage() {
 									من 1,000 إلى 5,000
 								</option>
 								<option value="over-5000">أكثر من 5,000</option>
-							</select>
-							<ChevronDown
-								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-								size={16}
-							/>
+							</Select>
 						</div>
-						<button
-							type="button"
+						<Button
+							variant="secondary"
+							size="md"
 							onClick={exportToExcel}
-							className="inline-flex items-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium transition-colors"
+							className="inline-flex items-center gap-2"
 						>
 							<Download size={18} />
 							تصدير (Excel)
-						</button>
+						</Button>
 					</div>
 				</div>
-			</div>
+			</Card>
 
 			{/* Invoices Table */}
-			<div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+			<Card padding="none" className="overflow-hidden">
 				<div className="overflow-x-auto">
 					<table className="w-full">
 						<thead className="bg-gray-50/50 border-b border-gray-100">
@@ -1210,20 +1196,21 @@ export default function InvoicesPage() {
 						<div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
 							<FileText className="w-10 h-10 text-gray-300" />
 						</div>
-						<h3 className="text-lg font-bold text-gray-900">
+						<Heading variant="h3-subsection">
 							لا توجد فواتير
-						</h3>
-						<p className="text-gray-500 mt-1 mb-6 max-w-xs mx-auto">
+						</Heading>
+						<Text variant="body-small" color="muted" className="mt-1 mb-6 max-w-xs mx-auto">
 							لم نجد أي فواتير تطابق بحثك. ابدأ بإنشاء فاتورة
 							جديدة.
-						</p>
-						<button
+						</Text>
+						<Button
+							variant="primary"
 							onClick={() => setShowInvoiceModal(true)}
-							className="inline-flex items-center gap-2 px-6 py-3 bg-[#7f2dfb] text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
+							className="inline-flex items-center gap-2"
 						>
 							<Plus size={18} strokeWidth={2.5} />
 							إنشاء فاتورة
-						</button>
+						</Button>
 					</div>
 				)}
 
@@ -1276,7 +1263,7 @@ export default function InvoicesPage() {
 						</div>
 					</div>
 				)}
-			</div>
+			</Card>
 
 			<InvoiceCreationModal
 				isOpen={showInvoiceModal}

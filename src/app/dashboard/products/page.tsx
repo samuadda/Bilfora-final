@@ -37,6 +37,8 @@ import {
 	DialogFooter,
 } from "@/components/dialog";
 import { Button } from "@/components/dialogButton";
+import { Heading, Text, Card, Button as UIButton, Input, Select } from "@/components/ui";
+import { layout } from "@/lib/ui/tokens";
 
 type SortOption = "newest" | "oldest" | "price-high" | "price-low";
 
@@ -462,25 +464,25 @@ export default function ProductsPage() {
 			{/* Header */}
 			<div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 				<div>
-					<h1 className="text-3xl font-bold text-[#012d46]">
+					<Heading variant="h1">
 						المنتجات والخدمات
-					</h1>
-					<p className="text-gray-500 mt-2">
+					</Heading>
+					<Text variant="body-large" color="muted" className="mt-2">
 						أضف منتجاتك وخدماتك ليسهل عليك إنشاء الفواتير
-					</p>
+					</Text>
 				</div>
-				<motion.button
+				<motion.div
 					whileHover={{ scale: 1.02 }}
 					whileTap={{ scale: 0.98 }}
-					onClick={openNew}
-					className="inline-flex items-center gap-2 rounded-xl bg-[#7f2dfb] text-white px-6 py-3 text-base font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:bg-[#6a1fd8] transition-all"
 				>
-					<Plus size={20} strokeWidth={2.5} /> إضافة منتج
-				</motion.button>
+					<UIButton variant="primary" onClick={openNew} className="inline-flex items-center gap-2">
+						<Plus size={20} strokeWidth={2.5} /> إضافة منتج
+					</UIButton>
+				</motion.div>
 			</div>
 
 			{/* Stats Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+			<div className={cn("grid grid-cols-1 md:grid-cols-4", layout.gap.standard)}>
 				<StatsCard
 					title="إجمالي المنتجات"
 					value={stats.total}
@@ -513,62 +515,66 @@ export default function ProductsPage() {
 
 			{/* Bulk Actions Bar */}
 			{hasSelected && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-				>
-					<div className="flex items-center gap-3">
+				<Card padding="standard" className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className={cn("flex items-center", layout.gap.standard)}
+					>
 						<div className="w-10 h-10 rounded-xl bg-purple-50 text-[#7f2dfb] flex items-center justify-center flex-shrink-0">
 							<Check size={20} />
 						</div>
 						<div>
-							<p className="font-bold text-gray-900 text-sm">
+							<Text variant="body-small" className="font-bold">
 								تم تحديد {selectedIds.size} منتج
-							</p>
-							<p className="text-xs text-gray-500 mt-0.5">
+							</Text>
+							<Text variant="body-xs" color="muted" className="mt-0.5">
 								اختر إجراءاً لتطبيقه على المنتجات المحددة
-							</p>
+							</Text>
 						</div>
-					</div>
-					<div className="flex items-center gap-2 flex-wrap">
-						<button
-							type="button"
+					</motion.div>
+					<div className={cn("flex items-center flex-wrap", layout.gap.tight)}>
+						<UIButton
+							variant="ghost"
+							size="sm"
 							onClick={() => handleBulkStatusChange(true)}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
 						>
 							<CheckCircle2 size={16} />
 							تفعيل
-						</button>
-						<button
-							type="button"
+						</UIButton>
+						<UIButton
+							variant="ghost"
+							size="sm"
 							onClick={() => handleBulkStatusChange(false)}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
 						>
 							<XCircle size={16} />
 							تعطيل
-						</button>
-						<button
-							type="button"
+						</UIButton>
+						<UIButton
+							variant="ghost"
+							size="sm"
 							onClick={() => setShowDeleteDialog(true)}
 							disabled={bulkActionLoading}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							className="bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
 						>
 							<Trash2 size={16} />
 							حذف
-						</button>
-						<button
-							type="button"
+						</UIButton>
+						<UIButton
+							variant="ghost"
+							size="sm"
 							onClick={() => setSelectedIds(new Set())}
-							className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium transition-colors"
+							className="bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
 						>
 							<X size={16} />
 							إلغاء
-						</button>
+						</UIButton>
 					</div>
-				</motion.div>
+				</Card>
 			)}
 
 			{/* Filters & Table Container */}
