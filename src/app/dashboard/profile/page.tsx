@@ -378,16 +378,17 @@ export default function ProfilePage() {
         }
     };
 
-    const completionPercent = (() => {
-        const fields = [formData.full_name, formData.phone, formData.dob, formData.gender, formData.account_type, formData.city, formData.address];
-        let total = fields.length;
-        let filled = fields.filter(Boolean).length;
-        if (formData.account_type === "business") {
-            total += 1;
-            if (formData.company_name) filled += 1;
-        }
-        return Math.round((filled / total) * 100);
-    })();
+	const calculateCompletionPercent = () => {
+		const fields = [formData.full_name, formData.phone, formData.dob, formData.gender, formData.account_type, formData.city, formData.address];
+		let total = fields.length;
+		let filled = fields.filter(Boolean).length;
+		if (formData.account_type === "business") {
+			total += 1;
+			if (formData.company_name) filled += 1;
+		}
+		return Math.round((filled / total) * 100);
+	};
+	const completionPercent = calculateCompletionPercent();
 
 	if (loading) {
 		return <LoadingState message="جاري تحميل الملف الشخصي..." />;

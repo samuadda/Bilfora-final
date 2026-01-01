@@ -168,12 +168,16 @@ export default function DashboardPage() {
 	const closeProductModal = () => setShowProductModal(false);
 
 	// Build analytics URL with month params
-	const analyticsUrl = `/dashboard/analytics?from=${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01&to=${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`;
+	const monthStr = String(selectedMonth + 1).padStart(2, "0");
+	const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+	const analyticsUrl = `/dashboard/analytics?from=${selectedYear}-${monthStr}-01&to=${selectedYear}-${monthStr}-${lastDay}`;
 
-	if (loading) return <LoadingState message="جاري تحميل لوحة التحكم..." />;
+	if (loading) {
+		return <LoadingState message="جاري تحميل لوحة التحكم..." />;
+	}
 
 	return (
-		<div className={cn("space-y-6 pb-6")}>
+		<div className="space-y-6 pb-6">
 			{/* Header with Month Selector */}
 			<motion.div
 				initial={{ opacity: 0, y: -10 }}
@@ -318,6 +322,7 @@ export default function DashboardPage() {
 							</Text>
 						</div>
 					)}
+						</Card>
 				</motion.div>
 			</div>
 

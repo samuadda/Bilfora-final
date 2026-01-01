@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+Supabase rules:
+- Never use service role key on the client
+- All data access goes through domain repositories
+- RLS must exist for every table
+- One source of truth for business logic (prefer DB or domain layer)
+- Invoice numbers are generated in DB only

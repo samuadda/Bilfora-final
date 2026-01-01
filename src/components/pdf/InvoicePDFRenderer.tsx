@@ -1,24 +1,18 @@
 "use client";
 
 import { InvoiceWithClientAndItems, Client, InvoiceItem } from "@/types/database";
+import type { InvoiceSettings } from "@/features/settings/schemas/invoiceSettings.schema";
 import { InvoicePDF_Tax } from "./InvoicePDF_Tax";
 import { InvoicePDF_Simplified } from "./InvoicePDF_Simplified";
 import { InvoicePDF_Regular } from "./InvoicePDF_Regular";
 import { InvoicePDF_CreditNote } from "./InvoicePDF_CreditNote";
-
-interface SellerInfo {
-	name: string;
-	crNumber: string;
-	vatNumber: string;
-	address: string;
-}
 
 interface InvoicePDFRendererProps {
 	invoice: InvoiceWithClientAndItems;
 	client: Client | null;
 	items: InvoiceItem[];
 	qrDataUrl?: string | null;
-	sellerInfo: SellerInfo;
+	invoiceSettings: InvoiceSettings;
 }
 
 export function InvoicePDFRenderer({
@@ -26,7 +20,7 @@ export function InvoicePDFRenderer({
 	client,
 	items,
 	qrDataUrl,
-	sellerInfo,
+	invoiceSettings,
 }: InvoicePDFRendererProps) {
 	// Handle migration from old "type" to new "invoice_type"
 	const invoiceType =
@@ -48,7 +42,7 @@ export function InvoicePDFRenderer({
 				invoice={invoice}
 				client={client}
 				items={items}
-				sellerInfo={sellerInfo}
+				invoiceSettings={invoiceSettings}
 				relatedInvoiceNumber={
 					(invoice as any).related_invoice_id || invoice.invoice_number
 				}
@@ -63,7 +57,7 @@ export function InvoicePDFRenderer({
 				client={client}
 				items={items}
 				qrDataUrl={qrDataUrl}
-				sellerInfo={sellerInfo}
+				invoiceSettings={invoiceSettings}
 			/>
 		);
 	}
@@ -75,7 +69,7 @@ export function InvoicePDFRenderer({
 				client={client}
 				items={items}
 				qrDataUrl={qrDataUrl}
-				sellerInfo={sellerInfo}
+				invoiceSettings={invoiceSettings}
 			/>
 		);
 	}
@@ -86,7 +80,7 @@ export function InvoicePDFRenderer({
 			invoice={invoice}
 			client={client}
 			items={items}
-			sellerInfo={sellerInfo}
+			invoiceSettings={invoiceSettings}
 		/>
 	);
 }

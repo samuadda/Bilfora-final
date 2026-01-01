@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+Bilfora uses Next.js App Router, TypeScript, Tailwind, shadcn/ui, Supabase.
+
+Enforce strict boundaries:
+- app/ = routing and composition only
+- components/ = presentational UI only
+- features/<domain>/ = business logic, schemas, repos
+- lib/ = framework integrations only
+- types/ = shared types
+
+Pages must not contain business logic or raw Supabase queries.

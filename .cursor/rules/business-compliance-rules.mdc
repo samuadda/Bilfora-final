@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+Bilfora is Saudi-first.
+
+Defaults:
+- Currency: SAR
+- VAT: 15%
+- RTL-first UI
+- ZATCA compliance is mandatory
+
+Seller data (VAT, CR, address, logo, IBAN) must be stored in DB.
+No hardcoded seller info in UI or PDFs.
+QR codes must be generated from persisted data only.

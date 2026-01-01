@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+---
+Before writing code:
+1) List impacted files
+2) Propose minimal change set
+3) Explain tradeoffs
+
+After writing code:
+- List files changed
+- Explain how to test manually
+- Mention edge cases handled

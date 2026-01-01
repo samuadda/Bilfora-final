@@ -19,7 +19,7 @@ import { Pricing } from "@/components/landing-page/Pricing";
 import { FAQ } from "@/components/landing-page/FAQ";
 import { Logos } from "@/components/landing-page/Logos";
 import { useState, useEffect, useRef } from "react";
-import { Section, Container, Typography, Card, Button } from "@/components/ui";
+import { Section, Container, Heading, Text, Card, Button } from "@/components/ui";
 import { layout } from "@/lib/ui/tokens";
 
 function StatNumber({

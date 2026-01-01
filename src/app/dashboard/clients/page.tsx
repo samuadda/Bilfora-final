@@ -502,7 +502,9 @@ export default function ClientsPage() {
 		paginatedClients.every((c) => selectedClientIds.has(c.id));
 	const hasSelected = selectedClientIds.size > 0;
 
-	if (loading) return <LoadingState message="جاري تحميل العملاء..." />;
+	if (loading) {
+		return <LoadingState message="جاري تحميل العملاء..." />;
+	}
 
 	return (
 		<div className="space-y-8 pb-10">

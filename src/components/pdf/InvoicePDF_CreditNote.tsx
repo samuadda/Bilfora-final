@@ -2,6 +2,7 @@
 
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { InvoiceWithClientAndItems, Client, InvoiceItem } from "@/types/database";
+import type { InvoiceSettings } from "@/features/settings/schemas/invoiceSettings.schema";
 import {
 	baseStyles as s,
 	safeText,
@@ -10,18 +11,11 @@ import {
 } from "./sharedStyles";
 import { convertToHijri } from "@/lib/dateConvert";
 
-interface SellerInfo {
-	name: string;
-	crNumber: string;
-	vatNumber: string;
-	address: string;
-}
-
 interface InvoicePDF_CreditNoteProps {
 	invoice: InvoiceWithClientAndItems;
 	client: Client | null;
 	items: InvoiceItem[];
-	sellerInfo: SellerInfo;
+	invoiceSettings: InvoiceSettings;
 	relatedInvoiceNumber?: string;
 }
 
@@ -29,9 +23,15 @@ export function InvoicePDF_CreditNote({
 	invoice,
 	client,
 	items,
-	sellerInfo,
+	invoiceSettings,
 	relatedInvoiceNumber,
 }: InvoicePDF_CreditNoteProps) {
+	const sellerName = invoiceSettings.seller_name;
+	const vatNumber = invoiceSettings.vat_number;
+	const crNumber = invoiceSettings.cr_number;
+	const address = [invoiceSettings.address_line1, invoiceSettings.city].filter(Boolean).join("، ");
+	const iban = invoiceSettings.iban;
+
 	// Calculate totals (negative for credit note)
 	const subtotal = items.reduce(
 		(sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
@@ -83,22 +83,36 @@ export function InvoicePDF_CreditNote({
 				<View style={s.infoSection}>
 					<Text style={s.infoSectionTitle}>معلومات البائع</Text>
 					<View style={s.infoBox}>
-						<View style={s.infoRow}>
-							<Text style={s.infoLabel}>الاسم:</Text>
-							<Text style={s.infoValue}>{safeText(sellerInfo.name)}</Text>
-						</View>
-						<View style={s.infoRow}>
-							<Text style={s.infoLabel}>الرقم التجاري:</Text>
-							<Text style={s.infoValue}>{safeText(sellerInfo.crNumber)}</Text>
-						</View>
-						<View style={s.infoRow}>
-							<Text style={s.infoLabel}>الرقم الضريبي:</Text>
-							<Text style={s.infoValue}>{safeText(sellerInfo.vatNumber)}</Text>
-						</View>
-						<View style={s.infoRow}>
-							<Text style={s.infoLabel}>العنوان:</Text>
-							<Text style={s.infoValue}>{safeText(sellerInfo.address)}</Text>
-						</View>
+						{sellerName && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>الاسم:</Text>
+								<Text style={s.infoValue}>{safeText(sellerName)}</Text>
+							</View>
+						)}
+						{crNumber && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>الرقم التجاري:</Text>
+								<Text style={s.infoValue}>{safeText(crNumber)}</Text>
+							</View>
+						)}
+						{vatNumber && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>الرقم الضريبي:</Text>
+								<Text style={s.infoValue}>{safeText(vatNumber)}</Text>
+							</View>
+						)}
+						{address && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>العنوان:</Text>
+								<Text style={s.infoValue}>{safeText(address)}</Text>
+							</View>
+						)}
+						{iban && (
+							<View style={s.infoRow}>
+								<Text style={s.infoLabel}>الآيبان:</Text>
+								<Text style={s.infoValue}>{safeText(iban)}</Text>
+							</View>
+						)}
 					</View>
 				</View>
 

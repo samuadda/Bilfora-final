@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+
+Invoice PDFs must use a single source of truth for seller data.
+
+The invoice detail page is responsible for fetching:
+- invoice
+- client
+- invoice items
+- invoice_settings (seller name, VAT number, CR, address, logo, IBAN, defaults)
+
+The PDF renderer MUST receive seller data only via the `invoice_settings` object.
+Hardcoded sellerInfo constants are forbidden anywhere in the codebase.
+
+PDF components must never fetch data themselves or construct seller data.
+They are pure renderers only.

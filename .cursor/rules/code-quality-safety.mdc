@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+Code quality rules:
+- TypeScript strict, no any, no ts-ignore
+- No duplicated logic
+- Use zod for all validations
+- Explicit return types for exported functions
+- Small composable components only
